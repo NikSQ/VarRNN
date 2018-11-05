@@ -27,12 +27,12 @@ labelled_data_config = {'dataset': timit_dataset,
                         'tr': {'in_seq_len': 20,
                                'out_seq_len': 5,
                                'zero_padding': 12,
-                               'mini_batch_mode': True,
+                               'mini_batch_mode': False,
                                'batch_size': 100},
                         'va': {'in_seq_len': 16,
                                'out_seq_len': 2,
                                'zero_padding': 12,
-                               'mini_batch_mode': True,
+                               'mini_batch_mode': False,
                                'batch_size': 100}}
 
 input_config = {'layer_type': 'input'}
@@ -82,7 +82,7 @@ rnn_config = {'layout': [13, 5, 54],
               'output_type': 'classification',
               'data_multiplier': 1}
 
-training_config = {'learning_rate': 0.01,
+training_config = {'learning_rate': 0.05,
                    'max_epochs': 1000,
                    'mode': {'name': 'inc_lengths',
                             'in_seq_len': [1, 2, 4, 8, 16],
@@ -92,12 +92,12 @@ training_config = {'learning_rate': 0.01,
                             'max_epochs': [20, 20, 20, 20, 20]},
                    'task_id': task_id}
 
-training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 1000}
+training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 500}
 
 info_config = {'calc_performance_every': 1,
                'include_pred': False,
                'include_out': False,
-               'tensorboard': {'is_enabled': True, 'path': '../tb/run2', 'period': 2,
+               'tensorboard': {'is_enabled': True, 'path': '../tb/run2', 'period': 1,
                                'weights': True, 'gradients': True, 'loss': True}}
 
 result_config = {'save_results': False,

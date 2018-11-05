@@ -9,6 +9,7 @@ import copy
 
 class RNN:
     def __init__(self, rnn_config, labelled_data):
+        self.c = None
         self.rnn_config = rnn_config
         self.labelled_data = labelled_data
         self.layers = []
@@ -75,14 +76,14 @@ class RNN:
         v_output = tf.cast(tf.concat(v_outputs, axis=2), dtype=tf.float64)
 
         if self.rnn_config['output_type'] == 'classification':
-            smax = tf.nn.softmax(logits=m_output, axis=1) + np.finfo(np.float64).eps
+            smax = tf.nn.softmax(logits=m_output, axis=1)
             t = tf.argmax(y, axis=1)
             batch_range = np.arange(y_shape[0])
             seq_range = np.arange(y_shape[2])
             seqq, batchh = np.meshgrid(seq_range, batch_range)
             g_indices = tf.concat([np.expand_dims(batchh, axis=2), tf.expand_dims(t, axis=2),
                                   np.expand_dims(seqq, axis=2)], axis=2)
-            e_log_likelihood = tf.log(tf.reduce_mean(tf.gather_nd(smax, g_indices))) - \
+            e_log_likelihood = tf.log(np.finfo(np.float64).eps + tf.reduce_mean(tf.gather_nd(smax, g_indices))) - \
                 0.5 * tf.reduce_mean(tf.reduce_sum(tf.multiply(v_output, tf.multiply(smax, 1 - smax)), axis=1))
             kl_loss = 0
             for layer in self.layers:
@@ -108,7 +109,7 @@ class RNN:
 
             gradient_summaries = []
             for layer_idx in range(len(self.gradients)):
-                gradient_summaries.append(tf.summary.histogram('gradients' + str(layer_idx),
+                gradient_summaries.append(tf.summary.histogram('gradients',
                                                                self.gradients[layer_idx][0]))
             self.gradient_summaries = tf.summary.merge(gradient_summaries)
 
