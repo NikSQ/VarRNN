@@ -94,15 +94,6 @@ class Experiment:
                                                                    self.labelled_data.batch_counter: minibatch_idx})
                     else:
                         sess.run(self.rnn.train_op, feed_dict={self.rnn.learning_rate: training_config['learning_rate']})
-                        #grads = sess.run(self.rnn.gradients, feed_dict={self.labelled_data.batch_counter: 0})
-                        #for idx, g in enumerate(grads):
-                            #print("IDX: {}, NAN: {}, SHAPE: {}".format(idx, sum(np.isnan(g[0])), g[0].shape))
-                            #print("IDX: {}, NAN: {}, SHAPE: {}".format(idx, sum(np.isnan(g[1])), g[1].shape))
-
-
-                        print(sess.run(self.rnn.a, feed_dict={self.labelled_data.batch_counter: 0}))
-                        print(sess.run(self.rnn.b, feed_dict={self.labelled_data.batch_counter: 0}))
-                        print(sess.run(self.rnn.c, feed_dict={self.labelled_data.batch_counter: 0}))
 
                     if info_config['tensorboard']['is_enabled'] \
                             and current_epoch % info_config['tensorboard']['period'] == 0:
