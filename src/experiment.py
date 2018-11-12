@@ -59,7 +59,6 @@ class Experiment:
                 self.create_modificated_model(rnn_config, labelled_data_config, training_config['mode'])
             elif training_config['mode']['name'] == 'classic':
                 self.data_dict = load_dataset(labelled_data_config)
-                self.remove_data(self.data_dict, 200)
                 labelled_data = LabelledData(labelled_data_config, self.data_dict['x_tr'].shape, self.data_dict['y_tr'].shape,
                                              self.data_dict['x_va'].shape, self.data_dict['y_va'].shape)
                 self.create_rnn(rnn_config, labelled_data, labelled_data_config)

@@ -25,9 +25,9 @@ def load_single_file(labelled_data_config):
     data_dict['tr_seqlen'] = np.squeeze(data_dict['tr_seqlen']).astype(np.int32)
     data_dict['va_seqlen'] = np.squeeze(data_dict['va_seqlen']).astype(np.int32)
     data_dict['x_tr'], data_dict['y_tr'] = extract_seqs(data_dict['x_tr'], data_dict['y_tr'], data_dict['tr_seqlen'],
-                                                        labelled_data_config)
+                                                        labelled_data_config['tr'])
     data_dict['x_va'], data_dict['y_va'] = extract_seqs(data_dict['x_va'], data_dict['y_va'], data_dict['va_seqlen'],
-                                                        labelled_data_config)
+                                                        labelled_data_config['va'])
     return data_dict
 
 

@@ -2,6 +2,7 @@ import sys
 import os
 import tensorflow as tf
 import numpy as np
+import copy
 
 sys.path.append('../')
 
@@ -23,17 +24,17 @@ timit_l_dataset = ['timit_tr_l_0', 'timit_va_l_0']
 penstroke_dataset = 'pen_stroke_small'
 # timit: 13 -> 54
 # penstroke: 4 -> 10
-labelled_data_config = {'dataset': timit_dataset,
+labelled_data_config = {'dataset': timit_s_dataset,
                         'tr': {'in_seq_len': 20,
                                'out_seq_len': 5,
                                'zero_padding': 12,
-                               'mini_batch_mode': False,
-                               'batch_size': 100},
+                               'mini_batch_mode': True,
+                               'batch_size': 5000},
                         'va': {'in_seq_len': 16,
                                'out_seq_len': 2,
                                'zero_padding': 12,
-                               'mini_batch_mode': False,
-                               'batch_size': 100}}
+                               'mini_batch_mode': True,
+                               'batch_size': 5000}}
 
 input_config = {'layer_type': 'input'}
 
@@ -67,6 +68,9 @@ hidden_2_config = {'layer_type': 'lstm',
                    'wo': w_config,
                    'bo': w_config}
 
+hidden_1_config = copy.deepcopy(hidden_2_config)
+hidden_1_config['var_scope'] = 'lstm_0'
+
 output_config = {'layer_type': 'fc',
                  'var_scope': 'output_layer',
                  'is_recurrent': False,
@@ -76,8 +80,8 @@ output_config = {'layer_type': 'fc',
                  'w': w_config,
                  'b': w_config}
 
-rnn_config = {'layout': [13, 5, 54],
-              'layer_configs': [input_config, hidden_2_config, output_config],
+rnn_config = {'layout': [13, 60, 60, 54],
+              'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
               'data_multiplier': 1}
@@ -88,16 +92,16 @@ training_config = {'learning_rate': 0.05,
                             'in_seq_len': [1, 2, 4, 8, 16],
                             'out_seq_len': [1, 1, 2, 4, 12],
                             'zero_padding': [0, 0, 0, 2, 2],
-                            'min_errors': [3.5, 3.5, 3, 2, 0.1],
-                            'max_epochs': [20, 20, 20, 20, 20]},
+                            'min_errors': [0., 0., 0., 0., 0.],
+                            'max_epochs': [20, 20, 20, 20, 10000]},
                    'task_id': task_id}
 
-training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 500}
+#training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 500}
 
 info_config = {'calc_performance_every': 1,
                'include_pred': False,
                'include_out': False,
-               'tensorboard': {'is_enabled': True, 'path': '../tb/run2', 'period': 1,
+               'tensorboard': {'is_enabled': True, 'path': '../tb/run', 'period': 5,
                                'weights': True, 'gradients': True, 'loss': True}}
 
 result_config = {'save_results': False,
@@ -110,7 +114,6 @@ for run in range(runs):
     experiment = Experiment()
     result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config))
 print('----------------------------')
-print(result_dicts[0])
 process_results(result_config, result_dicts)
 
 

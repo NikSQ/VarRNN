@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name="rnn"
-#SBATCH --workdir="/clusterFS/home/student/kopp13/ClassicRNN/src"
-#SBATCH --output=/clusterFS/home/student/kopp13/ClassicRNN/logs/test%5a.out
-#SBATCH --error=/clusterFS/home/student/kopp13/ClassicRNN/logs/test%5a.err
+#SBATCH --workdir="/clusterFS/home/student/kopp13/VarRNN/src"
+#SBATCH --output=/clusterFS/home/student/kopp13/VarRNN/logs/test%5a.out
+#SBATCH --error=/clusterFS/home/student/kopp13/VarRNN/logs/test%5a.err
 #SBATCH --open-mode=truncate
 #SBATCH --cpus-per-task=1
 #SBATCH --time=07-00
