@@ -67,7 +67,7 @@ class Experiment:
 
             model_saver = tf.train.Saver(tf.trainable_variables())
             with tf.Session() as sess:
-                writer = tf.summary.FileWriter(info_config['tensorboard']['path'])
+                writer = tf.summary.FileWriter(info_config['tensorboard']['path'] + str(training_config['task_id']))
                 sess.run(tf.global_variables_initializer())
                 if session_idx != 0:
                     model_saver.restore(sess, temp_model_path)
