@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#SBATCH --job-name="rnn"
+#SBATCH --job-name="vrnn"
 #SBATCH --workdir="/clusterFS/home/student/kopp13/VarRNN/src"
-#SBATCH --output=/clusterFS/home/student/kopp13/VarRNN/logs/test%5a.out
-#SBATCH --error=/clusterFS/home/student/kopp13/VarRNN/logs/test%5a.err
+#SBATCH --output=/clusterFS/home/student/kopp13/VarRNN/logs/no_rec%5a.out
+#SBATCH --error=/clusterFS/home/student/kopp13/VarRNN/logs/no_rec%5a.err
 #SBATCH --open-mode=truncate
 #SBATCH --cpus-per-task=1
 #SBATCH --time=07-00
@@ -11,7 +11,7 @@
 #SBATCH --gres=gpu
 #SBATCH --partition=gpu,gpu2,gpu6
 #SBATCH --exclude=diannao
-#SBATCH --array=0-0
+#SBATCH --array=0-4
 
 #################
 # configuration #

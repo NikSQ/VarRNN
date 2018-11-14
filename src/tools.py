@@ -19,7 +19,7 @@ def get_var_initializer(w_config, shape):
         w_config['prior_v'] = np.sqrt(2/sum(shape))
         init_vals = np.ones(shape) * w_config['prior_v']
     else:
-        raise Exception("{} is not a valid weight initialization".format(w_config['init_v']))
+        init_vals = np.ones(shape) * w_config['init_v']
     return tf.constant_initializer(init_vals)
 
 
