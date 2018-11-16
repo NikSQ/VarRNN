@@ -8,9 +8,10 @@ import copy
 
 
 class RNN:
-    def __init__(self, rnn_config, labelled_data):
+    def __init__(self, rnn_config, training_config, labelled_data):
         self.c = None
         self.rnn_config = rnn_config
+        self.training_config = training_config
         self.labelled_data = labelled_data
         self.layers = []
         self.train_op = None
@@ -66,8 +67,14 @@ class RNN:
 
             for layer_idx, layer in enumerate(self.layers, 1):
                 if (seq_idx >= start_output_idx) or layer.layer_config['is_recurrent']:
-                    m, v = layer.create_forward_pass(m, v, mod_rnn_config['layer_configs'][layer_idx],
-                                                            seq_idx == 0)
+                    if self.training_config['type'] == 'pfp':
+                        m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx],
+                                                seq_idx == 0)
+                    elif self.training_config['type'] == 'sampling':
+                        m = layer.create_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                    else:
+                        raise Exception('Training type not understood')
+
             if seq_idx >= start_output_idx:
                 m_outputs.append(tf.expand_dims(m, axis=2))
                 v_outputs.append(tf.expand_dims(v, axis=2))
@@ -75,7 +82,7 @@ class RNN:
         m_output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
         v_output = tf.cast(tf.concat(v_outputs, axis=2), dtype=tf.float64)
 
-        if self.rnn_config['output_type'] == 'classification':
+        if self.rnn_config['output_type'] == 'classification' and self.training_config['type'] == 'pfp':
             smax = tf.nn.softmax(logits=m_output, axis=1)
             t = tf.argmax(y, axis=1)
             batch_range = np.arange(y_shape[0])
@@ -89,7 +96,19 @@ class RNN:
             for layer in self.layers:
                 kl_loss = kl_loss + layer.kl_loss
 
-            var_free_energy = - self.rnn_config['data_multiplier']*e_log_likelihood
+            #var_free_energy = tf.cast(kl_loss, tf.float64) / self.rnn_config['data_multiplier'] - e_log_likelihood
+            var_free_energy = - e_log_likelihood
+            prediction = tf.argmax(smax, axis=1)
+            accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
+            output = None
+        elif self.rnn_config['output_type'] == 'classification' and self.training_config['type'] == 'sampling':
+            smax = tf.nn.softmax(logits=m_output, axis=1)
+            t = tf.argmax(y, axis=1)
+            kl_loss = 0
+            for layer in self.layers:
+                kl_loss = kl_loss + layer.kl_loss
+            var_free_energy = tf.cast(kl_loss, dtype=tf.float64) / self.rnn_config['data_multiplier'] \
+                              + tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_output, labels=y, dim=1))
             prediction = tf.argmax(smax, axis=1)
             accuracy = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             output = None
@@ -109,8 +128,9 @@ class RNN:
 
             gradient_summaries = []
             for layer_idx in range(len(self.gradients)):
-                gradient_summaries.append(tf.summary.histogram('gradients',
-                                                               self.gradients[layer_idx][0]))
+                if self.gradients[layer_idx][0] is not None:
+                    gradient_summaries.append(tf.summary.histogram('gradients',
+                                                                   self.gradients[layer_idx][0]))
             self.gradient_summaries = tf.summary.merge(gradient_summaries)
 
             clipped_gradients = [(grad, var) if grad is None else

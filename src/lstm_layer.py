@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
-from src.pfp_tools import approx_activation, transform_tanh_activation, transform_sig_activation, get_kl_loss
+from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation, get_kl_loss, \
+    sample_activation
 from src.tools import get_mean_initializer, get_var_initializer
 
 # LSTM LAYER
@@ -86,7 +87,7 @@ class LSTMLayer:
                 get_kl_loss(self.layer_config['wo'], self.wo_m, self.wo_v) + \
                 get_kl_loss(self.layer_config['bo'], self.bo_m, self.bo_v)
 
-    def create_forward_pass(self, x_m, x_v, mod_layer_config, init_cell_state):
+    def create_pfp(self, x_m, x_v, mod_layer_config, init_cell_state):
         if init_cell_state:
             cell_shape = (tf.shape(x_m)[0], self.b_shape[1])
             self.cell_state_m = tf.zeros(cell_shape)
@@ -119,4 +120,27 @@ class LSTMLayer:
         self.cell_output_v = tf.multiply(c_tan_v, o_2nd_mom) + tf.multiply(tf.square(c_tan_m), o_v)
 
         return self.cell_output_m, self.cell_output_v
+
+    def create_sampling_pass(self, x_m, mod_layer_config, init_cell_state):
+        if init_cell_state:
+            cell_shape = (tf.shape(x_m)[0], self.b_shape[1])
+            self.cell_state_m = tf.zeros(cell_shape)
+            self.cell_output_m = tf.zeros(cell_shape)
+
+        m = tf.concat([x_m, self.cell_state_m], axis=1)
+
+        a_f = sample_activation(self.wf_m, self.wf_v, self.bf_m, self.bf_v, m)
+        f = tf.nn.sigmoid(a_f)
+        a_i = sample_activation(self.wi_m, self.wi_v, self.bi_m, self.bi_v, m)
+        i = tf.nn.sigmoid(a_i)
+        a_c = sample_activation(self.wc_m, self.wc_v, self.bc_m, self.bc_v, m)
+        c = tf.nn.tanh(a_c)
+        a_o = sample_activation(self.wo_m, self.wc_v, self.bo_m, self.bo_v, m)
+        o = tf.nn.sigmoid(a_o)
+
+        self.cell_state_m = tf.multiply(f, self.cell_state_m) + tf.multiply(i, c)
+        self.cell_output_m = tf.multiply(tf.tanh(c), o)
+        return self.cell_output_m
+
+
 

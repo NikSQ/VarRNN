@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from src.pfp_tools import approx_activation, get_kl_loss
+from src.fp_tools import approx_activation, sample_activation, get_kl_loss
 from src.tools import get_mean_initializer, get_var_initializer
 
 
@@ -35,12 +35,15 @@ class FCLayer:
 
     # Returns the output of the layer. If its the output layer, this only returns the activation
     # TODO: Implement it for non-ouput case
-    def create_forward_pass(self, x_m, x_v, mod_layer_config, init_cell_state):
+    def create_pfp(self, x_m, x_v, mod_layer_config, init_cell_state):
         a_m, a_v = approx_activation(self.w_m, self.w_v, self.b_m, self.b_v, x_m, x_v)
         if self.layer_config['is_output']:
             return a_m, a_v
         else:
             raise Exception('fc layer can only be used as output')
+
+    def create_sampling_pass(self, x, mod_layer_config, init_cell_state):
+        return sample_activation(self.w_m, self.w_v, self.b_m, self.b_v, x)
 
 
 

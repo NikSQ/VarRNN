@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 import math
 
 
@@ -8,6 +9,14 @@ def approx_activation(w_m, w_v, b_m, b_v, x_m, x_v):
     x_sec_moment = x_v + tf.square(x_m)
     variance = tf.matmul(x_sec_moment, w_v) + tf.matmul(x_v, tf.square(w_m)) + b_v
     return mean, variance
+
+
+def sample_activation(w_m, w_v, b_m, b_v, x_m):
+    epsilon = tf.distributions.Normal(loc=0., scale=1.)
+    mean = tf.matmul(x_m, w_m) + b_m
+    std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
+    shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
+    return mean + tf.multiply(epsilon.sample(sample_shape=shape), std)
 
 
 # Used article: arxiv 1703.00091
@@ -31,8 +40,8 @@ def sigmoid_div(mu, var, var_factor):
 
 
 def get_kl_loss(w_config, m, v):
-    return tf.reduce_sum(0.5 * tf.log(tf.divide(w_config['prior_v'], v)) +
-                         tf.divide(v + tf.square(m - w_config['prior_m']), 2 * w_config['prior_v']) - 0.5)
+    return tf.reduce_sum(0.5 * tf.log(tf.divide(np.exp(w_config['prior_v']), v)) +
+                         tf.divide(v + tf.square(m - w_config['prior_m']), 2 * np.exp(w_config['prior_v'])) - 0.5)
 
 
 

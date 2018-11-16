@@ -13,11 +13,12 @@ class Experiment:
         self.labelled_data_config = None
         self.rnn_config = None
         self.data_dict = None
+        self.training_config = None
 
     def create_rnn(self, rnn_config, labelled_data, labelled_data_config):
         if self.rnn_config is None:
             self.rnn_config = rnn_config
-        self.rnn = RNN(rnn_config, labelled_data)
+        self.rnn = RNN(rnn_config, self.training_config, labelled_data)
 
         self.rnn.create_training_graph()
         self.rnn.create_validation_graph()
@@ -35,6 +36,7 @@ class Experiment:
         self.create_rnn(rnn_config, labelled_data, labelled_data_config)
 
     def train(self, rnn_config, labelled_data_config, training_config, info_config):
+        self.training_config = training_config
         print_config(rnn_config, training_config, labelled_data_config)
         temp_model_path = '../models/temp' + str(training_config['task_id'])
 
