@@ -92,7 +92,7 @@ rnn_config = {'layout': [4, 60, 60, 10],
 
 training_config = {'learning_rate': 0.002,
                    'max_epochs': 100,
-                   'type': 'sampling',
+                   'type': 'pfp',
                    'mode': {'name': 'inc_lengths',
                             'in_seq_len': [1, 2, 4, 8, 30],
                             'out_seq_len': [1, 1, 2, 4, 5],
@@ -101,13 +101,14 @@ training_config = {'learning_rate': 0.002,
                             'max_epochs': [2, 10, 30, 50, 1000]},
                    'task_id': task_id}
 
-training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 500}
+training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 10}
 
 info_config = {'calc_performance_every': 1,
                'include_pred': False,
                'include_out': False,
                'tensorboard': {'is_enabled': False, 'path': '../tb/no_rec', 'period': 1,
-                               'weights': True, 'gradients': True, 'loss': True}}
+                               'weights': True, 'gradients': True, 'loss': True},
+               'profiling': {'enabled': True, 'path': '../profiling/pfp'}}
 
 result_config = {'save_results': False,
                  'filename': '../numerical_results/test',

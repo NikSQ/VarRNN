@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.python.client import timeline
 import numpy as np
 from src.data_loader import load_dataset
 from src.data_tools import LabelledData
@@ -69,6 +70,11 @@ class Experiment:
 
             model_saver = tf.train.Saver(tf.trainable_variables())
             with tf.Session() as sess:
+                if info_config['profiling']['enabled']:
+                    options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                else:
+                    options = tf.RunOptions(trace_level=tf.RunOptions.NO_TRACE)
+                run_metadata = tf.RunMetadata()
                 writer = tf.summary.FileWriter(info_config['tensorboard']['path'] + str(training_config['task_id']))
                 sess.run(tf.global_variables_initializer())
                 if session_idx != 0:
@@ -81,6 +87,7 @@ class Experiment:
                                     self.labelled_data.y_va_placeholder: self.data_dict['y_va']})
 
                 for epoch in range(max_epochs):
+                    traces = []
                     if epoch % info_config['calc_performance_every'] == 0:
                         tr_acc, tr_loss, va_acc, va_loss = self.store_performance(sess, info_config, result_dict, epoch)
                         print('{:3}, {:2} | TrAcc: {:6.4f}, TrLoss: {:8.5f}, VaAcc: {:6.4f}, VaLoss: {:8.5f}'
@@ -92,9 +99,21 @@ class Experiment:
                         sess.run(self.labelled_data.shuffle_tr_samples)
                         for minibatch_idx in range(self.labelled_data.n_tr_minibatches):
                             sess.run(self.rnn.train_op, feed_dict={self.rnn.learning_rate: training_config['learning_rate'],
-                                                                   self.labelled_data.batch_counter: minibatch_idx})
+                                                                   self.labelled_data.batch_counter: minibatch_idx},
+                                     options=options, run_metadata=run_metadata)
+                        traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
                     else:
-                        sess.run(self.rnn.train_op, feed_dict={self.rnn.learning_rate: training_config['learning_rate']})
+                        sess.run(self.rnn.train_op, feed_dict={self.rnn.learning_rate: training_config['learning_rate']},
+                                 options=options, run_metadata=run_metadata)
+                        traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
+
+
+                    # Metadata
+                    if info_config['profiling']['enabled']:
+                        for trace_idx, trace in enumerate(traces):
+                            path = info_config['profiling']['path'] + '_' + str(current_epoch) + '_' + str(trace_idx)
+                            with open(path + 'training.json', 'w') as f:
+                                f.write(trace)
 
                     if info_config['tensorboard']['is_enabled'] \
                             and current_epoch % info_config['tensorboard']['period'] == 0:
