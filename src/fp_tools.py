@@ -1,3 +1,5 @@
+# Provides useful functions for creating the forward pass
+
 import tensorflow as tf
 import numpy as np
 import math
@@ -11,6 +13,7 @@ def approx_activation(w_m, w_v, b_m, b_v, x_m, x_v):
     return mean, variance
 
 
+# Local reparametrization
 def sample_activation(w_m, w_v, b_m, b_v, x_m):
     epsilon = tf.distributions.Normal(loc=0., scale=1.)
     mean = tf.matmul(x_m, w_m) + b_m

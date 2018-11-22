@@ -7,7 +7,7 @@ import copy
 sys.path.append('../')
 
 from src.experiment import Experiment
-from src.tools import process_results
+from src.data.t_metrics import save_to_file
 
 
 try:
@@ -17,24 +17,25 @@ except KeyError:
     print('Using ID 0 instead')
     task_id = 0
 
-runs = 1
+runs = 2
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
 timit_l_dataset = ['timit_tr_l_0', 'timit_va_l_0']
-penstroke_dataset = 'pen_stroke_small'
+red_penstroke_dataset = 'pen_stroke_small'
+penstroke_dataset = 'penstroke'
 # timit: 13 -> 54
 # penstroke: 4 -> 10
 labelled_data_config = {'dataset': penstroke_dataset,
                         'tr': {'in_seq_len': 6,
                                'out_seq_len': 1,
                                'zero_padding': 0,
-                               'mini_batch_mode': True,
-                               'batch_size': 5000},
+                               'minibatch_enabled': True,
+                               'minibatch_size': 5000},
                         'va': {'in_seq_len': 6,
                                'out_seq_len': 1,
                                'zero_padding': 0,
-                               'mini_batch_mode': True,
-                               'batch_size': 5000}}
+                               'minibatch_enabled': True,
+                               'minibatch_size': 5000}}
 
 input_config = {'layer_type': 'input'}
 
@@ -49,7 +50,7 @@ hidden_1_config = {'layer_type': 'fc',
                    'prior_b_m': 0,
                    'prior_b_v': 1}
 
-initv = [-3.]
+initv = [-4.]
 w_config = {'init_m': 'xavier', 'prior_m': 0, 'init_v': initv[task_id], 'prior_v': initv[task_id]}
 
 hidden_2_config = {'layer_type': 'lstm',
@@ -88,11 +89,11 @@ rnn_config = {'layout': [4, 60, 60, 10],
               'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
-              'data_multiplier': 100000}
+              'data_multiplier': 1000000}
 
 training_config = {'learning_rate': 0.002,
                    'max_epochs': 100,
-                   'type': 'pfp',
+                   'type': 'sampling',
                    'mode': {'name': 'inc_lengths',
                             'in_seq_len': [1, 2, 4, 8, 30],
                             'out_seq_len': [1, 1, 2, 4, 5],
@@ -101,17 +102,18 @@ training_config = {'learning_rate': 0.002,
                             'max_epochs': [2, 10, 30, 50, 1000]},
                    'task_id': task_id}
 
-training_config['mode'] = {'name': 'classic', 'min_error': 0, 'max_epochs': 10}
+training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 1}
+
+filename = 'test'
 
 info_config = {'calc_performance_every': 1,
-               'include_pred': False,
-               'include_out': False,
-               'tensorboard': {'is_enabled': False, 'path': '../tb/no_rec', 'period': 1,
-                               'weights': True, 'gradients': True, 'loss': True},
-               'profiling': {'enabled': True, 'path': '../profiling/pfp'}}
+               'n_samples': 10,
+               'tensorboard': {'enabled': False, 'path': '../tb/' + filename, 'period': 1,
+                               'weights': True, 'gradients': True, 'results': True},
+               'profiling': {'enabled': False, 'path': '../profiling/pfp'}}
 
-result_config = {'save_results': False,
-                 'filename': '../numerical_results/test',
+result_config = {'save_results': True,
+                 'path': '../numerical_results/' + filename,
                  'plot_results': False,
                  'print_final_stats': True}
 
@@ -120,6 +122,6 @@ for run in range(runs):
     experiment = Experiment()
     result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config))
 print('----------------------------')
-process_results(result_config, result_dicts)
+save_to_file(result_dicts, result_config['path'])
 
 

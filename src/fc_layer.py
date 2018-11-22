@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from src.fp_tools import approx_activation, sample_activation, get_kl_loss
-from src.tools import get_mean_initializer, get_var_initializer
+from src.tools import get_mean_initializer, get_var_initializer, get_xavier_initializer
 
 
 # FC LAYER..
@@ -23,10 +23,17 @@ class FCLayer:
             self.b_v = tf.exp(tf.get_variable(name='b_v', shape=self.b_shape,
                                        initializer=get_var_initializer(self.layer_config['b'], self.b_shape)))
 
-            self.kl_loss = get_kl_loss(self.layer_config['w'], self.w_m, self.w_v) + \
+            self.w = tf.get_variable(name='w', shape=self.w_shape, initializer=get_xavier_initializer(self.w_shape))
+            self.b = tf.get_variable(name='b', shape=self.b_shape, initializer=tf.zeros_initializer(dtype=tf.float32))
+            gauss = tf.distributions.Normal(loc=0., scale=1.)
+            w_sample_op = tf.assign(self.w, self.w_m + gauss.sample(self.w_shape) * self.w_v)
+            b_sample_op = tf.assign(self.b, self.b_m + gauss.sample(self.b_shape) * self.b_v)
+            self.sample_op = tf.group(*[w_sample_op, b_sample_op])
+
+            self.kl = get_kl_loss(self.layer_config['w'], self.w_m, self.w_v) + \
                 get_kl_loss(self.layer_config['b'], self.b_m, self.b_v)
 
-            summary_ops = []
+            summary_ops = list()
             summary_ops.append(tf.summary.histogram('w_m', self.w_m))
             summary_ops.append(tf.summary.histogram('w_v', self.w_v))
             summary_ops.append(tf.summary.histogram('b_m', self.b_m))
@@ -44,6 +51,10 @@ class FCLayer:
 
     def create_sampling_pass(self, x, mod_layer_config, init_cell_state):
         return sample_activation(self.w_m, self.w_v, self.b_m, self.b_v, x)
+
+    def create_fp(self, x, init_cell_state):
+        if self.layer_config['is_output']:
+            return tf.matmul(x, self.w) + self.b
 
 
 
