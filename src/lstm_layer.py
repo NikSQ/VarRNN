@@ -60,14 +60,14 @@ class LSTMLayer:
             self.bo = tf.get_variable(name='bo', shape=self.b_shape, initializer=tf.zeros_initializer(dtype=tf.float32))
 
             gauss = tf.distributions.Normal(loc=0., scale=1.)
-            wf_sample_op = tf.assign(self.wf, self.wf_m + gauss.sample(self.w_shape) * self.wf_v)
-            bf_sample_op = tf.assign(self.bf, self.bf_m + gauss.sample(self.b_shape) * self.bf_v)
-            wi_sample_op = tf.assign(self.wi, self.wi_m + gauss.sample(self.w_shape) * self.wi_v)
-            bi_sample_op = tf.assign(self.bi, self.bi_m + gauss.sample(self.b_shape) * self.bi_v)
-            wc_sample_op = tf.assign(self.wc, self.wc_m + gauss.sample(self.w_shape) * self.wc_v)
-            bc_sample_op = tf.assign(self.bc, self.bc_m + gauss.sample(self.b_shape) * self.bc_v)
-            wo_sample_op = tf.assign(self.wo, self.wo_m + gauss.sample(self.w_shape) * self.wo_v)
-            bo_sample_op = tf.assign(self.bo, self.bo_m + gauss.sample(self.b_shape) * self.bo_v)
+            wf_sample_op = tf.assign(self.wf, self.wf_m + gauss.sample(self.w_shape) * tf.sqrt(self.wf_v))
+            bf_sample_op = tf.assign(self.bf, self.bf_m + gauss.sample(self.b_shape) * tf.sqrt(self.bf_v))
+            wi_sample_op = tf.assign(self.wi, self.wi_m + gauss.sample(self.w_shape) * tf.sqrt(self.wi_v))
+            bi_sample_op = tf.assign(self.bi, self.bi_m + gauss.sample(self.b_shape) * tf.sqrt(self.bi_v))
+            wc_sample_op = tf.assign(self.wc, self.wc_m + gauss.sample(self.w_shape) * tf.sqrt(self.wc_v))
+            bc_sample_op = tf.assign(self.bc, self.bc_m + gauss.sample(self.b_shape) * tf.sqrt(self.bc_v))
+            wo_sample_op = tf.assign(self.wo, self.wo_m + gauss.sample(self.w_shape) * tf.sqrt(self.wo_v))
+            bo_sample_op = tf.assign(self.bo, self.bo_m + gauss.sample(self.b_shape) * tf.sqrt(self.bo_v))
             self.sample_op = tf.group(*[wf_sample_op, bf_sample_op, wi_sample_op, bi_sample_op,
                                         wc_sample_op, bc_sample_op, wo_sample_op, bo_sample_op])
 

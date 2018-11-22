@@ -17,17 +17,17 @@ class FCLayer:
             self.w_m = tf.get_variable(name='w_m', shape=self.w_shape,
                                        initializer=get_mean_initializer(self.layer_config['w'], self.w_shape))
             self.w_v = tf.exp(tf.get_variable(name='w_v', shape=self.w_shape,
-                                       initializer=get_var_initializer(self.layer_config['w'], self.w_shape)))
+                                              initializer=get_var_initializer(self.layer_config['w'], self.w_shape)))
             self.b_m = tf.get_variable(name='b_m', shape=self.b_shape,
                                        initializer=get_mean_initializer(self.layer_config['b'], self.b_shape))
             self.b_v = tf.exp(tf.get_variable(name='b_v', shape=self.b_shape,
-                                       initializer=get_var_initializer(self.layer_config['b'], self.b_shape)))
+                                              initializer=get_var_initializer(self.layer_config['b'], self.b_shape)))
 
             self.w = tf.get_variable(name='w', shape=self.w_shape, initializer=get_xavier_initializer(self.w_shape))
             self.b = tf.get_variable(name='b', shape=self.b_shape, initializer=tf.zeros_initializer(dtype=tf.float32))
             gauss = tf.distributions.Normal(loc=0., scale=1.)
-            w_sample_op = tf.assign(self.w, self.w_m + gauss.sample(self.w_shape) * self.w_v)
-            b_sample_op = tf.assign(self.b, self.b_m + gauss.sample(self.b_shape) * self.b_v)
+            w_sample_op = tf.assign(self.w, self.w_m + gauss.sample(self.w_shape) * tf.sqrt(self.w_v))
+            b_sample_op = tf.assign(self.b, self.b_m + gauss.sample(self.b_shape) * tf.sqrt(self.b_v))
             self.sample_op = tf.group(*[w_sample_op, b_sample_op])
 
             self.kl = get_kl_loss(self.layer_config['w'], self.w_m, self.w_v) + \

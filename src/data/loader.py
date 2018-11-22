@@ -18,7 +18,7 @@ filenames = {'red_penstroke': '../datasets/mnist_pen_strokes/mnist_pen_stroke_50
 def load_dataset(l_data_config):
     entry = l_data_config['dataset']
     if entry == 'penstroke':
-        data_dict = load_full_penstroke(l_data_config)
+        data_dict = load_penstroke(l_data_config)
     elif type(entry) is str:
         data_dict = load_single_file(l_data_config)
     else:
@@ -53,12 +53,13 @@ def load_files(l_data_config):
     return data_dict
 
 
-def load_full_penstroke(l_data_config):
+def load_penstroke(l_data_config):
     data_dict = {'tr': {}, 'va': {}, 'te': {}}
     for data_key in data_dict.keys():
         dataset = loadmat(filenames['penstroke_' + data_key])
         data_dict[data_key]['seqlen'] = np.squeeze(dataset['seqlen']).astype(np.int32)
         data_dict[data_key]['x'], data_dict[data_key]['y'] = extract_seqs(dataset['x'], dataset['y'],
-                                                                  dataset['seqlen'], l_data_config['tr'])
+                                                                          data_dict[data_key]['seqlen'],
+                                                                          l_data_config['tr'])
     return data_dict
 

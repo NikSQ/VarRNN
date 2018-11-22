@@ -35,6 +35,11 @@ labelled_data_config = {'dataset': penstroke_dataset,
                                'out_seq_len': 1,
                                'zero_padding': 0,
                                'minibatch_enabled': True,
+                               'minibatch_size': 5000},
+                        'te': {'in_seq_len': 6,
+                               'out_seq_len': 1,
+                               'zero_padding': 0,
+                               'minibatch_enabled': True,
                                'minibatch_size': 5000}}
 
 input_config = {'layer_type': 'input'}
