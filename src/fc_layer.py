@@ -32,6 +32,7 @@ class FCLayer:
 
             self.kl = get_kl_loss(self.layer_config['w'], self.w_m, self.w_v) + \
                 get_kl_loss(self.layer_config['b'], self.b_m, self.b_v)
+            self.v_loss = tf.nn.l2_loss(self.b_v) + tf.nn.l2_loss(self.w_v)
 
             summary_ops = list()
             summary_ops.append(tf.summary.histogram('w_m', self.w_m))

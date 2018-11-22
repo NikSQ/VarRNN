@@ -119,23 +119,33 @@ class RNN:
                 seqq, batchh = np.meshgrid(seq_range, batch_range)
                 g_indices = tf.concat([np.expand_dims(batchh, axis=2), tf.expand_dims(t, axis=2),
                                       np.expand_dims(seqq, axis=2)], axis=2)
-                elogl = tf.log(np.finfo(np.float64).eps + tf.reduce_mean(tf.gather_nd(smax, g_indices))) - \
+                elogl = tf.reduce_mean(tf.log(np.finfo(np.float64).eps + tf.gather_nd(smax, g_indices))) - \
                     0.5 * tf.reduce_mean(tf.reduce_sum(tf.multiply(v_output, tf.multiply(smax, 1 - smax)), axis=1))
                 kl = 0
+                v_loss = 0
                 for layer in self.layers:
                     kl = kl + layer.kl
-                nelbo = tf.cast(kl, tf.float64) / self.rnn_config['data_multiplier'] - elogl
+                    v_loss = v_loss + layer.v_loss
+                scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
+                                                       self.l_data.l_data_config[data_key]['minibatch_size'] *
+                                                       self.l_data.data[data_key]['n_minibatches'])
+                nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif self.rnn_config['output_type'] == 'classification' and self.training_config['type'] == 'sampling':
                 m_output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
                 smax = tf.nn.softmax(logits=m_output, axis=1)
                 t = tf.argmax(y, axis=1)
-                kl = 0
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_output, labels=y, dim=1))
+                kl = 0
+                v_loss = 0
                 for layer in self.layers:
                     kl = kl + layer.kl
-                nelbo = tf.cast(kl, dtype=tf.float64) / self.rnn_config['data_multiplier'] - elogl
+                    v_loss = v_loss + layer.v_loss
+                scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
+                                                       self.l_data.l_data_config[data_key]['minibatch_size'] *
+                                                       self.l_data.data[data_key]['n_minibatches'])
+                nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             else:

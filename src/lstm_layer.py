@@ -100,6 +100,11 @@ class LSTMLayer:
             self.cell_state = None
             self.cell_output = None
 
+            self.v_loss = tf.nn.l2_loss(self.wf_v) + tf.nn.l2_loss(self.bf_v) + \
+                          tf.nn.l2_loss(self.wi_v) + tf.nn.l2_loss(self.bi_v) + \
+                          tf.nn.l2_loss(self.wc_v) + tf.nn.l2_loss(self.bc_v) + \
+                          tf.nn.l2_loss(self.wo_v) + tf.nn.l2_loss(self.bo_v)
+
             self.kl = get_kl_loss(self.layer_config['wf'], self.wf_m, self.wf_v) + \
                 get_kl_loss(self.layer_config['bf'], self.bf_m, self.bf_v) + \
                 get_kl_loss(self.layer_config['wi'], self.wi_m, self.wi_v) + \
