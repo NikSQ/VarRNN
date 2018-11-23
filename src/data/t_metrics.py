@@ -104,7 +104,6 @@ class TMetrics:
             losses.append(cum_loss / self.l_data.data[data_key]['n_minibatches'])
         losses = np.asarray(losses)
         accs = np.asarray(accs)
-        print(accs)
         self.result_dict[process_key]['m_loss'].append(np.mean(losses))
         self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
         self.result_dict[process_key]['m_acc'].append(np.mean(accs))

@@ -16,12 +16,12 @@ class FCLayer:
         with tf.variable_scope(self.layer_config['var_scope']):
             self.w_m = tf.get_variable(name='w_m', shape=self.w_shape,
                                        initializer=get_mean_initializer(self.layer_config['w'], self.w_shape))
-            self.w_v = tf.get_variable(name='w_v', shape=self.w_shape,
-                                              initializer=get_var_initializer(self.layer_config['w'], self.w_shape), trainable=False)
+            self.w_v = tf.exp(tf.get_variable(name='w_v', shape=self.w_shape,
+                                              initializer=get_var_initializer(self.layer_config['w'], self.w_shape)))
             self.b_m = tf.get_variable(name='b_m', shape=self.b_shape,
                                        initializer=get_mean_initializer(self.layer_config['b'], self.b_shape))
-            self.b_v = tf.get_variable(name='b_v', shape=self.b_shape,
-                                              initializer=get_var_initializer(self.layer_config['b'], self.b_shape), trainable=False)
+            self.b_v = tf.exp(tf.get_variable(name='b_v', shape=self.b_shape,
+                                              initializer=get_var_initializer(self.layer_config['b'], self.b_shape)))
 
             self.w = tf.get_variable(name='w', shape=self.w_shape, initializer=get_xavier_initializer(self.w_shape))
             self.b = tf.get_variable(name='b', shape=self.b_shape, initializer=tf.zeros_initializer(dtype=tf.float32))
