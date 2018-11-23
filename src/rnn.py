@@ -145,7 +145,7 @@ class RNN:
                 scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
                                                        self.l_data.l_data_config[data_key]['minibatch_size'] *
                                                        self.l_data.data[data_key]['n_minibatches'])
-                nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
+                nelbo = - elogl #+ tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             else:

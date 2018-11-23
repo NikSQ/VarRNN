@@ -20,6 +20,7 @@ def get_var_initializer(w_config, shape):
         init_vals = np.ones(shape) * w_config['prior_v']
     else:
         init_vals = np.ones(shape) * w_config['init_v']
+        init_vals = np.zeros(shape)
     return tf.constant_initializer(init_vals)
 
 

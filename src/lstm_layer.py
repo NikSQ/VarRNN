@@ -15,39 +15,39 @@ class LSTMLayer:
         with tf.variable_scope(self.layer_config['var_scope']):
             self.wf_m = tf.get_variable(name='wf_m', shape=self.w_shape,
                                         initializer=get_mean_initializer(self.layer_config['wf'], self.w_shape))
-            self.wf_v = tf.exp(tf.get_variable(name='wf_v', shape=self.w_shape,
-                                               initializer=get_var_initializer(self.layer_config['wf'], self.w_shape)))
+            self.wf_v = tf.get_variable(name='wf_v', shape=self.w_shape,
+                                               initializer=get_var_initializer(self.layer_config['wf'], self.w_shape), trainable=False)
             self.bf_m = tf.get_variable(name='bf_m', shape=self.b_shape,
                                         initializer=get_mean_initializer(self.layer_config['bf'], self.b_shape))
-            self.bf_v = tf.exp(tf.get_variable(name='bf_v', shape=self.b_shape,
-                                               initializer=get_var_initializer(self.layer_config['bf'], self.b_shape)))
+            self.bf_v = tf.get_variable(name='bf_v', shape=self.b_shape,
+                                               initializer=get_var_initializer(self.layer_config['bf'], self.b_shape), trainable=False)
 
             self.wi_m = tf.get_variable(name='wi_m', shape=self.w_shape,
                                         initializer=get_mean_initializer(self.layer_config['wi'], self.w_shape))
-            self.wi_v = tf.exp(tf.get_variable(name='wi_v', shape=self.w_shape,
-                                               initializer=get_var_initializer(self.layer_config['wi'], self.w_shape)))
+            self.wi_v = tf.get_variable(name='wi_v', shape=self.w_shape,
+                                               initializer=get_var_initializer(self.layer_config['wi'], self.w_shape), trainable=False)
             self.bi_m = tf.get_variable(name='bi_m', shape=self.b_shape,
                                         initializer=get_mean_initializer(self.layer_config['bi'], self.b_shape))
-            self.bi_v = tf.exp(tf.get_variable(name='bi_v', shape=self.b_shape,
-                                               initializer=get_var_initializer(self.layer_config['bi'], self.b_shape)))
+            self.bi_v = tf.get_variable(name='bi_v', shape=self.b_shape,
+                                               initializer=get_var_initializer(self.layer_config['bi'], self.b_shape), trainable=False)
 
             self.wc_m = tf.get_variable(name='wc_m', shape=self.w_shape,
                                         initializer=get_mean_initializer(self.layer_config['wc'], self.w_shape))
-            self.wc_v = tf.exp(tf.get_variable(name='wc_v', shape=self.w_shape,
-                                               initializer=get_var_initializer(self.layer_config['wc'], self.w_shape)))
+            self.wc_v = tf.get_variable(name='wc_v', shape=self.w_shape,
+                                               initializer=get_var_initializer(self.layer_config['wc'], self.w_shape), trainable=False)
             self.bc_m = tf.get_variable(name='bc_m', shape=self.b_shape,
                                         initializer=get_mean_initializer(self.layer_config['bc'], self.b_shape))
-            self.bc_v = tf.exp(tf.get_variable(name='bc_v', shape=self.b_shape,
-                                               initializer=get_var_initializer(self.layer_config['bc'], self.b_shape)))
+            self.bc_v = tf.get_variable(name='bc_v', shape=self.b_shape,
+                                               initializer=get_var_initializer(self.layer_config['bc'], self.b_shape), trainable=False)
 
             self.wo_m = tf.get_variable(name='wo_m', shape=self.w_shape,
                                         initializer=get_mean_initializer(self.layer_config['wo'], self.w_shape))
-            self.wo_v = tf.exp(tf.get_variable(name='wo_v', shape=self.w_shape,
-                                               initializer=get_var_initializer(self.layer_config['wo'], self.w_shape)))
+            self.wo_v = tf.get_variable(name='wo_v', shape=self.w_shape,
+                                               initializer=get_var_initializer(self.layer_config['wo'], self.w_shape), trainable=False)
             self.bo_m = tf.get_variable(name='bo_m', shape=self.b_shape,
                                         initializer=get_mean_initializer(self.layer_config['bo'], self.b_shape))
-            self.bo_v = tf.exp(tf.get_variable(name='bo_v', shape=self.b_shape,
-                                               initializer=get_var_initializer(self.layer_config['bo'], self.b_shape)))
+            self.bo_v = tf.get_variable(name='bo_v', shape=self.b_shape,
+                                               initializer=get_var_initializer(self.layer_config['bo'], self.b_shape), trainable=False)
 
             self.wf = tf.get_variable(name='wf', shape=self.w_shape, initializer=get_xavier_initializer(self.w_shape))
             self.bf = tf.get_variable(name='bf', shape=self.b_shape,
@@ -166,7 +166,7 @@ class LSTMLayer:
         o = tf.nn.sigmoid(a_o)
 
         self.cell_state_m = tf.multiply(f, self.cell_state_m) + tf.multiply(i, c)
-        self.cell_output_m = tf.multiply(tf.tanh(c), o)
+        self.cell_output_m = tf.multiply(tf.tanh(self.cell_state_m), o)
         return self.cell_output_m
 
     def create_fp(self, x, init_cell_state):

@@ -99,6 +99,12 @@ class Experiment:
 
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
                     # then do a training step for each minibatch.
+                    W = list()
+                    for i in range(10):
+                        sess.run(self.rnn.sample_op)
+                        W.append(sess.run(self.rnn.layers[-1].w))
+                    print(W[0] == W[1])
+
                     sess.run(self.l_data.data['tr']['shuffle'])
                     traces = list()
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):

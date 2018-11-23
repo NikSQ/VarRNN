@@ -51,9 +51,9 @@ class TMetrics:
         self.result_dict.update({process_key: {'nelbo': [], 'kl': [], 'elogl': [], 'acc': []}})
         self.op_dict.update({process_key: [nelbo_op, kl_op, elogl_op, accs_op]})
 
-    def add_s_vars(self, dict_key, sample_op, loss_op, accs_op):
-        self.result_dict.update({dict_key: {'m_loss': [], 's_loss': [], 'm_acc': [], 's_acc': []}})
-        self.op_dict.update({dict_key: {'metrics': [loss_op, accs_op], 'sample': sample_op}})
+    def add_s_vars(self, process_key, sample_op, loss_op, accs_op):
+        self.result_dict.update({process_key: {'m_loss': [], 's_loss': [], 'm_acc': [], 's_acc': []}})
+        self.op_dict.update({process_key: {'metrics': [loss_op, accs_op], 'sample': sample_op}})
 
     # Retrieves metrics of the performance of the processes which were added using add_vars()
     # A process is a method of operating a RNN (bayesian or sampled weights) combined with a dataset
@@ -95,6 +95,7 @@ class TMetrics:
             cum_acc = 0
             sess.run(self.op_dict[process_key]['sample'])
             for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
+                minibatch_idx = 0
                 loss, acc = sess.run(self.op_dict[process_key]['metrics'],
                                      feed_dict={self.l_data.batch_idx: minibatch_idx})
                 cum_loss += loss
@@ -103,6 +104,7 @@ class TMetrics:
             losses.append(cum_loss / self.l_data.data[data_key]['n_minibatches'])
         losses = np.asarray(losses)
         accs = np.asarray(accs)
+        print(accs)
         self.result_dict[process_key]['m_loss'].append(np.mean(losses))
         self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
         self.result_dict[process_key]['m_acc'].append(np.mean(accs))
