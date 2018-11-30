@@ -34,8 +34,8 @@ class RNN:
                 continue
             else:
                 raise Exception("{} is not a valid layer type".format(layer_config['layer_type']))
-            weight_summaries.append(layer.weight_summaries)
-            sample_ops.append(layer.sample_op)
+            weight_summaries.append(layer.weights.weight_summaries)
+            sample_ops.append(layer.weights.sample_op)
             self.layers.append(layer)
 
         self.sample_op = tf.group(*sample_ops)
@@ -69,15 +69,16 @@ class RNN:
             v = tf.fill(tf.shape(m), 0.)  # Variance of input to network at time seq_idx
 
             for layer_idx, layer in enumerate(self.layers, 1):
-                if (seq_idx >= start_output_idx) or layer.layer_config['is_recurrent']:
-                    if bayesian is False:
-                        m = layer.create_fp(m, seq_idx == 0)
-                    elif self.training_config['type'] == 'pfp':
-                        m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
-                    elif self.training_config['type'] == 'sampling':
-                        m = layer.create_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
-                    else:
-                        raise Exception('Training type not understood')
+                if bayesian is False:
+                    m = layer.create_fp(m, seq_idx == 0)
+                elif self.training_config['type'] == 'pfp':
+                    m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                elif self.training_config['type'] == 'l_sampling':
+                    m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                elif self.training_config['type'] == 'g_sampling':
+                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                else:
+                    raise Exception('Training type not understood')
 
             if seq_idx >= start_output_idx:
                 if bayesian:
@@ -124,7 +125,7 @@ class RNN:
                 kl = 0
                 v_loss = 0
                 for layer in self.layers:
-                    kl = kl + layer.kl
+                    kl = kl + layer.weights.kl
                     v_loss = v_loss + layer.v_loss
                 scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
                                                        self.l_data.l_data_config[data_key]['minibatch_size'] *
@@ -132,7 +133,8 @@ class RNN:
                 nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
-            elif self.rnn_config['output_type'] == 'classification' and self.training_config['type'] == 'sampling':
+            elif self.rnn_config['output_type'] == 'classification' and \
+                    (self.training_config['type'] == 'l_sampling' or self.training_config['type'] == 'g_sampling'):
                 m_output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
                 smax = tf.nn.softmax(logits=m_output, axis=1)
                 t = tf.argmax(y, axis=1)
@@ -140,12 +142,12 @@ class RNN:
                 kl = 0
                 v_loss = 0
                 for layer in self.layers:
-                    kl = kl + layer.kl
+                    kl = kl + layer.weights.kl
                     v_loss = v_loss + layer.v_loss
                 scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
                                                        self.l_data.l_data_config[data_key]['minibatch_size'] *
                                                        self.l_data.data[data_key]['n_minibatches'])
-                nelbo = - elogl #+ tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
+                nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             else:
