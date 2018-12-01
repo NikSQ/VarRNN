@@ -17,7 +17,7 @@ def save_to_file(result_dicts, path):
             raise Exception('process key {} not understood'.format(process_key))
 
         for metric_key in metrics.keys():
-            np.save(path + '_' + metric_key, metrics[metric_key])
+            np.save(path + '_' + process_key + '_' + metric_key, metrics[metric_key])
     np.save(path + '_epochs', np.asarray(result_dicts[0]['epoch']))
 
 

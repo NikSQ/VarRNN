@@ -19,6 +19,8 @@ class RNN:
         self.gradients = None  # Used to find a good value to clip
         self.t_metrics = TMetrics(l_data.l_data_config, l_data, info_config)
         self.t_metric_summaries = None
+        self.act_summaries = None
+        self.gradient_summaries = None
 
         with tf.variable_scope('global'):
             self.learning_rate = tf.placeholder(tf.float32)
@@ -40,13 +42,23 @@ class RNN:
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
-        self.gradient_summaries = None
 
         self.create_b_training_graph('tr')
         for data_key in l_data.data:
             if data_key != 'tr':
                 self.create_b_evaluation_graph(data_key)
                 self.create_s_evaluation_graph(data_key)
+                self.get_activation_summaries()
+
+    def get_activation_summaries(self):
+        for layer in self.layers:
+            with tf.variable_scope(layer.layer_config['var_scope']):
+                for act_key in layer.acts.keys():
+                    if self.act_summaries is None:
+                        self.act_summaries = tf.summary.histogram(act_key, layer.acts[act_key])
+                    else:
+                        self.act_summaries = tf.summary.merge([self.act_summaries,
+                                                               tf.summary.histogram(act_key, layer.acts[act_key])])
 
     # TODO: Make predictions based on predictive distribution rather than on mode
     def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True, record=True):
@@ -180,7 +192,7 @@ class RNN:
             gradient_summaries = []
             for layer_idx in range(len(self.gradients)):
                 if self.gradients[layer_idx][0] is not None:
-                    gradient_summaries.append(tf.summary.histogram('gradients',
+                    gradient_summaries.append(tf.summary.histogram('g_' + self.gradients[layer_idx][1].name,
                                                                    self.gradients[layer_idx][0]))
             self.gradient_summaries = tf.summary.merge(gradient_summaries)
 

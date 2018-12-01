@@ -130,7 +130,9 @@ class Experiment:
                             t_result_summaries = sess.run(self.rnn.t_metric_summaries,
                                                           feed_dict={self.l_data.batch_idx: 0})
                             writer.add_summary(t_result_summaries, current_epoch)
-
+                        if info_config['tensorboard']['acts']:
+                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.l_data.batch_idx: 0})
+                            writer.add_summary(act_summaries, current_epoch)
                     current_epoch += 1
 
                 model_saver.save(sess, temp_model_path)

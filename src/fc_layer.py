@@ -11,6 +11,7 @@ class FCLayer:
         self.layer_config = rnn_config['layer_configs'][layer_idx]
         self.w_shape = (rnn_config['layout'][layer_idx-1], rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
+        self.acts = {'n': None}
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['w', 'b']
@@ -38,8 +39,14 @@ class FCLayer:
             return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
 
     def create_fp(self, x, init):
+        act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
+        if init:
+            self.acts['n'] = act
+        else:
+            self.acts['n'] = tf.concat([self.acts['n'], act], 0)
+
         if self.layer_config['is_output']:
-            return tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
+            return act
 
 
 

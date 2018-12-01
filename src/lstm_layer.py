@@ -11,6 +11,7 @@ class LSTMLayer:
         self.w_shape = (rnn_config['layout'][layer_idx-1] + rnn_config['layout'][layer_idx],
                         rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
+        self.acts = {'f': None, 'i': None, 'c': None, 'o': None}
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
@@ -104,10 +105,23 @@ class LSTMLayer:
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
         x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
-        f = tf.sigmoid(tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf'])
-        i = tf.sigmoid(tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi'])
-        c = tf.tanh(tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc'])
-        o = tf.sigmoid(tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo'])
+
+        f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
+        i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
+        c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
+        o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
+
+        if init:
+            for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
+                self.acts[act_type] = act
+        else:
+            for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
+                self.acts[act_type] = tf.concat([act, self.acts[act_type]], 0)
+
+        f = tf.sigmoid(f_act)
+        i = tf.sigmoid(i_act)
+        c = tf.tanh(c_act)
+        o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
