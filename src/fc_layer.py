@@ -28,14 +28,14 @@ class FCLayer:
         else:
             raise Exception('fc layer can only be used as output')
 
+    def create_l_sampling_pass(self, x, mod_layer_config, init):
+        return sample_activation(self.weights.var_dict['w_m'], self.weights.var_dict['w_v'], self.weights.var_dict['b_m'], self.weights.var_dict['b_v'], x)
+
     def create_g_sampling_pass(self, x, mod_layer_config, init):
         if init:
             self.weights.create_tensor_samples()
         if self.layer_config['is_output']:
             return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
-
-    def create_l_sampling_pass(self, x, mod_layer_config, init):
-        return sample_activation(self.weights.var_dict['w_m'], self.weights.var_dict['w_v'], self.weights.var_dict['b_m'], self.weights.var_dict['b_v'], x)
 
     def create_fp(self, x, init):
         if self.layer_config['is_output']:

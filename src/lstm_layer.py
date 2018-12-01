@@ -56,24 +56,6 @@ class LSTMLayer:
 
         return self.weights.tensor_dict['co_m'], self.weights.tensor_dict['co_v']
 
-    # Global reparametrization trick
-    def create_g_sampling_pass(self, x, mod_layer_config, init):
-        if init:
-            self.weights.create_tensor_samples()
-            cell_shape = (tf.shape(x)[0], self.b_shape[1])
-            self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
-            self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
-
-        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
-        f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
-        i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
-        c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
-        o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
-
-        self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
-        return self.weights.tensor_dict['co']
-
     # Local reparametrization trick
     def create_l_sampling_pass(self, x_m, mod_layer_config, init):
         if init:
@@ -95,6 +77,24 @@ class LSTMLayer:
         self.weights.tensor_dict['cs_m'] = tf.multiply(f, self.weights.tensor_dict['cs_m']) + tf.multiply(i, c)
         self.weights.tensor_dict['co_m'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs_m']), o)
         return self.weights.tensor_dict['co_m']
+
+    # Global reparametrization trick
+    def create_g_sampling_pass(self, x, mod_layer_config, init):
+        if init:
+            self.weights.create_tensor_samples()
+            cell_shape = (tf.shape(x)[0], self.b_shape[1])
+            self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
+            self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
+
+        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+        f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
+        i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
+        c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
+        o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
+
+        self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
+        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        return self.weights.tensor_dict['co']
 
     # Classic forward pass. Requires the execution of the sampling operation first.
     def create_fp(self, x, init):

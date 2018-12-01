@@ -109,7 +109,7 @@ class Weights:
         if self.w_config[var_key]['type'] == 'continuous':
             return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.square(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
-            return tf.nn.tanh((tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
+            return tf.nn.tanh((self.var_dict[var_key + '_sb']
                                - tf.log(-tf.log(self.uniform.sample(shape)))
                                + tf.log(-tf.log(self.uniform.sample(shape))))
                               / self.layer_config['tau'])
