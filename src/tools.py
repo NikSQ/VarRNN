@@ -4,8 +4,6 @@ import tensorflow as tf
 import pprint
 
 
-
-
 def print_config(rnn_config, training_config, data_config):
     print('\n=============================\nCONFIG FILE')
     print('\nRNN CONFIG')

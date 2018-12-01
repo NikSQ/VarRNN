@@ -16,7 +16,8 @@ class FCLayer:
             var_keys = ['w', 'b']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape)
 
-            self.v_loss = tf.nn.l2_loss(self.weights.var_dict['b_v']) + tf.nn.l2_loss(self.weights.var_dict['w_v'])
+            #self.v_loss = tf.nn.l2_loss(self.weights.var_dict['b_v']) + tf.nn.l2_loss(self.weights.var_dict['w_v'])
+            self.v_loss = 0
 
     # Returns the output of the layer. If its the output layer, this only returns the activation
     # TODO: Implement it for non-ouput case
@@ -29,7 +30,7 @@ class FCLayer:
 
     def create_g_sampling_pass(self, x, mod_layer_config, init):
         if init:
-            self.weights.create_weight_samples()
+            self.weights.create_tensor_samples()
         if self.layer_config['is_output']:
             return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
 

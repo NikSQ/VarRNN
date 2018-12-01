@@ -1,5 +1,5 @@
 import tensorflow as tf
-from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation, get_kl_loss, \
+from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation, \
     sample_activation
 from src.weights import Weights
 
@@ -16,10 +16,11 @@ class LSTMLayer:
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape)
             
-            self.v_loss = tf.nn.l2_loss(self.weights.var_dict['wf_v']) + tf.nn.l2_loss(self.weights.var_dict['bf_v']) + \
-                          tf.nn.l2_loss(self.weights.var_dict['wi_v']) + tf.nn.l2_loss(self.weights.var_dict['bi_v']) + \
-                          tf.nn.l2_loss(self.weights.var_dict['wc_v']) + tf.nn.l2_loss(self.weights.var_dict['bc_v']) + \
-                          tf.nn.l2_loss(self.weights.var_dict['wo_v']) + tf.nn.l2_loss(self.weights.var_dict['bo_v'])
+            #self.v_loss = tf.nn.l2_loss(self.weights.var_dict['wf_v']) + tf.nn.l2_loss(self.weights.var_dict['bf_v']) + \
+            #              tf.nn.l2_loss(self.weights.var_dict['wi_v']) + tf.nn.l2_loss(self.weights.var_dict['bi_v']) + \
+            #              tf.nn.l2_loss(self.weights.var_dict['wc_v']) + tf.nn.l2_loss(self.weights.var_dict['bc_v']) + \
+            ##              tf.nn.l2_loss(self.weights.var_dict['wo_v']) + tf.nn.l2_loss(self.weights.var_dict['bo_v'])
+            self.v_loss = 0
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         if init:
@@ -58,7 +59,7 @@ class LSTMLayer:
     # Global reparametrization trick
     def create_g_sampling_pass(self, x, mod_layer_config, init):
         if init:
-            self.weights.create_weight_samples()
+            self.weights.create_tensor_samples()
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)

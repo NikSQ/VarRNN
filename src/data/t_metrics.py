@@ -95,7 +95,6 @@ class TMetrics:
             cum_acc = 0
             sess.run(self.op_dict[process_key]['sample'])
             for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
-                minibatch_idx = 0
                 loss, acc = sess.run(self.op_dict[process_key]['metrics'],
                                      feed_dict={self.l_data.batch_idx: minibatch_idx})
                 cum_loss += loss

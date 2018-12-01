@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import copy
-from src.fp_tools import get_kl_loss
 
 
 def get_mean_initializer(w_config, shape):
@@ -38,11 +37,13 @@ class Weights:
     def __init__(self, var_keys, layer_config, w_shape, b_shape):
         self.var_keys = var_keys
         self.gauss = tf.distributions.Normal(loc=0., scale=1.)
+        self.uniform = tf.distributions.Uniform(low=0., high=1.)
         self.w_shape = w_shape
         self.b_shape = b_shape
         self.var_dict = dict()
         self.tensor_dict = dict()
         self.w_config = dict()
+        self.layer_config = layer_config
         self.weight_summaries = None
         self.sample_op = None
         self.kl = None
@@ -77,11 +78,7 @@ class Weights:
                 self.var_dict[var_key + '_v'] = tf.exp(tf.get_variable(name=var_key + '_v', shape=shape,
                                                                 initializer=get_var_initializer(
                                                                     self.w_config[var_key], shape)))
-                kl_loss = kl_loss + get_kl_loss(self.w_config[var_key], self.var_dict[var_key + '_m'],
-                                                self.var_dict[var_key + '_v'])
 
-                sample_ops.append(tf.assign(self.var_dict[var_key], self.var_dict[var_key + '_m'] +
-                                            self.gauss.sample(shape) * tf.square(self.var_dict[var_key + '_v'])))
                 weight_summaries.append(tf.summary.histogram(var_key + '_m', self.var_dict[var_key + '_m']))
                 weight_summaries.append(tf.summary.histogram(var_key + '_v', self.var_dict[var_key + '_v']))
             # binary distribution is represented with a bernoulli parameter p(w=1) = sb
@@ -89,7 +86,6 @@ class Weights:
                 self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
                                                                  initializer=tf.zeros_initializer(), dtype=tf.float32)
                 weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
-                # TODO: add KL loss term
             # p(w=0) = sa, p(w=1 | w !=0) = sb -> from paper 1710.07739
             elif self.w_config[var_key]['type'] == 'ternary':
                 self.var_dict[var_key + '_sa'] = tf.get_variable(name=var_key + '_sa', shape=shape,
@@ -98,26 +94,55 @@ class Weights:
                                                                  initializer=tf.zeros_initializer(), dtype=tf.float32)
                 weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
                 weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
-                # TODO: add KL loss term
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_sample(var_key)))
+            kl_loss = kl_loss + self.get_kl_loss(var_key)
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
         self.kl = kl_loss
 
-    def create_weight_samples(self):
+    def generate_sample(self, var_key):
+        shape = self.var_dict[var_key].shape
+        if self.w_config[var_key]['type'] == 'continuous':
+            return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.square(self.var_dict[var_key + '_v'])
+        elif self.w_config[var_key]['type'] == 'binary':
+            return tf.nn.tanh((tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
+                               - tf.log(-tf.log(self.uniform.sample(shape)))
+                               + tf.log(-tf.log(self.uniform.sample(shape))))
+                              / self.layer_config['tau'])
+        elif self.w_config[var_key]['type'] == 'ternary':
+            # TODO: Implement ternary sampling
+            return
+        else:
+            raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+
+    def create_tensor_samples(self):
         for var_key in self.var_keys:
-            if self.w_config[var_key]['type'] == 'continuous':
-                self.tensor_dict[var_key] = self.var_dict[var_key + '_m'] + \
-                                       self.gauss.sample(self.var_dict[var_key].shape) * \
-                                       tf.sqrt(self.var_dict[var_key + '_v'])
-            elif self.w_config[var_key]['type'] == 'binary':
-                # TODO: Implement binary sampling
-                return
-            elif self.w_config[var_key]['type'] == 'ternary':
-                # TODO: Implement ternary sampling
-                return
-            else:
-                raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+            self.tensor_dict[var_key] = self.generate_sample(var_key)
+
+    def get_kl_loss(self, var_key):
+        if self.w_config[var_key]['type'] == 'continuous':
+            prior_v = np.exp(self.w_config[var_key]['prior_v'])
+            prior_m = self.w_config[var_key]['prior_m']
+            q_v = self.var_dict[var_key + '_v']
+            q_m = self.var_dict[var_key + '_m']
+            return tf.reduce_sum(0.5 * tf.log(tf.divide(prior_v, q_v)) + tf.divide(q_v + tf.square(q_m - prior_m),
+                                 2 * prior_v) - 0.5)
+        elif self.w_config[var_key]['type'] == 'binary':
+            priors = self.w_config[var_key]['priors']
+            if sum(priors) != 1:
+                raise Exception('prior probabilities are not normalized')
+            prob = tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
+            probs = [1 - prob, prob]
+            return tf.reduce_sum(priors[0] * tf.log(tf.divide(priors[0], probs[0])) +
+                                 priors[1] * tf.log(tf.divide(priors[1], probs[1])))
+        elif self.w_config[var_key]['type'] == 'ternary':
+            # TODO: Implement ternary kl loss
+            return
+        else:
+            raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+
 

@@ -42,9 +42,6 @@ def sigmoid_div(mu, var, var_factor):
     return tf.sigmoid(tf.divide(mu, tf.sqrt(1 + var_factor * var)))
 
 
-def get_kl_loss(w_config, m, v):
-    return tf.reduce_sum(0.5 * tf.log(tf.divide(np.exp(w_config['prior_v']), v)) +
-                         tf.divide(v + tf.square(m - w_config['prior_m']), 2 * np.exp(w_config['prior_v'])) - 0.5)
 
 
 

@@ -135,10 +135,10 @@ class RNN:
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif self.rnn_config['output_type'] == 'classification' and \
                     (self.training_config['type'] == 'l_sampling' or self.training_config['type'] == 'g_sampling'):
-                m_output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
-                smax = tf.nn.softmax(logits=m_output, axis=1)
+                output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
+                smax = tf.nn.softmax(logits=output, axis=1)
                 t = tf.argmax(y, axis=1)
-                elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_output, labels=y, dim=1))
+                elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
                 kl = 0
                 v_loss = 0
                 for layer in self.layers:
