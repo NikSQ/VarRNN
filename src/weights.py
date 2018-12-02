@@ -106,15 +106,20 @@ class Weights:
         self.weight_summaries = tf.summary.merge(weight_summaries)
         self.kl = kl_loss
 
-    def generate_sample(self, var_key):
+    def generate_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
         if self.w_config[var_key]['type'] == 'continuous':
             return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.square(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
-            return tf.nn.tanh((self.var_dict[var_key + '_sb']
-                               - tf.log(-tf.log(self.uniform.sample(shape)))
-                               + tf.log(-tf.log(self.uniform.sample(shape))))
-                              / self.layer_config['tau'])
+            if exact:
+                return -1. + 2. * tf.cast(tf.argmax([-self.var_dict[var_key + '_sb']
+                                                     - tf.log(-tf.log(self.uniform.sample(shape))),
+                                                     -tf.log(-tf.log(self.uniform.sample(shape)))]), dtype=tf.float32)
+            else:
+                return tf.nn.tanh((self.var_dict[var_key + '_sb']
+                                   - tf.log(-tf.log(self.uniform.sample(shape)))
+                                   + tf.log(-tf.log(self.uniform.sample(shape))))
+                                  / self.layer_config['tau'])
         elif self.w_config[var_key]['type'] == 'ternary':
             # TODO: Implement ternary sampling
             return
@@ -123,7 +128,7 @@ class Weights:
 
     def create_tensor_samples(self):
         for var_key in self.var_keys:
-            self.tensor_dict[var_key] = self.generate_sample(var_key)
+            self.tensor_dict[var_key] = self.generate_sample(var_key, True)
 
     def create_init_op(self):
         init_ops = []
