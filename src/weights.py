@@ -46,12 +46,14 @@ class Weights:
         self.layer_config = layer_config
         self.weight_summaries = None
         self.sample_op = None
+        self.init_op = None
         self.kl = None
 
         for var_key in var_keys:
             self.w_config[var_key] = copy.deepcopy(layer_config[var_key])
 
         self.create_vars()
+        self.create_init_op()
 
     def create_vars(self):
         kl_loss = 0
@@ -122,6 +124,21 @@ class Weights:
     def create_tensor_samples(self):
         for var_key in self.var_keys:
             self.tensor_dict[var_key] = self.generate_sample(var_key)
+
+    def create_init_op(self):
+        init_ops = []
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'continuous':
+                init_ops.append(tf.assign(self.var_dict[var_key + '_m'], self.var_dict[var_key]))
+            elif self.w_config[var_key]['type'] == 'binary':
+                expectation = tf.maximum(self.var_dict[var_key], self.w_config[var_key]['pmin'])
+                expectation = tf.minimum(expectation, self.w_config[var_key]['pmax'])
+                init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log((1 - expectation)/(1 + expectation))))
+            elif self.w_config[var_key]['type'] == 'ternary':
+                raise Exception()
+            else:
+                raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+        self.init_op = tf.group(*init_ops)
 
     def get_kl_loss(self, var_key):
         if self.w_config[var_key]['type'] == 'continuous':

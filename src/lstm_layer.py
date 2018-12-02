@@ -20,7 +20,7 @@ class LSTMLayer:
             #self.v_loss = tf.nn.l2_loss(self.weights.var_dict['wf_v']) + tf.nn.l2_loss(self.weights.var_dict['bf_v']) + \
             #              tf.nn.l2_loss(self.weights.var_dict['wi_v']) + tf.nn.l2_loss(self.weights.var_dict['bi_v']) + \
             #              tf.nn.l2_loss(self.weights.var_dict['wc_v']) + tf.nn.l2_loss(self.weights.var_dict['bc_v']) + \
-            ##              tf.nn.l2_loss(self.weights.var_dict['wo_v']) + tf.nn.l2_loss(self.weights.var_dict['bo_v'])
+            #              tf.nn.l2_loss(self.weights.var_dict['wo_v']) + tf.nn.l2_loss(self.weights.var_dict['bo_v'])
             self.v_loss = 0
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):

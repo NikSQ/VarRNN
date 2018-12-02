@@ -20,8 +20,6 @@ class FCLayer:
             #self.v_loss = tf.nn.l2_loss(self.weights.var_dict['b_v']) + tf.nn.l2_loss(self.weights.var_dict['w_v'])
             self.v_loss = 0
 
-    # Returns the output of the layer. If its the output layer, this only returns the activation
-    # TODO: Implement it for non-ouput case
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         a_m, a_v = approx_activation(self.weights.var_dict['w_m'], self.weights.var_dict['w_v'], self.weights.var_dict['b_m'], self.weights.var_dict['b_v'], x_m, x_v)
         if self.layer_config['is_output']:

@@ -27,6 +27,7 @@ class RNN:
 
         weight_summaries = []
         sample_ops = []
+        init_ops = []
         for layer_idx, layer_config in enumerate(self.rnn_config['layer_configs']):
             if layer_config['layer_type'] == 'fc':
                 layer = FCLayer(rnn_config, layer_idx)
@@ -38,10 +39,16 @@ class RNN:
                 raise Exception("{} is not a valid layer type".format(layer_config['layer_type']))
             weight_summaries.append(layer.weights.weight_summaries)
             sample_ops.append(layer.weights.sample_op)
+            init_ops.append(layer.weights.init_op)
             self.layers.append(layer)
 
         self.sample_op = tf.group(*sample_ops)
+        self.init_op = tf.group(*init_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
+
+        if self.training_config['is_pretrain'] is True:
+            self.create_s_training_graph('tr')
+            return
 
         self.create_b_training_graph('tr')
         for data_key in l_data.data:
@@ -109,15 +116,14 @@ class RNN:
             else:
                 raise Exception('output type of RNN not understood')
 
-            if record:
-                self.t_metrics.add_s_vars(data_key + '_s', self.sample_op, loss, acc)
-                if self.t_metric_summaries is not None:
-                    self.t_metric_summaries = tf.summary.merge([self.t_metric_summaries,
-                                                                tf.summary.scalar(data_key + '_s_loss', loss),
-                                                                tf.summary.scalar(data_key + '_s_acc', acc)])
-                else:
-                    self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_s_loss', loss),
-                                                                tf.summary.scalar(data_key + '_s_acc', acc)])
+            self.t_metrics.add_s_vars(data_key + '_s', self.sample_op, loss, acc)
+            if self.t_metric_summaries is not None:
+                self.t_metric_summaries = tf.summary.merge([self.t_metric_summaries,
+                                                            tf.summary.scalar(data_key + '_s_loss', loss),
+                                                            tf.summary.scalar(data_key + '_s_acc', acc)])
+            else:
+                self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_s_loss', loss),
+                                                            tf.summary.scalar(data_key + '_s_acc', acc)])
             return loss, acc
 
         # Process output of bayesian network
@@ -165,21 +171,20 @@ class RNN:
             else:
                 raise Exception('output type of RNN not understood')
 
-            if record:
-                self.t_metrics.add_b_vars(data_key + '_b', nelbo, kl, elogl, acc)
+            self.t_metrics.add_b_vars(data_key + '_b', nelbo, kl, elogl, acc)
 
-                if self.t_metric_summaries is not None:
-                    self.t_metric_summaries = tf.summary.merge([self.t_metric_summaries,
-                                                                tf.summary.scalar(data_key + '_b_nelbo', nelbo),
-                                                                tf.summary.scalar(data_key + '_b_kl', kl),
-                                                                tf.summary.scalar(data_key + '_b_elogl', elogl),
-                                                                tf.summary.scalar(data_key + '_b_acc', acc)])
-                else:
-                    self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_b_nelbo', nelbo),
-                                                                tf.summary.scalar(data_key + '_b_kl', kl),
-                                                                tf.summary.scalar(data_key + '_b_elogl', elogl),
-                                                                tf.summary.scalar(data_key + '_b_acc', acc)])
-            return nelbo, kl, elogl, acc
+            if self.t_metric_summaries is not None:
+                self.t_metric_summaries = tf.summary.merge([self.t_metric_summaries,
+                                                            tf.summary.scalar(data_key + '_b_nelbo', nelbo),
+                                                            tf.summary.scalar(data_key + '_b_kl', scaled_kl),
+                                                            tf.summary.scalar(data_key + '_b_elogl', elogl),
+                                                            tf.summary.scalar(data_key + '_b_acc', acc)])
+            else:
+                self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_b_nelbo', nelbo),
+                                                            tf.summary.scalar(data_key + '_b_kl', scaled_kl),
+                                                            tf.summary.scalar(data_key + '_b_elogl', elogl),
+                                                            tf.summary.scalar(data_key + '_b_acc', acc)])
+            return nelbo, scaled_kl, elogl, acc
 
     # Creates Bayesian graph for training and the operations used for training.
     def create_b_training_graph(self, key):
@@ -205,7 +210,7 @@ class RNN:
     # Creates non-Bayesian graph for training the RNN
     def create_s_training_graph(self, key):
         with tf.variable_scope(key + '_s'):
-            loss, accuracy = self.create_rnn_graph(key, None, bayesian=False, record=False)
+            loss, accuracy = self.create_rnn_graph(key, None, bayesian=False, record=True)
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.gradients = optimizer.compute_gradients(loss)
             clipped_gradients = [(grad, var) if grad is None else

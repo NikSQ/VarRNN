@@ -57,10 +57,10 @@ class TMetrics:
 
     # Retrieves metrics of the performance of the processes which were added using add_vars()
     # A process is a method of operating a RNN (bayesian or sampled weights) combined with a dataset
-    def retrieve_results(self, sess, epoch):
+    def retrieve_results(self, sess, epoch, is_pretrain=False):
         for process_key in self.op_dict.keys():
             if process_key.endswith('_s'):
-                self.retrieve_s_results(sess, process_key)
+                self.retrieve_s_results(sess, process_key, is_pretrain)
             elif process_key.endswith('_b'):
                 self.retrieve_b_results(sess, process_key)
             else:
@@ -86,14 +86,18 @@ class TMetrics:
         self.result_dict[process_key]['elogl'].append(elogl)
         self.result_dict[process_key]['acc'].append(acc)
 
-    def retrieve_s_results(self, sess, process_key):
+    def retrieve_s_results(self, sess, process_key, is_pretrain):
         data_key = process_key[:-2]
         losses = list()
         accs = list()
-        for sample_idx in range(self.info_config['n_samples']):
+        loop_range = range(1)
+        if is_pretrain is False:
+            loop_range = range(self.info_config['n_samples'])
+        for sample_idx in loop_range:
             cum_loss = 0
             cum_acc = 0
-            sess.run(self.op_dict[process_key]['sample'])
+            if is_pretrain is False:
+                sess.run(self.op_dict[process_key]['sample'])
             for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
                 loss, acc = sess.run(self.op_dict[process_key]['metrics'],
                                      feed_dict={self.l_data.batch_idx: minibatch_idx})
@@ -104,9 +108,10 @@ class TMetrics:
         losses = np.asarray(losses)
         accs = np.asarray(accs)
         self.result_dict[process_key]['m_loss'].append(np.mean(losses))
-        self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
         self.result_dict[process_key]['m_acc'].append(np.mean(accs))
-        self.result_dict[process_key]['s_acc'].append(np.std(accs, ddof=1))
+        if is_pretrain is False:
+            self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
+            self.result_dict[process_key]['s_acc'].append(np.std(accs, ddof=1))
 
     # Prints the latest metrics of the performance
     def print(self, session_idx):
