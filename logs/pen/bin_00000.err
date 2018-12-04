@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/common_shapes.py", line 686, in _call_cpp_shape_fn_impl
+    input_tensors_as_shapes, status)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/errors_impl.py", line 473, in __exit__
+    c_api.TF_GetCode(self.status.status))
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Dimensions must be equal, but are 60 and 5 for 'lstm_0/truediv' (op: 'RealDiv') with input shapes: [64,60], [5].
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "../exps/bin_test.py", line 114, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config))
+  File "../src/experiment.py", line 69, in train
+    self.create_rnn(rnn_config, l_data, l_data_config)
+  File "../src/experiment.py", line 22, in create_rnn
+    self.rnn = RNN(rnn_config, self.training_config, self.info_config, l_data)
+  File "../src/rnn.py", line 34, in __init__
+    layer = LSTMLayer(rnn_config, layer_idx)
+  File "../src/lstm_layer.py", line 18, in __init__
+    self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape)
+  File "../src/weights.py", line 54, in __init__
+    self.create_vars()
+  File "../src/weights.py", line 100, in create_vars
+    sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_sample(var_key)))
+  File "../src/weights.py", line 115, in generate_sample
+    / self.layer_config['tau'])
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/ops/math_ops.py", line 907, in binary_op_wrapper
+    return func(x, y, name=name)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/ops/math_ops.py", line 1003, in _truediv_python3
+    return gen_math_ops._real_div(x, y, name=name)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/ops/gen_math_ops.py", line 3405, in _real_div
+    "RealDiv", x=x, y=y, name=name)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/op_def_library.py", line 787, in _apply_op_helper
+    op_def=op_def)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 3162, in create_op
+    compute_device=compute_device)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 3208, in _create_op_helper
+    set_shapes_for_outputs(op)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 2427, in set_shapes_for_outputs
+    return _set_shapes_for_outputs(op)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 2400, in _set_shapes_for_outputs
+    shapes = shape_func(op)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 2330, in call_with_requiring
+    return call_cpp_shape_fn(op, require_shape_fn=True)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/common_shapes.py", line 627, in call_cpp_shape_fn
+    require_shape_fn)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/common_shapes.py", line 691, in _call_cpp_shape_fn_impl
+    raise ValueError(err.message)
+ValueError: Dimensions must be equal, but are 60 and 5 for 'lstm_0/truediv' (op: 'RealDiv') with input shapes: [64,60], [5].
