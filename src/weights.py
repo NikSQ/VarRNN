@@ -152,7 +152,7 @@ class Weights:
             if self.w_config[var_key]['type'] == 'continuous':
                 loss = loss
             elif self.w_config[var_key]['type'] == 'binary':
-                loss = loss + tf.nn.l2_loss(self.var_dict[var_key] - 1) + tf.nn.l2_loss(self.var_dict[var_key] + 1) + \
+                loss = loss + tf.nn.l2_loss(self.var_dict[var_key] - 1) + tf.nn.l2_loss(self.var_dict[var_key] + 1) - \
                        l1_regu(self.var_dict[var_key])
             else:
                 raise Exception()

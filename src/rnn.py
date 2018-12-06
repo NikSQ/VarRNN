@@ -68,7 +68,7 @@ class RNN:
                                                                tf.summary.histogram(act_key, layer.acts[act_key])])
 
     # TODO: Make predictions based on predictive distribution rather than on mode
-    def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True, record=True):
+    def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True):
         x = self.l_data.data[data_key]['x']
         y = self.l_data.data[data_key]['y']
         x_shape = self.l_data.data[data_key]['x_shape']
