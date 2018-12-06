@@ -103,17 +103,6 @@ class Experiment:
                         if self.rnn.t_metrics.result_dict['tr_b']['nelbo'][-1] < min_error:
                             break
 
-                    # Train for one full epoch. First shuffle to create new minibatches from the given data and
-                    # then do a training step for each minibatch.
-                    sess.run(self.l_data.data['tr']['shuffle'])
-                    traces = list()
-                    for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
-                        sess.run(self.rnn.train_b_op,
-                                 feed_dict={self.rnn.learning_rate: train_config['learning_rate'],
-                                            self.l_data.batch_idx: minibatch_idx},
-                                 options=options, run_metadata=run_metadata)
-                    traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
-
                     # Optionally store profiling results of this epoch in files
                     if info_config['profiling']['enabled']:
                         for trace_idx, trace in enumerate(traces):
@@ -139,6 +128,17 @@ class Experiment:
                         if info_config['tensorboard']['acts']:
                             act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.l_data.batch_idx: 0})
                             writer.add_summary(act_summaries, current_epoch)
+
+                    # Train for one full epoch. First shuffle to create new minibatches from the given data and
+                    # then do a training step for each minibatch.
+                    sess.run(self.l_data.data['tr']['shuffle'])
+                    traces = list()
+                    for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
+                        sess.run(self.rnn.train_b_op,
+                                 feed_dict={self.rnn.learning_rate: train_config['learning_rate'],
+                                            self.l_data.batch_idx: minibatch_idx},
+                                 options=options, run_metadata=run_metadata)
+                    traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
                     current_epoch += 1
 
                 model_saver.save(sess, temp_model_path)
@@ -197,6 +197,7 @@ class Experiment:
                         sess.run(self.rnn.train_s_op,
                                  feed_dict={self.rnn.learning_rate: pretrain_config['learning_rate'],
                                             self.l_data.batch_idx: minibatch_idx})
+
                 model_saver.save(sess, model_path)
                 print(self.rnn.t_metrics.result_dict['tr_s']['m_acc'][-1])
 

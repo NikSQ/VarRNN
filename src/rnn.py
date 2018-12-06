@@ -189,7 +189,11 @@ class RNN:
     # Creates Bayesian graph for training and the operations used for training.
     def create_b_training_graph(self, key):
         with tf.variable_scope(key + '_b'):
-            nelbo, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config, record=True)
+            nelbo, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
+
+            reg = 0
+            for layer in self.layers:
+                reg = reg + layer.weights.get_b_regularization()
 
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             self.gradients = optimizer.compute_gradients(nelbo)
@@ -210,11 +214,11 @@ class RNN:
     # Creates non-Bayesian graph for training the RNN
     def create_s_training_graph(self, key):
         with tf.variable_scope(key + '_s'):
-            loss, accuracy = self.create_rnn_graph(key, None, bayesian=False, record=True)
+            loss, accuracy = self.create_rnn_graph(key, None, bayesian=False)
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             reg = 0
             for layer in self.layers:
-                reg = reg + layer.weights.get_regularization()
+                reg = reg + layer.weights.get_s_regularization()
             self.gradients = optimizer.compute_gradients(loss +
                                                          self.training_config['reg'] * tf.cast(reg, dtype=tf.float64))
 
@@ -234,11 +238,11 @@ class RNN:
                 if 'regularization' in layer_config:
                     layer_config['regularization']['mode'] = None
 
-            self.create_rnn_graph(key, mod_rnn_config, record=True)
+            self.create_rnn_graph(key, mod_rnn_config)
 
     def create_s_evaluation_graph(self, data_key):
         with tf.variable_scope(data_key + '_s'):
-            self.create_rnn_graph(data_key, None, bayesian=False, record=True)
+            self.create_rnn_graph(data_key, None, bayesian=False)
 
 
 
