@@ -145,6 +145,19 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)
 
+    def get_regularization(self):
+        l1_regu = tf.contrib.layers.l1_regularizer(scale=4.0)
+        loss = 0
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'continuous':
+                loss = loss
+            elif self.w_config[var_key]['type'] == 'binary':
+                loss = loss + tf.nn.l2_loss(self.var_dict[var_key] - 1) + tf.nn.l2_loss(self.var_dict[var_key] + 1) + \
+                       l1_regu(self.var_dict[var_key])
+            else:
+                raise Exception()
+        return loss
+
     def get_kl_loss(self, var_key):
         if self.w_config[var_key]['type'] == 'continuous':
             prior_v = np.exp(self.w_config[var_key]['prior_v'])

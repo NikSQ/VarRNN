@@ -212,7 +212,12 @@ class RNN:
         with tf.variable_scope(key + '_s'):
             loss, accuracy = self.create_rnn_graph(key, None, bayesian=False, record=True)
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.gradients = optimizer.compute_gradients(loss)
+            reg = 0
+            for layer in self.layers:
+                reg = reg + layer.weights.get_regularization()
+            self.gradients = optimizer.compute_gradients(loss +
+                                                         self.training_config['reg'] * tf.cast(reg, dtype=tf.float64))
+
             clipped_gradients = [(grad, var) if grad is None else
                                  (tf.clip_by_value(grad, -self.rnn_config['gradient_clip_value'],
                                                    self.rnn_config['gradient_clip_value']), var)
