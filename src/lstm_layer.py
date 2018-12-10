@@ -1,6 +1,5 @@
 import tensorflow as tf
-from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation, \
-    sample_activation
+from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
 
 
@@ -17,10 +16,6 @@ class LSTMLayer:
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape)
             
-            #self.v_loss = tf.nn.l2_loss(self.weights.var_dict['wf_v']) + tf.nn.l2_loss(self.weights.var_dict['bf_v']) + \
-            #              tf.nn.l2_loss(self.weights.var_dict['wi_v']) + tf.nn.l2_loss(self.weights.var_dict['bi_v']) + \
-            #              tf.nn.l2_loss(self.weights.var_dict['wc_v']) + tf.nn.l2_loss(self.weights.var_dict['bc_v']) + \
-            #              tf.nn.l2_loss(self.weights.var_dict['wo_v']) + tf.nn.l2_loss(self.weights.var_dict['bo_v'])
             self.v_loss = 0
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
@@ -66,13 +61,13 @@ class LSTMLayer:
 
         m = tf.concat([x_m, self.weights.tensor_dict['co_m']], axis=1)
 
-        a_f = sample_activation(self.weights.var_dict['wf_m'], self.weights.var_dict['wf_v'], self.weights.var_dict['bf_m'], self.weights.var_dict['bf_v'], m)
+        a_f = self.weights.sample_activation('wf', 'bf', m)
         f = tf.nn.sigmoid(a_f)
-        a_i = sample_activation(self.weights.var_dict['wi_m'], self.weights.var_dict['wi_v'], self.weights.var_dict['bi_m'], self.weights.var_dict['bi_v'], m)
+        a_i = self.weights.sample_activation('wi', 'bi', m)
         i = tf.nn.sigmoid(a_i)
-        a_c = sample_activation(self.weights.var_dict['wc_m'], self.weights.var_dict['wc_v'], self.weights.var_dict['bc_m'], self.weights.var_dict['bc_v'], m)
+        a_c = self.weights.sample_activation('wc', 'bc', m)
         c = tf.nn.tanh(a_c)
-        a_o = sample_activation(self.weights.var_dict['wo_m'], self.weights.var_dict['wc_v'], self.weights.var_dict['bo_m'], self.weights.var_dict['bo_v'], m)
+        a_o = self.weights.sample_activation('wo', 'bo', m)
         o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs_m'] = tf.multiply(f, self.weights.tensor_dict['cs_m']) + tf.multiply(i, c)
@@ -80,14 +75,14 @@ class LSTMLayer:
         return self.weights.tensor_dict['co_m']
 
     # Global reparametrization trick
-    def create_g_sampling_pass(self, x, mod_layer_config, init):
+    def create_g_sampling_pass(self, x_bp, mod_layer_config, init, x_fp=None):
         if init:
             self.weights.create_tensor_samples()
-            cell_shape = (tf.shape(x)[0], self.b_shape[1])
+            cell_shape = (tf.shape(x_bp)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+        x = tf.concat([x_bp, self.weights.tensor_dict['co']], axis=1)
         f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
@@ -98,7 +93,7 @@ class LSTMLayer:
         return self.weights.tensor_dict['co']
 
     # Classic forward pass. Requires the execution of the sampling operation first.
-    def create_fp(self, x, init):
+    def create_var_fp(self, x, init):
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)

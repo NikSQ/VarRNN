@@ -13,15 +13,6 @@ def approx_activation(w_m, w_v, b_m, b_v, x_m, x_v):
     return mean, variance
 
 
-# Local reparametrization
-def sample_activation(w_m, w_v, b_m, b_v, x_m):
-    epsilon = tf.distributions.Normal(loc=0., scale=1.)
-    mean = tf.matmul(x_m, w_m) + b_m
-    std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
-    shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
-    return mean + tf.multiply(epsilon.sample(sample_shape=shape), std)
-
-
 # Used article: arxiv 1703.00091
 def transform_sig_activation(a_mu, a_var):
     pi_factor = 3/(math.pi ** 2)

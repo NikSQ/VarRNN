@@ -47,7 +47,6 @@ class Weights:
         self.weight_summaries = None
         self.sample_op = None
         self.init_op = None
-        self.kl = None
 
         for var_key in var_keys:
             self.w_config[var_key] = copy.deepcopy(layer_config[var_key])
@@ -100,11 +99,9 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
             sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_sample(var_key, True)))
-            kl_loss = kl_loss + self.get_kl_loss(var_key)
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
-        self.kl = kl_loss
 
     def generate_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
@@ -126,9 +123,9 @@ class Weights:
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-    def create_tensor_samples(self):
+    def create_tensor_samples(self, suffix=''):
         for var_key in self.var_keys:
-            self.tensor_dict[var_key] = self.generate_sample(var_key, False)
+            self.tensor_dict[var_key+suffix] = self.generate_sample(var_key, False)
 
     def create_init_op(self):
         init_ops = []
@@ -145,55 +142,80 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)
 
-    def get_b_regularization(self):
-        binary_reg_term = 0
-        binary_count = 0
+    def get_beta_reg(self):
+        beta_reg = 0
+        count = 0
         for var_key in self.var_keys:
-            if self.w_config[var_key]['type'] == 'continuous':
-                continue
-            elif self.w_config[var_key]['type'] == 'binary':
+            if self.w_config[var_key]['type'] == 'binary':
                 exp = tf.exp(-self.var_dict[var_key + '_sb'])
-                binary_reg_term = binary_reg_term + self.w_config[var_key]['beta_reg'] * \
-                           tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
-                binary_count += 1
-            else:
-                raise Exception()
-        binary_reg_term /= binary_count
-        return binary_reg_term
+                beta_reg += tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
+                count += 1
+        return tf.cast(beta_reg / count, dtype=tf.float64)
 
-    def get_s_regularization(self):
+    def get_pretraining_reg(self):
         l1_regu = tf.contrib.layers.l1_regularizer(scale=4.0)
         reg_term = 0
+        count = 0
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'binary':
+                reg_term += tf.nn.l2_loss(self.var_dict[var_key] - 1) + \
+                           tf.nn.l2_loss(self.var_dict[var_key] + 1) - l1_regu(self.var_dict[var_key])
+                count += 1
+        return tf.cast(reg_term / count, dtype=tf.float64)
+
+    # Regularizing posterior variance
+    def get_var_reg(self):
+        var_reg = 0
+        var_counter = 0
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'continuous':
-                continue
-            elif self.w_config[var_key]['type'] == 'binary':
-                reg_term = reg_term + tf.nn.l2_loss(self.var_dict[var_key] - 1) + \
-                           tf.nn.l2_loss(self.var_dict[var_key] + 1) - l1_regu(self.var_dict[var_key])
-            else:
-                raise Exception()
-        return reg_term
+                m, v = self.get_stats(var_key)
+                var_reg += tf.reduce_mean(v)
+                var_counter += 1
+        return tf.cast(var_reg / var_counter, dtype=tf.float64)
 
-    def get_kl_loss(self, var_key):
+    def get_stats(self, var_key):
         if self.w_config[var_key]['type'] == 'continuous':
-            prior_v = np.exp(self.w_config[var_key]['prior_v'])
-            prior_m = self.w_config[var_key]['prior_m']
-            q_v = self.var_dict[var_key + '_v']
-            q_m = self.var_dict[var_key + '_m']
-            return tf.reduce_sum(0.5 * tf.log(tf.divide(prior_v, q_v)) + tf.divide(q_v + tf.square(q_m - prior_m),
-                                 2 * prior_v) - 0.5)
+            m = self.var_dict[var_key + '_m']
+            v = self.var_dict[var_key + '_v']
         elif self.w_config[var_key]['type'] == 'binary':
-            priors = self.w_config[var_key]['priors']
-            if sum(priors) != 1:
-                raise Exception('prior probabilities are not normalized')
-            prob = tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
-            probs = [1 - prob, prob]
-            return tf.reduce_sum(priors[0] * tf.log(tf.divide(priors[0], probs[0])) +
-                                 priors[1] * tf.log(tf.divide(priors[1], probs[1])))
-        elif self.w_config[var_key]['type'] == 'ternary':
-            # TODO: Implement ternary kl loss
-            return
+            m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2)
+            v = tf.divide(1, tf.cosh(self.var_dict[var_key + '_sb']))
         else:
-            raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+            raise Exception()
+        return m, v
+
+    def get_kl_loss(self):
+        kl_loss = 0
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'continuous':
+                prior_v = np.exp(self.w_config[var_key]['prior_v'])
+                prior_m = self.w_config[var_key]['prior_m']
+                q_v = self.var_dict[var_key + '_v']
+                q_m = self.var_dict[var_key + '_m']
+                kl_loss += tf.reduce_sum(0.5 * tf.log(tf.divide(prior_v, q_v)) + tf.divide(q_v + tf.square(q_m - prior_m),
+                                     2 * prior_v) - 0.5)
+            elif self.w_config[var_key]['type'] == 'binary':
+                priors = self.w_config[var_key]['priors']
+                if sum(priors) != 1:
+                    raise Exception('prior probabilities are not normalized')
+                prob = tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
+                probs = [1 - prob, prob]
+                kl_loss += tf.reduce_sum(priors[0] * tf.log(tf.divide(priors[0], probs[0])) +
+                                     priors[1] * tf.log(tf.divide(priors[1], probs[1])))
+            elif self.w_config[var_key]['type'] == 'ternary':
+                raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+            else:
+                raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+        return tf.cast(kl_loss, dtype=tf.float64)
+
+    def sample_activation(self, w_var_key, b_var_key, x_m):
+        w_m, w_v = self.get_stats(w_var_key)
+        b_m, b_v = self.get_stats(b_var_key)
+
+        mean = tf.matmul(x_m, w_m) + b_m
+        std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
+        shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
+        return mean + tf.multiply(self.gauss.sample(sample_shape=shape), std)
 
 

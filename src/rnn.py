@@ -89,7 +89,7 @@ class RNN:
 
             for layer_idx, layer in enumerate(self.layers, 1):
                 if bayesian is False:
-                    m = layer.create_fp(m, seq_idx == 0)
+                    m = layer.create_var_fp(m, seq_idx == 0)
                 elif self.training_config['type'] == 'pfp':
                     m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
                 elif self.training_config['type'] == 'l_sampling':
@@ -140,15 +140,15 @@ class RNN:
                                       np.expand_dims(seqq, axis=2)], axis=2)
                 elogl = tf.reduce_mean(tf.log(np.finfo(np.float64).eps + tf.gather_nd(smax, g_indices))) - \
                     0.5 * tf.reduce_mean(tf.reduce_sum(tf.multiply(v_output, tf.multiply(smax, 1 - smax)), axis=1))
+
                 kl = 0
-                v_loss = 0
                 for layer in self.layers:
-                    kl = kl + layer.weights.kl
-                    v_loss = v_loss + layer.v_loss
-                scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
-                                                       self.l_data.l_data_config[data_key]['minibatch_size'] *
-                                                       self.l_data.data[data_key]['n_minibatches'])
-                nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
+                    kl = kl + layer.weights.get_kl_loss()
+                kl /= (self.rnn_config['data_multiplier'] *
+                       self.l_data.l_data_config[data_key]['minibatch_size'] *
+                       self.l_data.data[data_key]['n_minibatches'])
+
+                nelbo = kl - elogl
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif self.rnn_config['output_type'] == 'classification' and \
@@ -157,15 +157,15 @@ class RNN:
                 smax = tf.nn.softmax(logits=output, axis=1)
                 t = tf.argmax(y, axis=1)
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
+
                 kl = 0
-                v_loss = 0
                 for layer in self.layers:
-                    kl = kl + layer.weights.kl
-                    v_loss = v_loss + layer.v_loss
-                scaled_kl = tf.cast(kl, tf.float64) / (self.rnn_config['data_multiplier'] *
-                                                       self.l_data.l_data_config[data_key]['minibatch_size'] *
-                                                       self.l_data.data[data_key]['n_minibatches'])
-                nelbo = scaled_kl - elogl + tf.cast(v_loss, dtype=tf.float64) * self.training_config['v_loss']
+                    kl += layer.weights.get_kl_loss()
+                kl /= (self.rnn_config['data_multiplier'] *
+                       self.l_data.l_data_config[data_key]['minibatch_size'] *
+                       self.l_data.data[data_key]['n_minibatches'])
+
+                nelbo = kl - elogl
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             else:
@@ -176,27 +176,31 @@ class RNN:
             if self.t_metric_summaries is not None:
                 self.t_metric_summaries = tf.summary.merge([self.t_metric_summaries,
                                                             tf.summary.scalar(data_key + '_b_nelbo', nelbo),
-                                                            tf.summary.scalar(data_key + '_b_kl', scaled_kl),
+                                                            tf.summary.scalar(data_key + '_b_kl', kl),
                                                             tf.summary.scalar(data_key + '_b_elogl', elogl),
                                                             tf.summary.scalar(data_key + '_b_acc', acc)])
             else:
                 self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_b_nelbo', nelbo),
-                                                            tf.summary.scalar(data_key + '_b_kl', scaled_kl),
+                                                            tf.summary.scalar(data_key + '_b_kl', kl),
                                                             tf.summary.scalar(data_key + '_b_elogl', elogl),
                                                             tf.summary.scalar(data_key + '_b_acc', acc)])
-            return nelbo, scaled_kl, elogl, acc
+            return nelbo, kl, elogl, acc
 
     # Creates Bayesian graph for training and the operations used for training.
     def create_b_training_graph(self, key):
         with tf.variable_scope(key + '_b'):
             nelbo, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
 
-            reg = 0
+            beta_reg = 0
+            var_reg = 0
             for layer in self.layers:
-                reg = reg + layer.weights.get_b_regularization()
+                beta_reg += layer.weights.get_beta_reg()
+                var_reg += layer.weights.get_var_reg()
 
+            var_reg *= self.training_config['var_reg']
+            beta_reg *= self.training_config['beta_reg']
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.gradients = optimizer.compute_gradients(nelbo)
+            self.gradients = optimizer.compute_gradients(nelbo + beta_reg + var_reg)
 
             gradient_summaries = []
             for layer_idx in range(len(self.gradients)):
@@ -218,9 +222,9 @@ class RNN:
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
             reg = 0
             for layer in self.layers:
-                reg = reg + layer.weights.get_s_regularization()
-            self.gradients = optimizer.compute_gradients(loss +
-                                                         self.training_config['reg'] * tf.cast(reg, dtype=tf.float64))
+                reg += layer.weights.get_pretraining_reg()
+            reg *= self.training_config['reg']
+            self.gradients = optimizer.compute_gradients(loss + reg)
 
             clipped_gradients = [(grad, var) if grad is None else
                                  (tf.clip_by_value(grad, -self.rnn_config['gradient_clip_value'],
