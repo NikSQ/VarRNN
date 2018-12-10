@@ -99,7 +99,7 @@ class Weights:
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-            sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_sample(var_key)))
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_sample(var_key, True)))
             kl_loss = kl_loss + self.get_kl_loss(var_key)
 
         self.sample_op = tf.group(*sample_ops)
@@ -128,7 +128,7 @@ class Weights:
 
     def create_tensor_samples(self):
         for var_key in self.var_keys:
-            self.tensor_dict[var_key] = self.generate_sample(var_key, True)
+            self.tensor_dict[var_key] = self.generate_sample(var_key, False)
 
     def create_init_op(self):
         init_ops = []
@@ -146,17 +146,20 @@ class Weights:
         self.init_op = tf.group(*init_ops)
 
     def get_b_regularization(self):
-        reg_term = 0
+        binary_reg_term = 0
+        binary_count = 0
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'continuous':
                 continue
             elif self.w_config[var_key]['type'] == 'binary':
                 exp = tf.exp(-self.var_dict[var_key + '_sb'])
-                reg_term = reg_term + self.w_config[var_key]['beta_reg'] * \
-                           tf.reduce_sum(tf.divide(exp, tf.square(1 + exp)))
+                binary_reg_term = binary_reg_term + self.w_config[var_key]['beta_reg'] * \
+                           tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
+                binary_count += 1
             else:
                 raise Exception()
-        return reg_term
+        binary_reg_term /= binary_count
+        return binary_reg_term
 
     def get_s_regularization(self):
         l1_regu = tf.contrib.layers.l1_regularizer(scale=4.0)
