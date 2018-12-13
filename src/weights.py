@@ -33,6 +33,18 @@ def get_xavier_initializer(shape):
     return tf.constant_initializer(init_vals)
 
 
+def get_sb(w_config, prob_0, weight):
+    prob_1 = 0.5 * (1 + tf.divide(weight, 1 - prob_0))
+    prob_1 = tf.minimum(tf.maximum(prob_1, w_config['pmin']), w_config['pmax'])
+    return -tf.log(tf.divide(1 - prob_1, prob_1))
+
+
+def get_ternary_probs(sa, sb):
+    prob_0 = tf.nn.sigmoid(sb)
+    prob_1 = tf.nn.sigmoid(sa)*(1 - prob_0)
+    return [1. - prob_0 - prob_1, prob_0, prob_1]
+
+
 class Weights:
     def __init__(self, var_keys, layer_config, w_shape, b_shape):
         self.var_keys = var_keys
@@ -55,7 +67,6 @@ class Weights:
         self.create_init_op()
 
     def create_vars(self):
-        kl_loss = 0
         sample_ops = list()
         weight_summaries = list()
         for var_key in self.var_keys:
@@ -118,8 +129,16 @@ class Weights:
                                    + tf.log(-tf.log(self.uniform.sample(shape))))
                                   / self.layer_config['tau'])
         elif self.w_config[var_key]['type'] == 'ternary':
-            # TODO: Implement ternary sampling
-            return
+            prob_0 = tf.nn.sigmoid(self.var_dict[var_key + '_sa'])
+            prob_1 = tf.nn.sigmoid(self.var_dict[var_key + '_sb']) * (1- prob_0)
+            probs = [1. - prob_0 - prob_1, prob_0, prob_1]
+            if exact:
+                return -1. + tf.cast(tf.argmax([probs[0] - tf.log(-tf.log(self.uniform.sample(shape))),
+                                                 probs[1] - tf.log(-tf.log(self.uniform.sample(shape))),
+                                                 probs[2] - tf.log(-tf.log(self.uniform.sample(shape)))]),
+                                                dtype=tf.float32)
+            else:
+                raise Exception('gumbel is not supported for ternary weights')
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
@@ -133,11 +152,15 @@ class Weights:
             if self.w_config[var_key]['type'] == 'continuous':
                 init_ops.append(tf.assign(self.var_dict[var_key + '_m'], self.var_dict[var_key]))
             elif self.w_config[var_key]['type'] == 'binary':
-                expectation = tf.maximum(self.var_dict[var_key], self.w_config[var_key]['pmin'])
-                expectation = tf.minimum(expectation, self.w_config[var_key]['pmax'])
-                init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log((1 - expectation)/(1 + expectation))))
+                init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
+                                                                                 0., self.var_dict[var_key])))
             elif self.w_config[var_key]['type'] == 'ternary':
-                raise Exception()
+                prob_0 = self.w_config[var_key]['p0max'] - \
+                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * \
+                         tf.abs(self.var_dict[var_key])
+                init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1 - prob_0, prob_0))))
+                init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
+                                                                                 prob_0, self.var_dict[var_key])))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)
@@ -150,18 +173,18 @@ class Weights:
                 exp = tf.exp(-self.var_dict[var_key + '_sb'])
                 beta_reg += tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
                 count += 1
+        if count == 0:
+            return 0.
         return tf.cast(beta_reg / count, dtype=tf.float64)
 
     def get_pretraining_reg(self):
         l1_regu = tf.contrib.layers.l1_regularizer(scale=4.0)
         reg_term = 0
-        count = 0
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
                 reg_term += tf.nn.l2_loss(self.var_dict[var_key] - 1) + \
                            tf.nn.l2_loss(self.var_dict[var_key] + 1) - l1_regu(self.var_dict[var_key])
-                count += 1
-        return tf.cast(reg_term / count, dtype=tf.float64)
+        return tf.cast(reg_term, dtype=tf.float64)
 
     # Regularizing posterior variance
     def get_var_reg(self):
@@ -180,7 +203,12 @@ class Weights:
             v = self.var_dict[var_key + '_v']
         elif self.w_config[var_key]['type'] == 'binary':
             m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2)
-            v = tf.divide(1, tf.cosh(self.var_dict[var_key + '_sb']))
+            #v = tf.divide(2, 1 + tf.cosh(self.var_dict[var_key + '_sb']))
+            v = 1 - tf.square(m)
+        elif self.w_config[var_key]['type'] == 'ternary':
+            prob_not_zero = 1 - tf.nn.sigmoid(self.var_dict[var_key + '_sa'])
+            m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2) * prob_not_zero
+            v = prob_not_zero - tf.square(m)
         else:
             raise Exception()
         return m, v
@@ -200,11 +228,17 @@ class Weights:
                 if sum(priors) != 1:
                     raise Exception('prior probabilities are not normalized')
                 prob = tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
-                probs = [1 - prob, prob]
-                kl_loss += tf.reduce_sum(priors[0] * tf.log(tf.divide(priors[0], probs[0])) +
-                                     priors[1] * tf.log(tf.divide(priors[1], probs[1])))
+                probs = [1. - prob, prob]
+                kl_loss += tf.reduce_sum(probs[0] * tf.log(tf.divide(probs[0], priors[0])) +
+                                         probs[1] * tf.log(tf.divide(probs[1], priors[1])))
             elif self.w_config[var_key]['type'] == 'ternary':
-                raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
+                priors = self.w_config[var_key]['priors']
+                if sum(priors) != 1:
+                    raise Exception('prior probabilities are not normalized')
+                probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
+                kl_loss += tf.reduce_sum(probs[0] * tf.log(tf.divide(probs[0], priors[0])) +
+                                         probs[1] * tf.log(tf.divide(probs[1], priors[1])) +
+                                         probs[1] * tf.log(tf.divide(probs[1], priors[1])))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)

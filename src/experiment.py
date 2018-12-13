@@ -47,7 +47,7 @@ class Experiment:
         else:
             raise Exception('training mode not understood')
 
-        ##self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
+        self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
         print('pretraning is over')
         # Sessions refer to training with different architectures. If one RNN is used throughout the training process
         # then only one session is created. Training with incremental sequence lengths for example requires multiple
