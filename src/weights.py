@@ -133,9 +133,9 @@ class Weights:
             prob_1 = tf.nn.sigmoid(self.var_dict[var_key + '_sb']) * (1- prob_0)
             probs = [1. - prob_0 - prob_1, prob_0, prob_1]
             if exact:
-                return -1. + tf.cast(tf.argmax([probs[0] - tf.log(-tf.log(self.uniform.sample(shape))),
-                                                 probs[1] - tf.log(-tf.log(self.uniform.sample(shape))),
-                                                 probs[2] - tf.log(-tf.log(self.uniform.sample(shape)))]),
+                return -1. + tf.cast(tf.argmax([tf.divide(probs[0], -tf.log(self.uniform.sample(shape))),
+                                                 tf.divide(probs[1], -tf.log(self.uniform.sample(shape))),
+                                                 tf.divide(probs[2], -tf.log(self.uniform.sample(shape)))]),
                                                 dtype=tf.float32)
             else:
                 raise Exception('gumbel is not supported for ternary weights')
@@ -155,6 +155,7 @@ class Weights:
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  0., self.var_dict[var_key])))
             elif self.w_config[var_key]['type'] == 'ternary':
+                # TODO: limit weight to (-1, 1)
                 prob_0 = self.w_config[var_key]['p0max'] - \
                          (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * \
                          tf.abs(self.var_dict[var_key])
@@ -191,7 +192,7 @@ class Weights:
         var_reg = 0
         var_counter = 0
         for var_key in self.var_keys:
-            if self.w_config[var_key]['type'] == 'continuous':
+            if self.w_config[var_key]['type'] == 'continuous' or self.w_config[var_key]['type'] == 'ternary':
                 m, v = self.get_stats(var_key)
                 var_reg += tf.reduce_mean(v)
                 var_counter += 1
