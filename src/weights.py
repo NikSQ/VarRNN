@@ -40,8 +40,8 @@ def get_sb(w_config, prob_0, weight):
 
 
 def get_ternary_probs(sa, sb):
-    prob_0 = tf.nn.sigmoid(sb)
-    prob_1 = tf.nn.sigmoid(sa)*(1 - prob_0)
+    prob_0 = tf.nn.sigmoid(sa)
+    prob_1 = tf.nn.sigmoid(sb)*(1 - prob_0)
     return [1. - prob_0 - prob_1, prob_0, prob_1]
 
 
@@ -155,10 +155,9 @@ class Weights:
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  0., self.var_dict[var_key])))
             elif self.w_config[var_key]['type'] == 'ternary':
-                # TODO: limit weight to (-1, 1)
+                weight = tf.minimum(tf.maximum(self.var_dict[var_key], self.w_config['pmin']), self.w_config['pmax'])
                 prob_0 = self.w_config[var_key]['p0max'] - \
-                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * \
-                         tf.abs(self.var_dict[var_key])
+                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(weight)
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1 - prob_0, prob_0))))
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  prob_0, self.var_dict[var_key])))
@@ -239,7 +238,7 @@ class Weights:
                 probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
                 kl_loss += tf.reduce_sum(probs[0] * tf.log(tf.divide(probs[0], priors[0])) +
                                          probs[1] * tf.log(tf.divide(probs[1], priors[1])) +
-                                         probs[1] * tf.log(tf.divide(probs[1], priors[1])))
+                                         probs[2] * tf.log(tf.divide(probs[2], priors[2])))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)
