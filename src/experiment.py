@@ -39,7 +39,7 @@ class Experiment:
         self.info_config = info_config
         print_config(rnn_config, train_config, l_data_config)
         temp_model_path = '../models/temp' + str(train_config['task_id'])
-        pretrained_model_path = '../models/pretrained' + str(train_config['task_id'])
+        pretrained_model_path = '../models/' + pretrain_config['path']
 
         if train_config['mode']['name'] == 'inc_lengths':
             n_sessions = len(train_config['mode']['in_seq_len'])
@@ -48,8 +48,9 @@ class Experiment:
         else:
             raise Exception('training mode not understood')
 
-        self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
-        print('pretraning is over')
+        if pretrain_config['just_load'] is False:
+            self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
+            print('pretraning is over')
         # Sessions refer to training with different architectures. If one RNN is used throughout the training process
         # then only one session is created. Training with incremental sequence lengths for example requires multiple
         # RNNs, one for each sequence lenghts. Evaluation datasets (validation and test) are always evaluated on a fixed
@@ -82,7 +83,6 @@ class Experiment:
                 writer = tf.summary.FileWriter(info_config['tensorboard']['path'] + str(train_config['task_id']))
                 sess.run(tf.global_variables_initializer())
 
-                # TODO: Load from pretrained model
                 if session_idx != 0:
                     model_saver.restore(sess, temp_model_path)
                 else:
@@ -94,6 +94,7 @@ class Experiment:
                     sess.run(self.l_data.data[key]['load'],
                              feed_dict={self.l_data.data[key]['x_ph']: self.data_dict[key]['x'],
                                         self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
+                    sess.run(self.l_data.data[key]['shuffle'])
 
                 self.save_gradient_variance(sess, train_config)
 
@@ -172,8 +173,6 @@ class Experiment:
             np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key),
                     arr=variance)
         quit()
-
-
 
     def pretrain(self, l_data_config, pretrain_config, model_path):
         if pretrain_config['mode']['name'] == 'inc_lengths':

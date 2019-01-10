@@ -90,9 +90,12 @@ class TMetrics:
         data_key = process_key[:-2]
         losses = list()
         accs = list()
-        loop_range = range(1)
+
         if is_pretrain is False:
             loop_range = range(self.info_config['n_samples'])
+        else:
+            loop_range = range(1)
+
         for sample_idx in loop_range:
             cum_loss = 0
             cum_acc = 0
@@ -109,6 +112,7 @@ class TMetrics:
         accs = np.asarray(accs)
         self.result_dict[process_key]['m_loss'].append(np.mean(losses))
         self.result_dict[process_key]['m_acc'].append(np.mean(accs))
+
         if is_pretrain is False:
             self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
             self.result_dict[process_key]['s_acc'].append(np.std(accs, ddof=1))
