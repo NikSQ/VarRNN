@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.python.client import timeline
 from src.data.loader import load_dataset
 from src.data.labeled_data import LabeledData
@@ -94,6 +95,8 @@ class Experiment:
                              feed_dict={self.l_data.data[key]['x_ph']: self.data_dict[key]['x'],
                                         self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
 
+                self.save_gradient_variance(sess, train_config)
+
                 for epoch in range(max_epochs):
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
@@ -145,6 +148,32 @@ class Experiment:
         writer.close()
         print(time.clock() - t)
         return self.rnn.t_metrics.result_dict
+
+    # Empirically estimates variance of gradient, saves results and quits
+    def save_gradient_variance(self, sess, train_config):
+        n_gradients = 100
+        tf_grads = []
+        for grad, var in self.rnn.gradients:
+            if grad is not None:
+                tf_grads.append(grad)
+
+        gradients = {}
+        for idx in range(len(tf_grads)):
+            gradients[idx] = []
+
+        for gradient_idx in range(n_gradients):
+            gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0})
+            for idx, grad in enumerate(gradient):
+                gradients[idx].append(np.expand_dims(grad, axis=0))
+
+        for grad_key in gradients.keys():
+            grad_distribution = np.concatenate(gradients[grad_key], axis=0)
+            variance = np.var(grad_distribution, axis=0, ddof=1)
+            np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key),
+                    arr=variance)
+        quit()
+
+
 
     def pretrain(self, l_data_config, pretrain_config, model_path):
         if pretrain_config['mode']['name'] == 'inc_lengths':

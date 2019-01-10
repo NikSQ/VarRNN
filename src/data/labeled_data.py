@@ -39,8 +39,8 @@ class LabeledData:
                                       multiples=[int(np.ceil(n_samples / l_data['x_shape'][0]))])
                     l_data['shuffle'] = tf.assign(sample_list, samples[:n_samples])
 
-                    l_data['x'] = tf.gather(l_data['x'], indices=samples[self.batch_idx:self.batch_idx+batch_size])
-                    l_data['y'] = tf.gather(l_data['y'], indices=samples[self.batch_idx:self.batch_idx+batch_size])
+                    l_data['x'] = tf.gather(l_data['x'], indices=sample_list[self.batch_idx:self.batch_idx+batch_size])
+                    l_data['y'] = tf.gather(l_data['y'], indices=sample_list[self.batch_idx:self.batch_idx+batch_size])
                     l_data['x_shape'] = (l_data_config[data_key]['minibatch_size'],) + l_data['x_shape'][1:]
                     l_data['y_shape'] = (l_data_config[data_key]['minibatch_size'],) + l_data['y_shape'][1:]
                 else:

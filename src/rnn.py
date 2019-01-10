@@ -224,12 +224,12 @@ class RNN:
             for layer in self.layers:
                 reg += layer.weights.get_pretraining_reg()
             reg *= self.training_config['reg']
-            self.gradients = optimizer.compute_gradients(loss + reg)
+            gradients = optimizer.compute_gradients(loss + reg)
 
             clipped_gradients = [(grad, var) if grad is None else
                                  (tf.clip_by_value(grad, -self.rnn_config['gradient_clip_value'],
                                                    self.rnn_config['gradient_clip_value']), var)
-                                 for grad, var in self.gradients]
+                                 for grad, var in gradients]
             self.train_s_op = optimizer.apply_gradients(clipped_gradients)
 
     # Evaluation graphs are not used for training but only for evaluation. A modified RNN config file is used which

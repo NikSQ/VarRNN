@@ -155,7 +155,8 @@ class Weights:
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  0., self.var_dict[var_key])))
             elif self.w_config[var_key]['type'] == 'ternary':
-                weight = tf.minimum(tf.maximum(self.var_dict[var_key], self.w_config['pmin']), self.w_config['pmax'])
+                weight = tf.minimum(tf.maximum(self.var_dict[var_key], self.w_config[var_key]['pmin']),
+                                    self.w_config[var_key]['pmax'])
                 prob_0 = self.w_config[var_key]['p0max'] - \
                          (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(weight)
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1 - prob_0, prob_0))))
