@@ -66,6 +66,10 @@ class Weights:
         self.create_vars()
         self.create_init_op()
 
+    # Returns exponentiated sample of gumbel distribution
+    def get_exp_gumbel(self, probs, shape):
+        return tf.exp((tf.log(probs) - tf.log(-tf.log(self.uniform.sample(shape))))/self.layer_config['tau'])
+
     def create_vars(self):
         sample_ops = list()
         weight_summaries = list()
@@ -129,16 +133,15 @@ class Weights:
                                    + tf.log(-tf.log(self.uniform.sample(shape))))
                                   / self.layer_config['tau'])
         elif self.w_config[var_key]['type'] == 'ternary':
-            prob_0 = tf.nn.sigmoid(self.var_dict[var_key + '_sa'])
-            prob_1 = tf.nn.sigmoid(self.var_dict[var_key + '_sb']) * (1- prob_0)
-            probs = [1. - prob_0 - prob_1, prob_0, prob_1]
+            probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
             if exact:
                 return -1. + tf.cast(tf.argmax([tf.divide(probs[0], -tf.log(self.uniform.sample(shape))),
                                                  tf.divide(probs[1], -tf.log(self.uniform.sample(shape))),
                                                  tf.divide(probs[2], -tf.log(self.uniform.sample(shape)))]),
                                                 dtype=tf.float32)
             else:
-                raise Exception('gumbel is not supported for ternary weights')
+                exps = self.get_exp_gumbel(probs, self.var_dict[var_key].shape)
+                return tf.divide(exps[2] - exps[0], tf.reduce_sum(exps))
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
@@ -204,7 +207,6 @@ class Weights:
             v = self.var_dict[var_key + '_v']
         elif self.w_config[var_key]['type'] == 'binary':
             m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2)
-            #v = tf.divide(2, 1 + tf.cosh(self.var_dict[var_key + '_sb']))
             v = 1 - tf.square(m)
         elif self.w_config[var_key]['type'] == 'ternary':
             prob_not_zero = 1 - tf.nn.sigmoid(self.var_dict[var_key + '_sa'])

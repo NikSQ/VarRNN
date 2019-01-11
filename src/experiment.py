@@ -48,7 +48,7 @@ class Experiment:
         else:
             raise Exception('training mode not understood')
 
-        if pretrain_config['just_load'] is False:
+        if pretrain_config['no_pretraining'] is False and pretrain_config['just_load'] is False:
             self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
             print('pretraning is over')
         # Sessions refer to training with different architectures. If one RNN is used throughout the training process
@@ -85,7 +85,7 @@ class Experiment:
 
                 if session_idx != 0:
                     model_saver.restore(sess, temp_model_path)
-                else:
+                elif pretrain_config['no_pretraining'] is False:
                     model_saver.restore(sess, pretrained_model_path)
                     sess.run(self.rnn.init_op)
 
@@ -96,7 +96,7 @@ class Experiment:
                                         self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
                     sess.run(self.l_data.data[key]['shuffle'])
 
-                self.save_gradient_variance(sess, train_config)
+                # self.save_gradient_variance(sess, train_config)
 
                 for epoch in range(max_epochs):
                     # Evaluate performance on the different datasets and print some results on console
