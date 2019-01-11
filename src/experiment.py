@@ -154,9 +154,11 @@ class Experiment:
     def save_gradient_variance(self, sess, train_config):
         n_gradients = 100
         tf_grads = []
+
         for grad, var in self.rnn.gradients:
             if grad is not None:
                 tf_grads.append(grad)
+                print(var.name)
 
         gradients = {}
         for idx in range(len(tf_grads)):
