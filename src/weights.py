@@ -259,7 +259,7 @@ class Weights:
             return mean + tf.multiply(self.gauss.sample(sample_shape=shape), std)
         else:
             prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2)))
-            prob_1 = tf.minimum(tf.maximum(prob_1, 0.00001), 0.99999)  # to prevent nan values
+            prob_1 = 0.0001 + (0.9999 - 0.0001) * prob_1
             output = tf.nn.tanh((tf.log(prob_1) - tf.log(1. - prob_1)
                                  - tf.log(-tf.log(self.uniform.sample(shape)))
                                  + tf.log(-tf.log(self.uniform.sample(shape))))
