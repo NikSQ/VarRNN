@@ -66,7 +66,7 @@ class Weights:
         self.create_vars()
         self.create_init_op()
 
-    # Returns exponentiated sample of gumbel distribution
+    # Returns unnormalized probabilities of the concrete distribution
     def get_exp_gumbel(self, probs, shape):
         return tf.exp((tf.log(probs) - tf.log(-tf.log(self.uniform.sample(shape))))/self.layer_config['tau'])
 
@@ -121,7 +121,7 @@ class Weights:
     def generate_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
         if self.w_config[var_key]['type'] == 'continuous':
-            return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.square(self.var_dict[var_key + '_v'])
+            return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.sqrt(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
             if exact:
                 return -1. + 2. * tf.cast(tf.argmax([-self.var_dict[var_key + '_sb']
@@ -131,7 +131,7 @@ class Weights:
                 return tf.nn.tanh((self.var_dict[var_key + '_sb']
                                    - tf.log(-tf.log(self.uniform.sample(shape)))
                                    + tf.log(-tf.log(self.uniform.sample(shape))))
-                                  / self.layer_config['tau'])
+                                  / (self.layer_config['tau'] * 2))
         elif self.w_config[var_key]['type'] == 'ternary':
             probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
             if exact:
@@ -140,8 +140,10 @@ class Weights:
                                                  tf.divide(probs[2], -tf.log(self.uniform.sample(shape)))]),
                                                 dtype=tf.float32)
             else:
-                exps = self.get_exp_gumbel(probs, self.var_dict[var_key].shape)
-                return tf.divide(exps[2] - exps[0], tf.reduce_sum(exps))
+                exp0 = self.get_exp_gumbel(probs[0], self.var_dict[var_key].shape)
+                exp1 = self.get_exp_gumbel(probs[1], self.var_dict[var_key].shape)
+                exp2 = self.get_exp_gumbel(probs[2], self.var_dict[var_key].shape)
+                return tf.divide(exp2 - exp0, exp0 + exp1 + exp2)
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
@@ -246,13 +248,27 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)
 
-    def sample_activation(self, w_var_key, b_var_key, x_m):
+    def sample_activation(self, w_var_key, b_var_key, x_m, act_func=None):
         w_m, w_v = self.get_stats(w_var_key)
         b_m, b_v = self.get_stats(b_var_key)
-
         mean = tf.matmul(x_m, w_m) + b_m
         std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
         shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
-        return mean + tf.multiply(self.gauss.sample(sample_shape=shape), std)
+
+        if act_func is None:
+            return mean + tf.multiply(self.gauss.sample(sample_shape=shape), std)
+        else:
+            prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2)))
+            output = tf.nn.tanh((tf.log(prob_1) - tf.log(1. - prob_1)
+                                 - tf.log(-tf.log(self.uniform.sample(shape)))
+                                 + tf.log(-tf.log(self.uniform.sample(shape))))
+                                / (self.layer_config['tau'] * 2))
+            if act_func == 'tanh':
+                return output
+            elif act_func == 'sig':
+                return output * 2 - 1
+            else:
+                raise Exception('activation function not understood')
+
 
 

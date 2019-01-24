@@ -96,7 +96,7 @@ class Experiment:
                                         self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
                     sess.run(self.l_data.data[key]['shuffle'])
 
-                # self.save_gradient_variance(sess, train_config)
+                #self.save_gradient_variance(sess, train_config)
 
                 for epoch in range(max_epochs):
                     # Evaluate performance on the different datasets and print some results on console
@@ -152,7 +152,7 @@ class Experiment:
 
     # Empirically estimates variance of gradient, saves results and quits
     def save_gradient_variance(self, sess, train_config):
-        n_gradients = 100
+        n_gradients = 20
         tf_grads = []
 
         for grad, var in self.rnn.gradients:
@@ -165,6 +165,7 @@ class Experiment:
             gradients[idx] = []
 
         for gradient_idx in range(n_gradients):
+            print(gradient_idx)
             gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0})
             for idx, grad in enumerate(gradient):
                 gradients[idx].append(np.expand_dims(grad, axis=0))
@@ -172,8 +173,10 @@ class Experiment:
         for grad_key in gradients.keys():
             grad_distribution = np.concatenate(gradients[grad_key], axis=0)
             variance = np.var(grad_distribution, axis=0, ddof=1)
-            np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key),
-                    arr=variance)
+
+            print(variance)
+            #np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key),
+            #        arr=variance)
         quit()
 
     def pretrain(self, l_data_config, pretrain_config, model_path):

@@ -61,14 +61,20 @@ class LSTMLayer:
 
         m = tf.concat([x_m, self.weights.tensor_dict['co_m']], axis=1)
 
-        a_f = self.weights.sample_activation('wf', 'bf', m)
-        f = tf.nn.sigmoid(a_f)
-        a_i = self.weights.sample_activation('wi', 'bi', m)
-        i = tf.nn.sigmoid(a_i)
-        a_c = self.weights.sample_activation('wc', 'bc', m)
-        c = tf.nn.tanh(a_c)
-        a_o = self.weights.sample_activation('wo', 'bo', m)
-        o = tf.nn.sigmoid(a_o)
+        if self.layer_config['discrete_act'] is True:
+            f = self.weights.sample_activation('wf', 'bf', m, 'sig')
+            i = self.weights.sample_activation('wi', 'bi', m, 'sig')
+            c = self.weights.sample_activation('wc', 'bc', m, 'tanh')
+            o = self.weights.sample_activation('wo', 'bo', m, 'sig')
+        else:
+            a_f = self.weights.sample_activation('wf', 'bf', m)
+            f = tf.nn.sigmoid(a_f)
+            a_i = self.weights.sample_activation('wi', 'bi', m)
+            i = tf.nn.sigmoid(a_i)
+            a_c = self.weights.sample_activation('wc', 'bc', m)
+            c = tf.nn.tanh(a_c)
+            a_o = self.weights.sample_activation('wo', 'bo', m)
+            o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs_m'] = tf.multiply(f, self.weights.tensor_dict['cs_m']) + tf.multiply(i, c)
         self.weights.tensor_dict['co_m'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs_m']), o)
@@ -113,10 +119,16 @@ class LSTMLayer:
             for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
                 self.acts[act_type] = tf.concat([act, self.acts[act_type]], 0)
 
-        f = tf.sigmoid(f_act)
-        i = tf.sigmoid(i_act)
-        c = tf.tanh(c_act)
-        o = tf.sigmoid(o_act)
+        if self.layer_config['discrete_act'] is True:
+            f = tf.cast(tf.greater_equal(f_act, 0), tf.float32)
+            i = tf.cast(tf.greater_equal(i_act, 0), tf.float32)
+            c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
+            o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
+        else:
+            f = tf.sigmoid(f_act)
+            i = tf.sigmoid(i_act)
+            c = tf.tanh(c_act)
+            o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
