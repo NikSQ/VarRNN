@@ -34,14 +34,14 @@ def get_xavier_initializer(shape):
 
 
 def get_sb(w_config, prob_0, weight):
-    prob_1 = 0.5 * (1 + tf.divide(weight, 1 - prob_0))
+    prob_1 = 0.5 * (1. + tf.divide(weight, 1. - prob_0))
     prob_1 = tf.minimum(tf.maximum(prob_1, w_config['pmin']), w_config['pmax'])
-    return -tf.log(tf.divide(1 - prob_1, prob_1))
+    return -tf.log(tf.divide(1. - prob_1, prob_1))
 
 
 def get_ternary_probs(sa, sb):
-    prob_0 = tf.nn.sigmoid(sa)
-    prob_1 = tf.nn.sigmoid(sb)*(1 - prob_0)
+    prob_0 = 0.00001 + tf.nn.sigmoid(sa) * 0.00008
+    prob_1 = 0.00001 + tf.nn.sigmoid(sb)*(1 - prob_0) * 0.00008
     return [1. - prob_0 - prob_1, prob_0, prob_1]
 
 
@@ -164,7 +164,7 @@ class Weights:
                                     self.w_config[var_key]['pmax'])
                 prob_0 = self.w_config[var_key]['p0max'] - \
                          (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(weight)
-                init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1 - prob_0, prob_0))))
+                init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1. - prob_0, prob_0))))
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  prob_0, self.var_dict[var_key])))
             else:
@@ -267,7 +267,7 @@ class Weights:
             if act_func == 'tanh':
                 return output
             elif act_func == 'sig':
-                return output * 2 - 1
+                return (output + 1.) / 2.
             else:
                 raise Exception('activation function not understood')
 
