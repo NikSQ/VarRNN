@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "../exps/pen_test.py", line 119, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, train_config, pretrain_config, info_config))
+  File "../src/experiment.py", line 71, in train
+    self.create_rnn(train_config, l_data, l_data_config)
+  File "../src/experiment.py", line 21, in create_rnn
+    self.rnn = RNN(self.rnn_config, train_config, self.info_config, l_data)
+  File "../src/rnn.py", line 53, in __init__
+    self.create_b_training_graph('tr')
+  File "../src/rnn.py", line 192, in create_b_training_graph
+    nelbo, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
+  File "../src/rnn.py", line 96, in create_rnn_graph
+    m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+  File "../src/lstm_layer.py", line 65, in create_l_sampling_pass
+    f = self.weights.sample_activation('wf', 'bf', m, 'sig')
+  File "../src/weights.py", line 266, in sample_activation
+    / (self.layer_config['tau'] * 2))
+KeyError: 'tau'
