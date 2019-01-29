@@ -193,14 +193,17 @@ class RNN:
 
             beta_reg = 0
             var_reg = 0
+            ent_reg = 0
             for layer in self.layers:
                 beta_reg += layer.weights.get_beta_reg()
                 var_reg += layer.weights.get_var_reg()
+                ent_reg += layer.weights.get_entropy_reg()
 
             var_reg *= self.training_config['var_reg']
             beta_reg *= self.training_config['beta_reg']
+            ent_reg *= self.training_config['ent_reg']
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.gradients = optimizer.compute_gradients(nelbo + beta_reg + var_reg)
+            self.gradients = optimizer.compute_gradients(nelbo + beta_reg + var_reg + ent_reg)
 
             gradient_summaries = []
             for layer_idx in range(len(self.gradients)):
