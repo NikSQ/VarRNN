@@ -40,8 +40,8 @@ def get_sb(w_config, prob_0, weight):
 
 
 def get_ternary_probs(sa, sb):
-    prob_0 = 0.00001 + tf.nn.sigmoid(sa) * 0.00008
-    prob_1 = 0.00001 + tf.nn.sigmoid(sb)*(1 - prob_0) * 0.00008
+    prob_0 = 0.00001 + tf.nn.sigmoid(sa) * 0.99998
+    prob_1 = 0.00001 + tf.nn.sigmoid(sb)*(1 - prob_0) * 0.99998
     return [1. - prob_0 - prob_1, prob_0, prob_1]
 
 
