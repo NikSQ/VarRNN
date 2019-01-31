@@ -63,7 +63,6 @@ class LSTMLayer:
 
         if self.layer_config['discrete_act'] is True:
             f = self.weights.sample_activation('wf', 'bf', m, 'sig')
-            # i = self.weights.sample_activation('wi', 'bi', m, 'sig')
             i = 1. - f
             c = self.weights.sample_activation('wc', 'bc', m, 'tanh')
             o = self.weights.sample_activation('wo', 'bo', m, 'sig')
@@ -122,7 +121,6 @@ class LSTMLayer:
 
         if self.layer_config['discrete_act'] is True:
             f = tf.cast(tf.greater_equal(f_act, 0), tf.float32)
-            #i = tf.cast(tf.greater_equal(i_act, 0), tf.float32)
             i = 1. - f
             c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
             o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)

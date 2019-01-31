@@ -115,7 +115,7 @@ class Experiment:
                     if current_epoch % info_config['calc_performance_every'] == 0:
                         self.rnn.t_metrics.retrieve_results(sess, current_epoch)
                         self.rnn.t_metrics.print(session_idx)
-                        if self.rnn.t_metrics.result_dict['tr_b']['nelbo'][-1] < min_error:
+                        if self.rnn.t_metrics.result_dict['tr_b']['vfe'][-1] < min_error:
                             break
                     self.timer.restart('Metrics')
 
