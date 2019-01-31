@@ -5,6 +5,7 @@ from src.data.loader import load_dataset
 from src.data.labeled_data import LabeledData
 from src.rnn import RNN
 from src.tools import print_config
+from src.timer import Timer
 import time
 
 
@@ -16,6 +17,7 @@ class Experiment:
         self.rnn_config = None
         self.data_dict = None
         self.info_config = None
+        self.timer = None
 
     def create_rnn(self, train_config, l_data, l_data_config):
         self.rnn = RNN(self.rnn_config, train_config, self.info_config, l_data)
@@ -37,6 +39,7 @@ class Experiment:
     def train(self, rnn_config, l_data_config, train_config, pretrain_config, info_config):
         self.rnn_config = rnn_config
         self.info_config = info_config
+        self.timer = Timer(info_config['timer']['enabled'])
         print_config(rnn_config, train_config, l_data_config)
         temp_model_path = '../models/temp' + str(train_config['task_id'])
         pretrained_model_path = '../models/' + pretrain_config['path']
@@ -48,16 +51,17 @@ class Experiment:
         else:
             raise Exception('training mode not understood')
 
+        self.timer.start()
         if pretrain_config['no_pretraining'] is False and pretrain_config['just_load'] is False:
             self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
             print('pretraning is over')
+        self.timer.restart('Pretraining')
         # Sessions refer to training with different architectures. If one RNN is used throughout the training process
         # then only one session is created. Training with incremental sequence lengths for example requires multiple
         # RNNs, one for each sequence lenghts. Evaluation datasets (validation and test) are always evaluated on a fixed
         # RNN, only the RNN structure used for the training set varies. current_epoch stores the total amounts of epochs
         # and epoch the epoch within a session
         current_epoch = 0
-        t = time.clock()
         for session_idx in range(n_sessions):
             tf.reset_default_graph()
             if train_config['mode']['name'] == 'inc_lengths':
@@ -71,6 +75,8 @@ class Experiment:
                 self.create_rnn(train_config, l_data, l_data_config)
                 max_epochs = train_config['mode']['max_epochs']
                 min_error = train_config['mode']['min_error']
+
+            self.timer.restart('Graph creation')
 
             # Saver is used for restoring weights for new session if more than one is used for training
             model_saver = tf.train.Saver(tf.trainable_variables())
@@ -89,6 +95,8 @@ class Experiment:
                     model_saver.restore(sess, pretrained_model_path)
                     sess.run(self.rnn.init_op)
 
+                self.timer.restart('Intialization')
+
                 # Loading datasets into GPU (via tf.Variables)
                 for key in self.data_dict.keys():
                     sess.run(self.l_data.data[key]['load'],
@@ -96,9 +104,12 @@ class Experiment:
                                         self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
                     sess.run(self.l_data.data[key]['shuffle'])
 
-                #self.save_gradient_variance(sess, train_config)
+                self.timer.restart('Loading data')
+
+                traces = list()
 
                 for epoch in range(max_epochs):
+                    #self.save_gradient_variance(sess, train_config, epoch)
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     if current_epoch % info_config['calc_performance_every'] == 0:
@@ -106,13 +117,7 @@ class Experiment:
                         self.rnn.t_metrics.print(session_idx)
                         if self.rnn.t_metrics.result_dict['tr_b']['nelbo'][-1] < min_error:
                             break
-
-                    # Optionally store profiling results of this epoch in files
-                    if info_config['profiling']['enabled']:
-                        for trace_idx, trace in enumerate(traces):
-                            path = info_config['profiling']['path'] + '_' + str(current_epoch) + '_' + str(trace_idx)
-                            with open(path + 'training.json', 'w') as f:
-                                f.write(trace)
+                    self.timer.restart('Metrics')
 
                     # Optionally store tensorboard summaries
                     if info_config['tensorboard']['enabled'] \
@@ -133,10 +138,10 @@ class Experiment:
                             act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.l_data.batch_idx: 0})
                             writer.add_summary(act_summaries, current_epoch)
 
+                    self.timer.restart('Tensorboard')
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
                     # then do a training step for each minibatch.
                     sess.run(self.l_data.data['tr']['shuffle'])
-                    traces = list()
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_b_op,
                                  feed_dict={self.rnn.learning_rate: train_config['learning_rate'],
@@ -144,28 +149,33 @@ class Experiment:
                                  options=options, run_metadata=run_metadata)
                     traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
                     current_epoch += 1
+                    self.timer.restart('Training')
+
+                # Optionally store profiling results of this epoch in files
+                if info_config['profiling']['enabled']:
+                    for trace_idx, trace in enumerate(traces):
+                        path = info_config['profiling']['path'] + '_' + str(current_epoch) + '_' + str(trace_idx)
+                        with open(path + 'training.json', 'w') as f:
+                            f.write(trace)
 
                 model_saver.save(sess, temp_model_path)
         writer.close()
-        print(time.clock() - t)
         return self.rnn.t_metrics.result_dict
 
     # Empirically estimates variance of gradient, saves results and quits
-    def save_gradient_variance(self, sess, train_config):
+    def save_gradient_variance(self, sess, train_config, epoch):
         n_gradients = 20
         tf_grads = []
 
         for grad, var in self.rnn.gradients:
             if grad is not None:
                 tf_grads.append(grad)
-                print(var.name)
 
         gradients = {}
         for idx in range(len(tf_grads)):
             gradients[idx] = []
 
         for gradient_idx in range(n_gradients):
-            print(gradient_idx)
             gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0})
             for idx, grad in enumerate(gradient):
                 gradients[idx].append(np.expand_dims(grad, axis=0))
@@ -174,10 +184,8 @@ class Experiment:
             grad_distribution = np.concatenate(gradients[grad_key], axis=0)
             variance = np.var(grad_distribution, axis=0, ddof=1)
 
-            print(variance)
-            #np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key),
-            #        arr=variance)
-        quit()
+            np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key) + '_' +
+                         str(epoch), arr=variance)
 
     def pretrain(self, l_data_config, pretrain_config, model_path):
         if pretrain_config['mode']['name'] == 'inc_lengths':
