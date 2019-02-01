@@ -1,22 +1,26 @@
 import tensorflow as tf
+import numpy as np
 from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
 
 
 class LSTMLayer:
-    def __init__(self, rnn_config, layer_idx):
+    def __init__(self, rnn_config, info_config, layer_idx):
         self.rnn_config = rnn_config
+        self.info_config = info_config
         self.layer_config = rnn_config['layer_configs'][layer_idx]
         self.w_shape = (rnn_config['layout'][layer_idx-1] + rnn_config['layout'][layer_idx],
                         rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
-        self.acts = {'f': None, 'i': None, 'c': None, 'o': None}
+
+        # Activation summaries and specific neurons to gather individual histograms
+        self.acts = dict()
+        self.act_neurons = np.random.choice(range(self.b_shape[1]),
+                                            size=(info_config['tensorboard']['single_acts'],), replace=False)
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape)
-            
-            self.v_loss = 0
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         if init:
@@ -115,9 +119,15 @@ class LSTMLayer:
         if init:
             for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
                 self.acts[act_type] = act
+                for neuron_idc in range(len(self.act_neurons)):
+                    self.acts[act_type + '_' + str(neuron_idc)] = tf.slice(act, begin=(0, neuron_idc), size=(-1, 1))
         else:
             for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
-                self.acts[act_type] = tf.concat([act, self.acts[act_type]], 0)
+                self.acts[act_type] = tf.concat([act, self.acts[act_type]], axis=0)
+                for neuron_idc in range(len(self.act_neurons)):
+                    self.acts[act_type + '_' + str(neuron_idc)] = \
+                        tf.concat([tf.slice(act, begin=(0, neuron_idc), size=(-1, 1)),
+                                   self.acts[act_type + '_' + str(neuron_idc)]], axis=0)
 
         if self.layer_config['discrete_act'] is True:
             f = tf.cast(tf.greater_equal(f_act, 0), tf.float32)

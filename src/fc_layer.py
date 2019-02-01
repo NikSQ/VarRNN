@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 from src.fp_tools import approx_activation
 from src.weights import Weights
 
@@ -6,12 +7,18 @@ from src.weights import Weights
 # FC LAYER..
 # Can only be used as output
 class FCLayer:
-    def __init__(self, rnn_config, layer_idx):
+    def __init__(self, rnn_config, info_config, layer_idx):
         self.rnn_config = rnn_config
+        self.info_config = info_config
         self.layer_config = rnn_config['layer_configs'][layer_idx]
         self.w_shape = (rnn_config['layout'][layer_idx-1], rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
-        self.acts = {'n': None}
+
+        # Activation summaries and specific neurons to gather individual histograms
+        self.acts = dict()
+        self.act_neurons = np.random.choice(range(self.b_shape[1]),
+                                            size=(info_config['tensorboard']['single_acts'],), replace=False)
+
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['w', 'b']
@@ -37,8 +44,13 @@ class FCLayer:
         act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
         if init:
             self.acts['n'] = act
+            for neuron_idc in range(len(self.act_neurons)):
+                self.acts['n' + '_' + str(neuron_idc)] = tf.slice(act, begin=(0, neuron_idc), size=(-1, 1))
         else:
             self.acts['n'] = tf.concat([self.acts['n'], act], 0)
+            for neuron_idc in range(len(self.act_neurons)):
+                self.acts['n' + '_' + str(neuron_idc)] = tf.concat([tf.slice(act, begin=(0, neuron_idc), size=(-1, 1)),
+                                                                    self.acts['n_' + str(neuron_idc)]], axis=0)
 
         if self.layer_config['is_output']:
             return act

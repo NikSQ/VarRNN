@@ -1,7 +1,5 @@
-import tensorflow as tf
 import numpy as np
 from src.logging_tools import get_logger
-import matplotlib.pyplot as plt
 
 
 def extract_seqs(x, y, seqlens, data_config):

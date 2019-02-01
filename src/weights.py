@@ -169,9 +169,9 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)
 
-    # Adds a Beta / Dirichlet regularizer for discrete variables
-    def get_beta_reg(self):
-        dir_reg = 0
+    # Adds a Dirichlet regularizer for discrete variables.
+    def get_dir_reg(self):
+        dir_reg = 0.
         count = 0
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
@@ -186,13 +186,20 @@ class Weights:
             return 0.
         return tf.cast(dir_reg / count, dtype=tf.float64)
 
-    # Adds a L2 regularizer on the parameters sa and sb (penalizes low entropy)
+    # Adds a L2 regularizer on the parameters sa and sb (probability decay) to penalize low entropy
     def get_entropy_reg(self):
-        ent_reg = 0
+        ent_reg = 0.
+        count = 0
         for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'binary':
+                ent_reg += tf.nn.l2_loss(self.var_dict[var_key + '_sb'])
+                count += tf.size(self.var_dict[var_key + '_sb'])
             if self.w_config[var_key]['type'] == 'ternary':
                 ent_reg += tf.nn.l2_loss(self.var_dict[var_key + '_sa']) \
                             + tf.nn.l2_loss(self.var_dict[var_key + '_sb'])
+                count += tf.size(self.var_dict[var_key + '_sa']) + tf.size(self.var_dict[var_key + '_sb'])
+        if count == 0:
+            return 0.
         return tf.cast(ent_reg, dtype=tf.float64)
 
     # Adds a L2 regularizer for pretraining a deterministic network (non-bayesian)
