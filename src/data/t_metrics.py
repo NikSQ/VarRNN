@@ -21,6 +21,25 @@ def save_to_file(result_dicts, path):
     np.save(path + '_epochs', np.asarray(result_dicts[0]['epoch']))
 
 
+def print_results(result_dicts):
+    for process_key in result_dicts[0].keys():
+        if process_key in ['va_b', 'va_s', 'te_b', 'te_s']:
+            print('Results for {}'.format(process_key))
+            if process_key.endswith('s'):
+                metric_keys = ['m_acc']
+            else:
+                metric_keys = ['elogl', 'acc']
+            for metric_key in metric_keys:
+                print('Metric: {:6s}'.format(metric_key))
+                for run in range(len(result_dicts)):
+                    extrema = np.max(result_dicts[run][process_key][metric_key])
+                    idx = np.argmax(result_dicts[run][process_key][metric_key])
+                    if metric_key == 'elogl':
+                        print('{:6.3f} in iteration {:4d}'.format(-extrema, idx))
+                    else:
+                        print('{:6.2f} % in iteration {:4d}'.format(extrema*100, idx))
+
+
 def convert_to_array(result_dicts, process_key, metric_keys):
     metrics = dict()
     for metric_key in metric_keys:
