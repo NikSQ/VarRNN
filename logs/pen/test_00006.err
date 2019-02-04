@@ -1,0 +1,86 @@
+2019-01-30 20:37:08.116319: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2019-01-30 20:37:08.252286: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1105] Found device 0 with properties: 
+name: GeForce GTX 960 major: 5 minor: 2 memoryClockRate(GHz): 1.2405
+pciBusID: 0000:03:00.0
+totalMemory: 3.95GiB freeMemory: 3.45GiB
+2019-01-30 20:37:08.252402: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1195] Creating TensorFlow device (/device:GPU:0) -> (device: 0, name: GeForce GTX 960, pci bus id: 0000:03:00.0, compute capability: 5.2)
+2019-01-30 20:37:14.118815: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wf_v not found in checkpoint
+2019-01-30 20:37:14.118815: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wf_m not found in checkpoint
+2019-01-30 20:37:14.205729: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wc_v not found in checkpoint
+2019-01-30 20:37:14.205735: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wi_m not found in checkpoint
+2019-01-30 20:37:14.213384: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wc_m not found in checkpoint
+2019-01-30 20:37:14.213384: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wi_v not found in checkpoint
+2019-01-30 20:37:14.229156: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wo_m not found in checkpoint
+2019-01-30 20:37:14.233282: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_0/wo_v not found in checkpoint
+2019-01-30 20:37:14.300716: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key output_layer/w_v not found in checkpoint
+2019-01-30 20:37:14.309131: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key output_layer/w_m not found in checkpoint
+2019-01-30 20:37:14.317791: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wc_m not found in checkpoint
+2019-01-30 20:37:14.321834: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wc_v not found in checkpoint
+2019-01-30 20:37:14.333624: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wf_m not found in checkpoint
+2019-01-30 20:37:14.337255: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wf_v not found in checkpoint
+2019-01-30 20:37:14.339652: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wo_v not found in checkpoint
+2019-01-30 20:37:14.346013: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wo_m not found in checkpoint
+2019-01-30 20:37:14.348317: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wi_m not found in checkpoint
+2019-01-30 20:37:14.351895: W tensorflow/core/framework/op_kernel.cc:1198] Not found: Key lstm_1/wi_v not found in checkpoint
+Traceback (most recent call last):
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1350, in _do_call
+    return fn(*args)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1329, in _run_fn
+    status, run_metadata)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/errors_impl.py", line 473, in __exit__
+    c_api.TF_GetCode(self.status.status))
+tensorflow.python.framework.errors_impl.NotFoundError: Key lstm_0/wf_v not found in checkpoint
+	 [[Node: save/RestoreV2_17 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/device:CPU:0"](_arg_save/Const_0_0, save/RestoreV2_17/tensor_names, save/RestoreV2_17/shape_and_slices)]]
+	 [[Node: save/RestoreV2_44/_51 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/device:GPU:0", send_device="/job:localhost/replica:0/task:0/device:CPU:0", send_device_incarnation=1, tensor_name="edge_154_save/RestoreV2_44", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/device:GPU:0"]()]]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "../exps/pen_test.py", line 120, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, train_config, pretrain_config, info_config))
+  File "../src/experiment.py", line 89, in train
+    model_saver.restore(sess, pretrained_model_path)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 1686, in restore
+    {self.saver_def.filename_tensor_name: save_path})
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 895, in run
+    run_metadata_ptr)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1128, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1344, in _do_run
+    options, run_metadata)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1363, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.NotFoundError: Key lstm_0/wf_v not found in checkpoint
+	 [[Node: save/RestoreV2_17 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/device:CPU:0"](_arg_save/Const_0_0, save/RestoreV2_17/tensor_names, save/RestoreV2_17/shape_and_slices)]]
+	 [[Node: save/RestoreV2_44/_51 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/device:GPU:0", send_device="/job:localhost/replica:0/task:0/device:CPU:0", send_device_incarnation=1, tensor_name="edge_154_save/RestoreV2_44", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/device:GPU:0"]()]]
+
+Caused by op 'save/RestoreV2_17', defined at:
+  File "../exps/pen_test.py", line 120, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, train_config, pretrain_config, info_config))
+  File "../src/experiment.py", line 76, in train
+    model_saver = tf.train.Saver(tf.trainable_variables())
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 1239, in __init__
+    self.build()
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 1248, in build
+    self._build(self._filename, build_save=True, build_restore=True)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 1284, in _build
+    build_save=build_save, build_restore=build_restore)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 765, in _build_internal
+    restore_sequentially, reshape)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 428, in _AddRestoreOps
+    tensors = self.restore_op(filename_tensor, saveable, preferred_shard)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/training/saver.py", line 268, in restore_op
+    [spec.tensor.dtype])[0])
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/ops/gen_io_ops.py", line 1031, in restore_v2
+    shape_and_slices=shape_and_slices, dtypes=dtypes, name=name)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/op_def_library.py", line 787, in _apply_op_helper
+    op_def=op_def)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 3160, in create_op
+    op_def=op_def)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 1625, in __init__
+    self._traceback = self._graph._extract_stack()  # pylint: disable=protected-access
+
+NotFoundError (see above for traceback): Key lstm_0/wf_v not found in checkpoint
+	 [[Node: save/RestoreV2_17 = RestoreV2[dtypes=[DT_FLOAT], _device="/job:localhost/replica:0/task:0/device:CPU:0"](_arg_save/Const_0_0, save/RestoreV2_17/tensor_names, save/RestoreV2_17/shape_and_slices)]]
+	 [[Node: save/RestoreV2_44/_51 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/device:GPU:0", send_device="/job:localhost/replica:0/task:0/device:CPU:0", send_device_incarnation=1, tensor_name="edge_154_save/RestoreV2_44", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/device:GPU:0"]()]]
+
