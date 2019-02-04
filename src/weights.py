@@ -34,14 +34,14 @@ def get_xavier_initializer(shape):
 
 
 def get_sb(w_config, prob_0, weight):
-    prob_1 = 0.5 * (1 + tf.divide(weight, 1 - prob_0))
+    prob_1 = 0.5 * (1. + tf.divide(weight, 1. - prob_0))
     prob_1 = tf.minimum(tf.maximum(prob_1, w_config['pmin']), w_config['pmax'])
-    return -tf.log(tf.divide(1 - prob_1, prob_1))
+    return -tf.log(tf.divide(1. - prob_1, prob_1))
 
 
 def get_ternary_probs(sa, sb):
-    prob_0 = tf.nn.sigmoid(sa)
-    prob_1 = tf.nn.sigmoid(sb)*(1 - prob_0)
+    prob_0 = 0.00001 + tf.nn.sigmoid(sa) * 0.00008
+    prob_1 = 0.00001 + tf.nn.sigmoid(sb)*(1 - prob_0) * 0.00008
     return [1. - prob_0 - prob_1, prob_0, prob_1]
 
 
@@ -160,29 +160,42 @@ class Weights:
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  0., self.var_dict[var_key])))
             elif self.w_config[var_key]['type'] == 'ternary':
-                weight = tf.minimum(tf.maximum(self.var_dict[var_key], self.w_config[var_key]['pmin']),
-                                    self.w_config[var_key]['pmax'])
                 prob_0 = self.w_config[var_key]['p0max'] - \
-                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(weight)
-                init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1 - prob_0, prob_0))))
+                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(self.var_dict[var_key])
+                init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1. - prob_0, prob_0))))
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  prob_0, self.var_dict[var_key])))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)
 
+    # Adds a Beta / Dirichlet regularizer for discrete variables
     def get_beta_reg(self):
-        beta_reg = 0
+        dir_reg = 0
         count = 0
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
                 exp = tf.exp(-self.var_dict[var_key + '_sb'])
-                beta_reg += tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
+                dir_reg += tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
+                count += 1
+            elif self.w_config[var_key]['type'] == 'ternary':
+                probs = tf.stack(get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb']), axis=0)
+                dir_reg += tf.reduce_mean(tf.reduce_prod(probs, axis=0))
                 count += 1
         if count == 0:
             return 0.
-        return tf.cast(beta_reg / count, dtype=tf.float64)
+        return tf.cast(dir_reg / count, dtype=tf.float64)
 
+    # Adds a L2 regularizer on the parameters sa and sb (penalizes low entropy)
+    def get_entropy_reg(self):
+        ent_reg = 0
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'ternary':
+                ent_reg += tf.nn.l2_loss(self.var_dict[var_key + '_sa']) \
+                            + tf.nn.l2_loss(self.var_dict[var_key + '_sb'])
+        return tf.cast(ent_reg, dtype=tf.float64)
+
+    # Adds a L2 regularizer for pretraining a deterministic network (non-bayesian)
     def get_pretraining_reg(self):
         l1_regu = tf.contrib.layers.l1_regularizer(scale=4.0)
         reg_term = 0
@@ -192,7 +205,7 @@ class Weights:
                            tf.nn.l2_loss(self.var_dict[var_key] + 1) - l1_regu(self.var_dict[var_key])
         return tf.cast(reg_term, dtype=tf.float64)
 
-    # Regularizing posterior variance
+    # Adds a regularization term on the posterior variance
     def get_var_reg(self):
         var_reg = 0
         var_counter = 0
@@ -203,6 +216,7 @@ class Weights:
                 var_counter += 1
         return tf.cast(var_reg / var_counter, dtype=tf.float64)
 
+    # Returns mean and variance of a specified weight / bias
     def get_stats(self, var_key):
         if self.w_config[var_key]['type'] == 'continuous':
             m = self.var_dict[var_key + '_m']
@@ -211,13 +225,14 @@ class Weights:
             m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2)
             v = 1 - tf.square(m)
         elif self.w_config[var_key]['type'] == 'ternary':
-            prob_not_zero = 1 - tf.nn.sigmoid(self.var_dict[var_key + '_sa'])
-            m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2) * prob_not_zero
+            prob_not_zero = 1. - tf.nn.sigmoid(self.var_dict[var_key + '_sa'])
+            m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2.) * prob_not_zero
             v = prob_not_zero - tf.square(m)
         else:
             raise Exception()
         return m, v
 
+    # Calculates the KL loss over all weights
     def get_kl_loss(self):
         kl_loss = 0
         for var_key in self.var_keys:
@@ -248,11 +263,24 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)
 
+    # Used by local reparametrization
+    # Supports continuous, binary and ternary weights
+    # If normalize_mean == True: Bias is set to mean of batch
+    # If act_func == None: Returns sample of activation
+    #                Else: Returns sample of discretized tanh or sig
     def sample_activation(self, w_var_key, b_var_key, x_m, act_func=None):
         w_m, w_v = self.get_stats(w_var_key)
         b_m, b_v = self.get_stats(b_var_key)
-        mean = tf.matmul(x_m, w_m) + b_m
-        std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
+
+        if self.layer_config['normalize_mean']:
+            std = tf.sqrt(tf.matmul(tf.square(x_m), w_v))
+            with tf.control_dependencies([tf.assign(self.var_dict[b_var_key + '_m'],
+                                                    -tf.reduce_mean(tf.matmul(x_m, w_m), axis=0, keepdims=True))]):
+                mean = tf.zeros_like(std)
+        else:
+            mean = tf.matmul(x_m, w_m) + b_m
+            std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
+
         shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
 
         if act_func is None:
@@ -267,7 +295,7 @@ class Weights:
             if act_func == 'tanh':
                 return output
             elif act_func == 'sig':
-                return output * 2 - 1
+                return (output + 1.) / 2.
             else:
                 raise Exception('activation function not understood')
 
