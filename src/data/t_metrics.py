@@ -12,7 +12,7 @@ def save_to_file(result_dicts, path):
         if process_key.endswith('_s'):
             metrics = convert_to_array(result_dicts, process_key, ['m_loss', 's_loss', 'm_acc', 's_acc'])
         elif process_key.endswith('_b'):
-            metrics = convert_to_array(result_dicts, process_key, ['nelbo', 'kl', 'elogl', 'acc'])
+            metrics = convert_to_array(result_dicts, process_key, ['vfe', 'kl', 'elogl', 'acc'])
         else:
             raise Exception('process key {} not understood'.format(process_key))
 
@@ -47,9 +47,9 @@ class TMetrics:
 
     # Connects metrics of datasets to TResults. Needs to be called for each dataset (training, validation and or test)
     # while building the graph
-    def add_b_vars(self, process_key, nelbo_op, kl_op, elogl_op, accs_op):
-        self.result_dict.update({process_key: {'nelbo': [], 'kl': [], 'elogl': [], 'acc': []}})
-        self.op_dict.update({process_key: [nelbo_op, kl_op, elogl_op, accs_op]})
+    def add_b_vars(self, process_key, vfe_op, kl_op, elogl_op, accs_op):
+        self.result_dict.update({process_key: {'vfe': [], 'kl': [], 'elogl': [], 'acc': []}})
+        self.op_dict.update({process_key: [vfe_op, kl_op, elogl_op, accs_op]})
 
     def add_s_vars(self, process_key, sample_op, loss_op, accs_op):
         self.result_dict.update({process_key: {'m_loss': [], 's_loss': [], 'm_acc': [], 's_acc': []}})
@@ -69,19 +69,19 @@ class TMetrics:
 
     def retrieve_b_results(self, sess, process_key):
         data_key = process_key[:-2]
-        cum_nelbo = 0
+        cum_vfe = 0
         cum_acc = 0
         elogl = 0
         for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
-            nelbo, kl, elogl, acc = sess.run(self.op_dict[process_key],
+            vfe, kl, elogl, acc = sess.run(self.op_dict[process_key],
                                              feed_dict={self.l_data.batch_idx: minibatch_idx})
-            cum_nelbo += nelbo
+            cum_vfe += vfe
             cum_acc += acc
             elogl += elogl
         acc = cum_acc / self.l_data.data[data_key]['n_minibatches']
-        nelbo = cum_nelbo / self.l_data.data[data_key]['n_minibatches']
+        vfe = cum_vfe / self.l_data.data[data_key]['n_minibatches']
 
-        self.result_dict[process_key]['nelbo'].append(nelbo)
+        self.result_dict[process_key]['vfe'].append(vfe)
         self.result_dict[process_key]['kl'].append(kl)
         self.result_dict[process_key]['elogl'].append(elogl)
         self.result_dict[process_key]['acc'].append(acc)
@@ -121,8 +121,8 @@ class TMetrics:
     def print(self, session_idx):
         print('{:3}, {:2} | TrAcc: {:6.4f}, TrLoss: {:8.5f}, VaAcc: {:6.4f}, VaLoss: {:8.5f}'
               .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
-                      self.result_dict['tr_b']['nelbo'][-1], self.result_dict['va_b']['acc'][-1],
-                      self.result_dict['va_b']['nelbo'][-1]) +
+                      self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],
+                      self.result_dict['va_b']['vfe'][-1]) +
               '\t {} sampled NNs | VaAcc: {:6.4f} +- {:6.4f} | VaLoss: {:6.4f} +- {:6.4f}'
               .format(self.info_config['n_samples'], self.result_dict['va_s']['m_acc'][-1],
                       self.result_dict['va_s']['s_acc'][-1], self.result_dict['va_s']['m_loss'][-1],

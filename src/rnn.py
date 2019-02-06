@@ -148,8 +148,11 @@ class RNN:
                     kl /= (self.rnn_config['data_multiplier'] *
                            self.l_data.l_data_config[data_key]['minibatch_size'] *
                            self.l_data.data[data_key]['n_minibatches'])
+                    vfe = kl - elogl
+                else:
+                    kl = tf.zeros((1,))
+                    vfe = - elogl
 
-                nelbo = kl - elogl
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif self.rnn_config['output_type'] == 'classification' and \
@@ -166,32 +169,35 @@ class RNN:
                     kl /= (self.rnn_config['data_multiplier'] *
                            self.l_data.l_data_config[data_key]['minibatch_size'] *
                            self.l_data.data[data_key]['n_minibatches'])
+                    vfe = kl - elogl
+                else:
+                    kl = tf.zeros((1,))
+                    vfe = -elogl
 
-                nelbo = kl - elogl
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             else:
                 raise Exception('output type of RNN not understood')
 
-            self.t_metrics.add_b_vars(data_key + '_b', nelbo, kl, elogl, acc)
+            self.t_metrics.add_b_vars(data_key + '_b', vfe, kl, elogl, acc)
 
             if self.t_metric_summaries is not None:
                 self.t_metric_summaries = tf.summary.merge([self.t_metric_summaries,
-                                                            tf.summary.scalar(data_key + '_b_nelbo', nelbo),
+                                                            tf.summary.scalar(data_key + '_b_vfe', vfe),
                                                             tf.summary.scalar(data_key + '_b_kl', kl),
                                                             tf.summary.scalar(data_key + '_b_elogl', elogl),
                                                             tf.summary.scalar(data_key + '_b_acc', acc)])
             else:
-                self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_b_nelbo', nelbo),
+                self.t_metric_summaries = tf.summary.merge([tf.summary.scalar(data_key + '_b_vfe', vfe),
                                                             tf.summary.scalar(data_key + '_b_kl', kl),
                                                             tf.summary.scalar(data_key + '_b_elogl', elogl),
                                                             tf.summary.scalar(data_key + '_b_acc', acc)])
-            return nelbo, kl, elogl, acc
+            return vfe, kl, elogl, acc
 
     # Creates Bayesian graph for training and the operations used for training.
     def create_b_training_graph(self, key):
         with tf.variable_scope(key + '_b'):
-            nelbo, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
+            vfe, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
 
             beta_reg = 0
             var_reg = 0
@@ -208,7 +214,7 @@ class RNN:
             beta_reg *= self.training_config['beta_reg']
             ent_reg *= self.training_config['ent_reg']
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.gradients = optimizer.compute_gradients(nelbo + beta_reg + var_reg + ent_reg)
+            self.gradients = optimizer.compute_gradients(vfe + beta_reg + var_reg + ent_reg)
 
             gradient_summaries = []
             for layer_idx in range(len(self.gradients)):
