@@ -150,7 +150,7 @@ class RNN:
                            self.l_data.data[data_key]['n_minibatches'])
                     vfe = kl - elogl
                 else:
-                    kl = tf.zeros((1,))
+                    kl = tf.zeros(())
                     vfe = - elogl
 
                 prediction = tf.argmax(smax, axis=1)
@@ -171,7 +171,7 @@ class RNN:
                            self.l_data.data[data_key]['n_minibatches'])
                     vfe = kl - elogl
                 else:
-                    kl = tf.zeros((1,))
+                    kl = tf.zeros(())
                     vfe = -elogl
 
                 prediction = tf.argmax(smax, axis=1)

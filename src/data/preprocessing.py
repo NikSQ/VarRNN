@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 from src.logging_tools import get_logger
+import matplotlib.pyplot as plt
 
 
 def extract_seqs(x, y, seqlens, data_config):
@@ -25,13 +26,19 @@ def extract_seqs(x, y, seqlens, data_config):
     # Iterate over all samples and figure out how many sequences one can extract
     seq_extraction_ranges = []
     for sample_nr in range(n_samples):
-        beginning_time_idx = raw_sample_length - seqlens[sample_nr]
+            beginning_time_idx = raw_sample_length - seqlens[sample_nr]
 
-        if data_config['zero_padding'] > 0:
-            start_idx = max(0, beginning_time_idx - min(in_seq_len, data_config['zero_padding']))
-        else:
-            start_idx = beginning_time_idx
-        seq_extraction_ranges.append(range(start_idx, raw_sample_length - in_seq_len))
+            if data_config['extract_seqs']:
+                if data_config['zero_padding'] > 0:
+                    start_idx = max(0, beginning_time_idx - min(in_seq_len, data_config['zero_padding']))
+                else:
+                    start_idx = beginning_time_idx
+                seq_extraction_ranges.append(range(start_idx, raw_sample_length - in_seq_len))
+            elif in_seq_len >= seqlens[sample_nr]:
+                seq_extraction_ranges.append(range(raw_sample_length - in_seq_len,
+                                                   raw_sample_length - in_seq_len + 1))
+            else:
+                seq_extraction_ranges.append(range(1, 0))
 
     n_sequences = sum([len(extraction_range) for extraction_range in seq_extraction_ranges])
     n_discarded_samples = sum([len(extraction_range) == 0 for extraction_range in seq_extraction_ranges])
