@@ -142,11 +142,12 @@ class RNN:
                     0.5 * tf.reduce_mean(tf.reduce_sum(tf.multiply(v_output, tf.multiply(smax, 1 - smax)), axis=1))
 
                 kl = 0
-                for layer in self.layers:
-                    kl = kl + layer.weights.get_kl_loss()
-                kl /= (self.rnn_config['data_multiplier'] *
-                       self.l_data.l_data_config[data_key]['minibatch_size'] *
-                       self.l_data.data[data_key]['n_minibatches'])
+                if self.rnn_config['data_multiplier'] is not None:
+                    for layer in self.layers:
+                        kl += layer.weights.get_kl_loss()
+                    kl /= (self.rnn_config['data_multiplier'] *
+                           self.l_data.l_data_config[data_key]['minibatch_size'] *
+                           self.l_data.data[data_key]['n_minibatches'])
 
                 nelbo = kl - elogl
                 prediction = tf.argmax(smax, axis=1)
@@ -159,11 +160,12 @@ class RNN:
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
 
                 kl = 0
-                for layer in self.layers:
-                    kl += layer.weights.get_kl_loss()
-                kl /= (self.rnn_config['data_multiplier'] *
-                       self.l_data.l_data_config[data_key]['minibatch_size'] *
-                       self.l_data.data[data_key]['n_minibatches'])
+                if self.rnn_config['data_multiplier'] is not None:
+                    for layer in self.layers:
+                        kl += layer.weights.get_kl_loss()
+                    kl /= (self.rnn_config['data_multiplier'] *
+                           self.l_data.l_data_config[data_key]['minibatch_size'] *
+                           self.l_data.data[data_key]['n_minibatches'])
 
                 nelbo = kl - elogl
                 prediction = tf.argmax(smax, axis=1)
@@ -195,9 +197,12 @@ class RNN:
             var_reg = 0
             ent_reg = 0
             for layer in self.layers:
-                beta_reg += layer.weights.get_beta_reg()
-                var_reg += layer.weights.get_var_reg()
-                ent_reg += layer.weights.get_entropy_reg()
+                if self.training_config['var_reg'] != 0:
+                    var_reg += layer.weights.get_var_reg()
+                if self.training_config['beta_reg'] != 0:
+                    beta_reg += layer.weights.get_beta_reg()
+                if self.training_config['ent_reg'] != 0:
+                    ent_reg += layer.weights.get_entropy_reg()
 
             var_reg *= self.training_config['var_reg']
             beta_reg *= self.training_config['beta_reg']
