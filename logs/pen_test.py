@@ -84,9 +84,9 @@ rnn_config = {'layout': [4, 60, 60, 10],
               'output_type': 'classification',
               'data_multiplier': None}
 
-lr = [.01, .003, .001]
+lr = [.01, .003, .001] # 0.01 is good
 train_config = {'learning_rate': lr[task_id],
-                'type': 'g_sampling',
+                'type': 'l_sampling',
                 'is_pretrain': False,
                 'var_reg': 0,
                 'dir_reg': 0.,
