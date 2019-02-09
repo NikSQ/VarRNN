@@ -86,7 +86,7 @@ rnn_config = {'layout': [4, 60, 60, 10],
 
 lr = [.01, .003, .001] # 0.01 is good
 train_config = {'learning_rate': lr[task_id],
-                'type': 'l_sampling',
+                'type': 'pfp',
                 'is_pretrain': False,
                 'var_reg': 0,
                 'dir_reg': 0.,
