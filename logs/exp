@@ -19,7 +19,9 @@ except KeyError:
 
 runs = 1
 filename = 'exp'
-tau = .8
+taus = [.2, .4, .6, .8, 1.]
+tau = taus[int(task_id / 2)]
+
 
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
@@ -85,10 +87,10 @@ rnn_config = {'layout': [4, 60, 60, 10],
               'gradient_clip_value': .5,
               'output_type': 'classification',
               'data_multiplier': None}
+lr = [.0005, .00005]
 
-lr = [.1, .05, .025, .015]
-training_config = {'learning_rate': lr[task_id],
-                   'type': 'l_sampling',
+training_config = {'learning_rate': lr[task_id % 2],
+                   'type': 'g_sampling',
                    'is_pretrain': False,
                    'var_reg': 0.,
                    'dir_reg': 0.,
