@@ -40,8 +40,8 @@ def get_sb(w_config, prob_0, weight):
 
 
 def get_ternary_probs(sa, sb):
-    prob_0 = 0.00001 + tf.nn.sigmoid(sa) * 0.99998
-    prob_1 = 0.00001 + tf.nn.sigmoid(sb)*(1 - prob_0) * 0.99998
+    prob_0 = tf.nn.sigmoid(sa)
+    prob_1 = tf.nn.sigmoid(sb)*(1 - prob_0)
     return [1. - prob_0 - prob_1, prob_0, prob_1]
 
 
@@ -160,11 +160,12 @@ class Weights:
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
                                                                                  0., self.var_dict[var_key])))
             elif self.w_config[var_key]['type'] == 'ternary':
+                weight = tf.maximum(tf.minimum(self.var_dict[var_key], 1.), -1.)
                 prob_0 = self.w_config[var_key]['p0max'] - \
-                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(self.var_dict[var_key])
+                         (self.w_config[var_key]['p0max'] - self.w_config[var_key]['p0min']) * tf.abs(weight)
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1. - prob_0, prob_0))))
                 init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], get_sb(self.w_config[var_key],
-                                                                                 prob_0, self.var_dict[var_key])))
+                                                                                 prob_0, weight)))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)
@@ -172,35 +173,36 @@ class Weights:
     # Adds a Dirichlet regularizer for discrete variables.
     def get_dir_reg(self):
         dir_reg = 0.
-        count = 0
+        count = 0.
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
                 exp = tf.exp(-self.var_dict[var_key + '_sb'])
                 dir_reg += tf.reduce_mean(tf.divide(exp, tf.square(1 + exp)))
-                count += 1
+                count += 1.
             elif self.w_config[var_key]['type'] == 'ternary':
                 probs = tf.stack(get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb']), axis=0)
                 dir_reg += tf.reduce_mean(tf.reduce_prod(probs, axis=0))
-                count += 1
-        if count == 0:
+                count += 1.
+        if count == 0.:
             return 0.
         return tf.cast(dir_reg / count, dtype=tf.float64)
 
     # Adds a L2 regularizer on the parameters sa and sb (probability decay) to penalize low entropy
     def get_entropy_reg(self):
         ent_reg = 0.
-        count = 0
+        count = 0.
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
                 ent_reg += tf.nn.l2_loss(self.var_dict[var_key + '_sb'])
-                count += tf.size(self.var_dict[var_key + '_sb'])
+                count += tf.cast(tf.size(self.var_dict[var_key + '_sb']), dtype=tf.float32)
             if self.w_config[var_key]['type'] == 'ternary':
                 ent_reg += tf.nn.l2_loss(self.var_dict[var_key + '_sa']) \
                             + tf.nn.l2_loss(self.var_dict[var_key + '_sb'])
-                count += tf.size(self.var_dict[var_key + '_sa']) + tf.size(self.var_dict[var_key + '_sb'])
-        if count == 0:
+                count += tf.cast(tf.size(self.var_dict[var_key + '_sa']) + tf.size(self.var_dict[var_key + '_sb']),
+                                 dtype=tf.float32)
+        if count == 0.:
             return 0.
-        return tf.cast(ent_reg, dtype=tf.float64)
+        return tf.cast(ent_reg / count, dtype=tf.float64)
 
     # Adds a L2 regularizer for pretraining a deterministic network (non-bayesian)
     def get_pretraining_reg(self):
@@ -215,13 +217,13 @@ class Weights:
     # Adds a regularization term on the posterior variance
     def get_var_reg(self):
         var_reg = 0
-        var_counter = 0
+        count = 0.
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'continuous' or self.w_config[var_key]['type'] == 'ternary':
                 m, v = self.get_stats(var_key)
                 var_reg += tf.reduce_mean(v)
-                var_counter += 1
-        return tf.cast(var_reg / var_counter, dtype=tf.float64)
+                count += 1
+        return tf.cast(var_reg / count, dtype=tf.float64)
 
     # Returns mean and variance of a specified weight / bias
     def get_stats(self, var_key):
@@ -256,16 +258,18 @@ class Weights:
                     raise Exception('prior probabilities are not normalized')
                 prob = tf.nn.sigmoid(self.var_dict[var_key + '_sb'])
                 probs = [1. - prob, prob]
-                kl_loss += tf.reduce_sum(probs[0] * tf.log(tf.divide(probs[0], priors[0])) +
-                                         probs[1] * tf.log(tf.divide(probs[1], priors[1])))
+                epsilon = 1e-20
+                kl_loss += tf.reduce_sum(probs[0] * tf.log(epsilon + tf.divide(probs[0], priors[0])) +
+                                         probs[1] * tf.log(epsilon + tf.divide(probs[1], priors[1])))
             elif self.w_config[var_key]['type'] == 'ternary':
                 priors = self.w_config[var_key]['priors']
                 if sum(priors) != 1:
                     raise Exception('prior probabilities are not normalized')
                 probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
-                kl_loss += tf.reduce_sum(probs[0] * tf.log(tf.divide(probs[0], priors[0])) +
-                                         probs[1] * tf.log(tf.divide(probs[1], priors[1])) +
-                                         probs[2] * tf.log(tf.divide(probs[2], priors[2])))
+                epsilon = 1e-20
+                kl_loss += tf.reduce_sum(probs[0] * tf.log(epsilon + tf.divide(probs[0], priors[0])) +
+                                         probs[1] * tf.log(epsilon + tf.divide(probs[1], priors[1])) +
+                                         probs[2] * tf.log(epsilon + tf.divide(probs[2], priors[2])))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)

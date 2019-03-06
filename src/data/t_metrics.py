@@ -10,7 +10,8 @@ def save_to_file(result_dicts, path):
             continue
 
         if process_key.endswith('_s'):
-            metrics = convert_to_array(result_dicts, process_key, ['m_loss', 's_loss', 'm_acc', 's_acc'])
+            metrics = convert_to_array(result_dicts, process_key, ['m_loss', 's_loss', 'm_acc', 's_acc', 'max_acc',
+                                                                   'min_loss'])
         elif process_key.endswith('_b'):
             metrics = convert_to_array(result_dicts, process_key, ['vfe', 'kl', 'elogl', 'acc'])
         else:
@@ -26,7 +27,7 @@ def print_results(result_dicts):
         if process_key in ['va_b', 'va_s', 'te_b', 'te_s']:
             print('Results for {}'.format(process_key))
             if process_key.endswith('s'):
-                metric_keys = ['m_acc']
+                metric_keys = ['max_acc']
             else:
                 metric_keys = ['elogl', 'acc']
             for metric_key in metric_keys:
@@ -71,7 +72,8 @@ class TMetrics:
         self.op_dict.update({process_key: [vfe_op, kl_op, elogl_op, accs_op]})
 
     def add_s_vars(self, process_key, sample_op, loss_op, accs_op):
-        self.result_dict.update({process_key: {'m_loss': [], 's_loss': [], 'm_acc': [], 's_acc': []}})
+        self.result_dict.update({process_key: {'m_loss': [], 's_loss': [], 'm_acc': [], 's_acc': [], 'max_acc': [],
+                                               'min_loss': []}})
         self.op_dict.update({process_key: {'metrics': [loss_op, accs_op], 'sample': sample_op}})
 
     # Retrieves metrics of the performance of the processes which were added using add_vars()
@@ -131,6 +133,8 @@ class TMetrics:
         accs = np.asarray(accs)
         self.result_dict[process_key]['m_loss'].append(np.mean(losses))
         self.result_dict[process_key]['m_acc'].append(np.mean(accs))
+        self.result_dict[process_key]['max_acc'].append(np.max(accs))
+        self.result_dict[process_key]['min_loss'].append(np.min(losses))
 
         if is_pretrain is False:
             self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
@@ -142,7 +146,6 @@ class TMetrics:
               .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
                       self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],
                       self.result_dict['va_b']['vfe'][-1]) +
-              '\t {} sampled NNs | VaAcc: {:6.4f} +- {:6.4f} | VaLoss: {:6.4f} +- {:6.4f}'
-              .format(self.info_config['n_samples'], self.result_dict['va_s']['m_acc'][-1],
-                      self.result_dict['va_s']['s_acc'][-1], self.result_dict['va_s']['m_loss'][-1],
-                      self.result_dict['va_s']['s_loss'][-1]))
+              '\t {} sampled NNs | MaxAcc: {:6.4f} | MinLoss: {:6.4f}'
+              .format(self.info_config['n_samples'], self.result_dict['va_s']['max_acc'][-1],
+                      self.result_dict['va_s']['min_loss'][-1]))

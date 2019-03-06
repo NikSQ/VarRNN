@@ -147,7 +147,9 @@ class Experiment:
                                  feed_dict={self.rnn.learning_rate: train_config['learning_rate'],
                                             self.l_data.batch_idx: minibatch_idx},
                                  options=options, run_metadata=run_metadata)
-                    traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
+
+                    if info_config['profiling']['enabled']:
+                        traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
                     current_epoch += 1
                     self.timer.restart('Training')
 

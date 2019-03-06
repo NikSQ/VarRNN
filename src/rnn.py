@@ -146,7 +146,7 @@ class RNN:
                     for layer in self.layers:
                         kl += layer.weights.get_kl_loss()
                     kl /= (self.rnn_config['data_multiplier'] *
-                           self.l_data.l_data_config[data_key]['minibatch_size'] *
+                           self.l_data.data[data_key]['minibatch_size'] *
                            self.l_data.data[data_key]['n_minibatches'])
                     vfe = kl - elogl
                 else:

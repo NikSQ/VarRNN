@@ -44,6 +44,7 @@ class LabeledData:
                     l_data['x_shape'] = (l_data_config[data_key]['minibatch_size'],) + l_data['x_shape'][1:]
                     l_data['y_shape'] = (l_data_config[data_key]['minibatch_size'],) + l_data['y_shape'][1:]
                 else:
+                    l_data['minibatch_size'] = data_dict[data_key]['x'].shape[0]
                     l_data['n_minibatches'] = 1
                     l_data['shuffle'] = tf.no_op()
 

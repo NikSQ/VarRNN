@@ -56,13 +56,17 @@ def load_files(l_data_config):
 
 
 def load_penstroke(l_data_config):
-    data_dict = {'tr': {}, 'va': {}, 'te': {}}
-    for data_key in data_dict.keys():
+    keys = ['tr', 'va', 'te']
+    data_dict = dict()
+    for data_key in keys:
         if data_key in l_data_config.keys():
             dataset = loadmat(filenames['penstroke_' + data_key])
+            data_dict[data_key] = dict()
             data_dict[data_key]['seqlen'] = np.squeeze(dataset['seqlen']).astype(np.int32)
             data_dict[data_key]['x'], data_dict[data_key]['y'] = extract_seqs(dataset['x'], dataset['y'],
                                                                               data_dict[data_key]['seqlen'],
                                                                               l_data_config['tr'])
+            print(data_key)
+            print(data_dict[data_key]['x'].shape)
     return data_dict
 
