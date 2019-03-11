@@ -213,21 +213,45 @@ class RNN:
             var_reg *= self.training_config['var_reg']
             dir_reg *= self.training_config['dir_reg']
             ent_reg *= self.training_config['ent_reg']
-            optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-            self.gradients = optimizer.compute_gradients(vfe + dir_reg + var_reg + ent_reg)
+            opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate*3)
+            opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate*2)
+            opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+
+            vars1 = []
+            vars2 = []
+            vars3 = []
+            for var in tf.trainable_variables():
+                if var.name[:var.name.index('/')] == 'lstm_1':
+                    vars1.append(var)
+                if var.name[:var.name.index('/')] == 'lstm_2':
+                    vars2.append(var)
+                if var.name[:var.name.index('/')] == 'output_layer':
+                    vars3.append(var)
+
+            self.gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
 
             gradient_summaries = []
-            for layer_idx in range(len(self.gradients)):
-                if self.gradients[layer_idx][0] is not None:
-                    gradient_summaries.append(tf.summary.histogram('g_' + self.gradients[layer_idx][1].name,
-                                                                   self.gradients[layer_idx][0]))
+            for gradient, var in zip(self.gradients, vars1+vars2+vars3):
+                if gradient is not None:
+                    gradient_summaries.append(tf.summary.histogram('g_' + var.name, gradient))
             self.gradient_summaries = tf.summary.merge(gradient_summaries)
 
-            clipped_gradients = [(grad, var) if grad is None else
-                                 (tf.clip_by_value(grad, -self.rnn_config['gradient_clip_value'],
-                                                   self.rnn_config['gradient_clip_value']), var)
-                                 for grad, var in self.gradients]
-            self.train_b_op = optimizer.apply_gradients(clipped_gradients)
+            clipped_gradients = [grad if grad is None else
+                                 tf.clip_by_value(grad, -self.rnn_config['gradient_clip_value'],
+                                                  self.rnn_config['gradient_clip_value'])
+                                 for grad in self.gradients]
+
+            grads1 = clipped_gradients[:len(vars1)]
+            grads2 = clipped_gradients[len(vars1):len(vars2)]
+            grads3 = clipped_gradients[len(vars1) + len(vars2):]
+            train_ops = []
+            if len(vars1) != 0:
+                train_ops.append(opt1.apply_gradients(zip(grads1, vars1)))
+            if len(vars2) != 0:
+                train_ops.append(opt2.apply_gradients(zip(grads2, vars2)))
+            if len(vars3) != 0:
+                train_ops.append(opt3.apply_gradients(zip(grads3, vars3)))
+            self.train_b_op = tf.group(*train_ops)
 
     # Creates non-Bayesian graph for training the RNN
     def create_s_training_graph(self, key):
