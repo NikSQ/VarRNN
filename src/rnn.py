@@ -213,9 +213,15 @@ class RNN:
             var_reg *= self.training_config['var_reg']
             dir_reg *= self.training_config['dir_reg']
             ent_reg *= self.training_config['ent_reg']
-            opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate*3)
-            opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate*2)
-            opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            if type(self.learning_rate) is list:
+                opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[0])
+                opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[1])
+                opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[2])
+            else:
+                opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+                opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+                opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+
 
             vars1 = []
             vars2 = []
