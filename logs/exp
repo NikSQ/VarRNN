@@ -87,12 +87,20 @@ rnn_config = {'layout': [4, 60, 60, 10],
               'output_type': 'classification',
               'data_multiplier': None}
 
-ent_reg = [.0005, .001, .002, .004, .008]
-training_config = {'learning_rate': 0.08, 
+lr = [[.2, .1, .05],
+      [.2, .05, .05],
+      [.1, .05, .05],
+      [.1, .05, .01],
+      [.1, .03, .01],
+      [.08, .04, .01],
+      [.08, .02, .01]]
+print(lr[task_id])
+
+training_config = {'learning_rate': lr[task_id], 
                    'type': 'l_sampling',
                    'is_pretrain': False,
                    'var_reg': 0.,
-                   'ent_reg': ent_reg[task_id],
+                   'ent_reg': .001,
                    'dir_reg': 0., 
                    'mode': {'name': 'inc_lengths',
                             'in_seq_len': [1, 2, 4, 8, 30],
