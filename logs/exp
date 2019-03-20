@@ -19,7 +19,8 @@ except KeyError:
 
 runs = 1
 filename = 'exp'
-tau = .5
+taus = [.2, .3, .5, .8, 1.]
+tau = taus[task_id] 
 
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
@@ -86,8 +87,7 @@ rnn_config = {'layout': [4, 60, 60, 10],
               'output_type': 'classification',
               'data_multiplier': None}
 
-lr = [.1, .03, .01, .003, .001]
-training_config = {'learning_rate': lr[task_id], 
+training_config = {'learning_rate': .02, 
                    'type': 'l_sampling',
                    'is_pretrain': False,
                    'var_reg': 0.,
@@ -101,7 +101,7 @@ training_config = {'learning_rate': lr[task_id],
                             'max_epochs': [5, 20, 50, 100, 1000]},
                    'task_id': task_id}
 
-training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 8000} 
+training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 12000} 
 pretrain_config = copy.deepcopy(training_config)
 
 
