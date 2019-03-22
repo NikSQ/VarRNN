@@ -32,26 +32,31 @@ def load_dataset(l_data_config):
 
 def load_timit(l_data_config):
     if l_data_config['dataset'] == 'timit_s':
-        n_tr_speakers = 35
-        n_va_speakers = 10
-        n_te_speakers = 15
+        n_tr_phonems = 10000
+        n_va_phonems = 1000
+        n_te_phonems = 1500
     timit_path = '../../datasets/timit/'
-    n_tv_speakers = n_tr_speakers + n_va_speakers
-    n_tv_mats = int(np.ceil(n_tv_speakers / 35.))
-    n_te_mats = int(np.ceil(n_te_speakers / 35.))
+    n_tv_phonems = n_tr_phonems + n_va_phonems
     data_dict = {'tr': dict(), 'va': dict(), 'te': dict()}
 
     partial_dict = {'x': [], 'y': [], 'seqlen': []}
     max_len = 0
-    for mat in range(n_tv_mats):
-        path = timit_path + 'timit_tr' + str(mat + 1) + '.mat'
+    speaker_lens = []
+    n_phonems = 0
+    for mat_idx in range(16):
+        path = timit_path + 'tr' + str(mat_idx + 1) + '.mat'
         partial_set = loadmat(path)
         seqlen = np.squeeze(partial_set['seqlen']).astype(np.int32)
         partial_dict['seqlen'] = np.concatenate([partial_dict['seqlen'], seqlen], axis=0)
         partial_dict['x'].append(partial_set['x'])
         partial_dict['y'].append(partial_set['y'])
+        speaker_lens.append(partial_set['x'].shape[0])
         if max_len < partial_set['x'].shape[2]:
             max_len = partial_set['x'].shape[2]
+        n_phonems += partial_set['x'].shape[0]
+        if n_phonems > n_tv_phonems:
+            break
+
     xs = []
     ys = []
     for x, y in itertools.zip_longest(partial_dict['x'], partial_dict['y']):
@@ -61,9 +66,10 @@ def load_timit(l_data_config):
         ys.append(np.concatenate([np.zeros((y_shape[0], y_shape[1], max_len - y_shape[2])), y], axis=2))
     partial_dict['x'] = np.concatenate(xs, axis=0)
     partial_dict['y'] = np.concatenate(ys, axis=0)
-    permuted_indices = np.random.permutation(np.arange(n_tv_speakers))
-    tr_idc = permuted_indices[:n_tr_speakers]
-    va_idc = permuted_indices[n_tr_speakers:n_tr_speakers + n_va_speakers]
+    permuted_indices = np.random.permutation(np.arange(n_tv_phonems))
+    tr_speaker_idc = permuted_indices[:n_tr_phonems]
+    tr_idc = tr_speaker_idc
+    va_idc = permuted_indices[n_tr_phonems:n_tr_phonems + n_va_phonems]
     data_dict['tr']['x'], data_dict['tr']['y'] = extract_seqs(partial_dict['x'][tr_idc], partial_dict['y'][tr_idc],
                                                               partial_dict['seqlen'][tr_idc], l_data_config['tr'])
     data_dict['tr']['seqlen'] = partial_dict['seqlen'][tr_idc]
@@ -72,16 +78,21 @@ def load_timit(l_data_config):
     data_dict['va']['seqlen'] = partial_dict['seqlen'][va_idc]
 
     data_dict['te'] = {'seqlen': [], 'x': [], 'y': []}
-    for mat in range(n_te_mats):
-        partial_set = loadmat(timit_path + 'timit_te' + str(mat + 1) + '.mat')
+    n_phonems = 0
+    for mat in range(7):
+        partial_set = loadmat(timit_path + 'te' + str(mat + 1) + '.mat')
         seqlen = np.squeeze(partial_set['seqlen']).astype(np.int32)
         data_dict['te']['seqlen'] = np.concatenate([partial_dict['seqlen'], seqlen], axis=0)
         x, y = extract_seqs(partial_set['x'], partial_set['y'], seqlen, l_data_config['te'])
         data_dict['te']['x'].append(x)
         data_dict['te']['y'].append(y)
+        n_phonems += partial_set['x'].shape[0]
+        if n_phonems > n_te_phonems:
+            break
+
     data_dict['te']['x'] = np.concatenate(data_dict['te']['x'], axis=0)
     data_dict['te']['y'] = np.concatenate(data_dict['te']['y'], axis=0)
-    te_idc = np.random.permutation(np.arange(n_te_speakers))
+    te_idc = np.random.permutation(np.arange(n_te_phonems))
     data_dict['te']['x'] = data_dict['te']['x'][te_idc]
     data_dict['te']['y'] = data_dict['te']['y'][te_idc]
     data_dict['te']['seqlen'] = data_dict['te']['seqlen'][te_idc]
