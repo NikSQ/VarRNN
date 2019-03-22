@@ -213,7 +213,7 @@ class RNN:
             var_reg *= self.training_config['var_reg']
             dir_reg *= self.training_config['dir_reg']
             ent_reg *= self.training_config['ent_reg']
-            if type(self.learning_rate) is list:
+            if type(self.training_config['learning_rate']) is list:
                 opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[0])
                 opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[1])
                 opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[2])
@@ -227,9 +227,9 @@ class RNN:
             vars2 = []
             vars3 = []
             for var in tf.trainable_variables():
-                if var.name[:var.name.index('/')] == 'lstm_1':
+                if var.name[:var.name.index('/')] == 'lstm_0':
                     vars1.append(var)
-                if var.name[:var.name.index('/')] == 'lstm_2':
+                if var.name[:var.name.index('/')] == 'lstm_1':
                     vars2.append(var)
                 if var.name[:var.name.index('/')] == 'output_layer':
                     vars3.append(var)
@@ -248,7 +248,7 @@ class RNN:
                                  for grad in self.gradients]
 
             grads1 = clipped_gradients[:len(vars1)]
-            grads2 = clipped_gradients[len(vars1):len(vars2)]
+            grads2 = clipped_gradients[len(vars1):len(vars1)+len(vars2)]
             grads3 = clipped_gradients[len(vars1) + len(vars2):]
             train_ops = []
             if len(vars1) != 0:
