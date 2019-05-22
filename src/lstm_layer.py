@@ -2,11 +2,13 @@ import tensorflow as tf
 import numpy as np
 from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
+from src.activation_logic import ActivationLogic
 
 
 class LSTMLayer:
-    def __init__(self, rnn_config, info_config, layer_idx):
+    def __init__(self, rnn_config, training_config, info_config, layer_idx):
         self.rnn_config = rnn_config
+        self.training_config = training_config
         self.info_config = info_config
         self.layer_config = rnn_config['layer_configs'][layer_idx]
         self.w_shape = (rnn_config['layout'][layer_idx-1] + rnn_config['layout'][layer_idx],
@@ -20,7 +22,9 @@ class LSTMLayer:
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
-            self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape)
+            self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape,
+                                   self.training_config['batchnorm'])
+            self.act_logic = ActivationLogic(self.layer_config, self.weights, self.training_config['batchnorm'])
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         if init:
@@ -29,6 +33,9 @@ class LSTMLayer:
             self.weights.tensor_dict['cs_v'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co_m'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co_v'] = tf.zeros(cell_shape)
+
+        if self.training_config['batchnorm']:
+            raise Exception('Batchnorm not implemented for probabilistic forward pass')
 
         # Vector concatenation (input with recurrent)
         m = tf.concat([x_m, self.weights.tensor_dict['co_m']], axis=1)
@@ -60,61 +67,93 @@ class LSTMLayer:
     def create_l_sampling_pass(self, x_m, mod_layer_config, init):
         if init:
             cell_shape = (tf.shape(x_m)[0], self.b_shape[1])
-            self.weights.tensor_dict['cs_m'] = tf.zeros(cell_shape)
-            self.weights.tensor_dict['co_m'] = tf.zeros(cell_shape)
-
-        m = tf.concat([x_m, self.weights.tensor_dict['co_m']], axis=1)
-
-        if self.layer_config['discrete_act'] is True:
-            f = self.weights.sample_activation('wf', 'bf', m, 'sig')
-            i = 1. - f
-            c = self.weights.sample_activation('wc', 'bc', m, 'tanh')
-            o = self.weights.sample_activation('wo', 'bo', m, 'sig')
-        else:
-            a_f = self.weights.sample_activation('wf', 'bf', m)
-            f = tf.nn.sigmoid(a_f)
-            a_i = self.weights.sample_activation('wi', 'bi', m)
-            i = tf.nn.sigmoid(a_i)
-            a_c = self.weights.sample_activation('wc', 'bc', m)
-            c = tf.nn.tanh(a_c)
-            a_o = self.weights.sample_activation('wo', 'bo', m)
-            o = tf.nn.sigmoid(a_o)
-
-        self.weights.tensor_dict['cs_m'] = tf.multiply(f, self.weights.tensor_dict['cs_m']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co_m'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs_m']), o)
-        return self.weights.tensor_dict['co_m']
-
-    # Global reparametrization trick
-    def create_g_sampling_pass(self, x_bp, mod_layer_config, init, x_fp=None):
-        if init:
-            self.weights.create_tensor_samples()
-            cell_shape = (tf.shape(x_bp)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        x = tf.concat([x_bp, self.weights.tensor_dict['co']], axis=1)
-        f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
-        i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
-        c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
-        o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
+        if self.training_config['batchnorm'] is False:
+            x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
+
+        if self.layer_config['discrete_act'] is True:
+            f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], 'sig')
+            i = 1. - f
+            c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'], 'tanh')
+            o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'], 'sig')
+        else:
+            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'])
+            f = tf.nn.sigmoid(a_f)
+            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, self.weights.tensor_dict['co'])
+            i = tf.nn.sigmoid(a_i)
+            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'])
+            c = tf.nn.tanh(a_c)
+            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'])
+            o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        if self.training_config['batchnorm']:
+            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+
+        # TODO implement batch norm
         return self.weights.tensor_dict['co']
 
-    # Classic forward pass. Requires the execution of the sampling operation first.
+    # Global reparametrization trick
+    def create_g_sampling_pass(self, x, mod_layer_config, init, x_fp=None):
+        if init:
+            self.weights.create_tensor_samples()
+            cell_shape = (tf.shape(x)[0], self.b_shape[1])
+            self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
+            self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
+
+        if self.training_config['batchnorm']:
+            f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.var_dict) + \
+                    self.weights.var_dict['bf']
+            i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.var_dict) + \
+                    self.weights.var_dict['bi']
+            c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.var_dict) + \
+                    self.weights.var_dict['bc']
+            o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.var_dict) + \
+                    self.weights.var_dict['bo']
+            f = tf.sigmoid(f_act)
+            i = tf.sigmoid(i_act)
+            c = tf.tanh(c_act)
+            o = tf.sigmoid(o_act)
+
+            self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+        else:
+            x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+            f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
+            i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
+            c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
+            o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
+
+            self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        return self.weights.tensor_dict['co']
+
     def create_var_fp(self, x, init):
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+        if self.training_config['batchnorm']:
+            f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.var_dict) + \
+                    self.weights.var_dict['bf']
+            i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.var_dict) + \
+                    self.weights.var_dict['bi']
+            c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.var_dict) + \
+                    self.weights.var_dict['bc']
+            o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.var_dict) + \
+                    self.weights.var_dict['bo']
+        else:
+            x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
 
-        f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
-        i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
-        c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
-        o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
+            f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
+            i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
+            c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
+            o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
 
         if init:
             for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
@@ -141,6 +180,15 @@ class LSTMLayer:
             o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+
+        if self.training_config['batchnorm']:
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
+    def batchnorm_celloutput(self):
+        mean, var = tf.nn.moments(self.weights.tensor_dict['cs'], axes=0)
+        return self.weights.var_dict['c_beta'] + tf.multiply(self.weights.var_dict['c_gamma'],
+                                                             tf.divide(self.weights.tensor_dict['cs'] - mean,
+                                                                       tf.sqrt(var + 0.001)))

@@ -30,9 +30,9 @@ class RNN:
         init_ops = []
         for layer_idx, layer_config in enumerate(self.rnn_config['layer_configs']):
             if layer_config['layer_type'] == 'fc':
-                layer = FCLayer(rnn_config, info_config, layer_idx)
+                layer = FCLayer(rnn_config, training_config, info_config, layer_idx)
             elif layer_config['layer_type'] == 'lstm':
-                layer = LSTMLayer(rnn_config, info_config, layer_idx)
+                layer = LSTMLayer(rnn_config, training_config, info_config, layer_idx)
             elif layer_config['layer_type'] == 'input':
                 continue
             else:

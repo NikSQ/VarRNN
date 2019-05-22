@@ -46,12 +46,13 @@ def get_ternary_probs(sa, sb):
 
 
 class Weights:
-    def __init__(self, var_keys, layer_config, w_shape, b_shape):
+    def __init__(self, var_keys, layer_config, w_shape, b_shape, batchnorm):
         self.var_keys = var_keys
         self.gauss = tf.distributions.Normal(loc=0., scale=1.)
         self.uniform = tf.distributions.Uniform(low=0., high=1.)
         self.w_shape = w_shape
         self.b_shape = b_shape
+
         self.var_dict = dict()
         self.tensor_dict = dict()
         self.w_config = dict()
@@ -65,6 +66,9 @@ class Weights:
 
         self.create_vars()
         self.create_init_op()
+
+        if batchnorm:
+            self.create_batchnorm_vars()
 
     # Returns unnormalized probabilities of the concrete distribution
     def get_exp_gumbel(self, probs, shape):
@@ -99,39 +103,97 @@ class Weights:
                 weight_summaries.append(tf.summary.histogram(var_key + '_v', self.var_dict[var_key + '_v']))
             # binary distribution is represented with a bernoulli parameter p(w=1) = sb
             elif self.w_config[var_key]['type'] == 'binary':
-                self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
-                                                                 initializer=tf.zeros_initializer(), dtype=tf.float32)
-                weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
-            # p(w=0) = sa, p(w=1 | w !=0) = sb -> from paper 1710.07739
+                if self.w_config['parametrization'] == 'sigmoid':
+                    #  p(w=1) = sigm(sb) -> from paper 1710.07739
+                    self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
+                                                                     initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
+                elif self.w_config['parametrization'] == 'logits':
+                    # p(w) = softmax(logits) -> Stored are the unscaled logits for negative and positive weight value
+                    self.var_dict[var_key + '_log_neg'] = tf.get_variable(name=var_key + '_log_neg', shape=shape,
+                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    self.var_dict[var_key + '_log_pos'] = tf.get_variable(name=var_key + '_log_pos', shape=shape,
+                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    weight_summaries.append(tf.summary.histogram(var_key + '_log_neg', self.var_dict[var_key + '_log_neg']))
+                    weight_summaries.append(tf.summary.histogram(var_key + '_log_pos', self.var_dict[var_key + '_log_pos']))
+                else:
+                    raise Exception("Weight parametrization not understood")
             elif self.w_config[var_key]['type'] == 'ternary':
-                self.var_dict[var_key + '_sa'] = tf.get_variable(name=var_key + '_sa', shape=shape,
-                                                                 initializer=tf.zeros_initializer(), dtype=tf.float32)
-                self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
-                                                                 initializer=tf.zeros_initializer(), dtype=tf.float32)
-                weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
-                weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
+                if self.w_config['parametrization'] == 'sigmoid':
+                    # p(w=0) = sigm(sa), p(w=1 | w !=0) = sigm(sb) -> from paper 1710.07739
+                    self.var_dict[var_key + '_sa'] = tf.get_variable(name=var_key + '_sa', shape=shape,
+                                                                     initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
+                                                                     initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
+                    weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
+                elif self.w_config['parametrization'] == 'logits':
+                    # p(w) = softmax(logits) -> Stored are the unscaled logits for negative, zero and positive weight value
+                    self.var_dict[var_key + '_log_neg'] = tf.get_variable(name=var_key + '_log_neg', shape=shape,
+                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    self.var_dict[var_key + '_log_zer'] = tf.get_variable(name=var_key + '_log_zer', shape=shape,
+                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    self.var_dict[var_key + '_log_pos'] = tf.get_variable(name=var_key + '_log_pos', shape=shape,
+                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                    weight_summaries.append(tf.summary.histogram(var_key + '_log_neg', self.var_dict[var_key + '_log_neg']))
+                    weight_summaries.append(tf.summary.histogram(var_key + '_log_zer', self.var_dict[var_key + '_log_zer']))
+                    weight_summaries.append(tf.summary.histogram(var_key + '_log_pos', self.var_dict[var_key + '_log_pos']))
+                else:
+                    raise Exception("Weight parametrization not understood")
+
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-            sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_sample(var_key, True)))
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_weight_sample(var_key, True)))
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
 
-    def generate_sample(self, var_key, exact=False):
+    # Creates the trainable parameters used for linear transformation in batch normalization
+    def create_batchnorm_vars(self):
+        # Iterate over all w - variables and add the gamma parameter. In case of lstm layers, we need two linear
+        # transforms per w - variable and an additional one for gate. See paper 1603.09025
+        for var_key in self.var_keys:
+            if var_key.startswith('w'):
+                self.var_dict[var_key + '_gamma'] = tf.get_variable(name=var_key + '_gamma', shape=self.b_shape,
+                                                                    initializer=tf.ones_initializer(), dtype=tf.float32)
+                if self.layer_config['layer_type'] == 'lstm':
+                    self.var_dict[var_key + '_gamma2'] = tf.get_variable(name=var_key + '_gamma2', shape=self.b_shape,
+                                                                         initializer=tf.ones_initializer(),
+                                                                         dtype=tf.float32)
+        if self.layer_config['layer_type'] == 'lstm':
+            self.var_dict['c_gamma'] = tf.get_variable(name='c_gamma', shape=self.b_shape,
+                                                                initializer=tf.ones_initializer(), dtype=tf.float32)
+            self.var_dict['c_beta'] = tf.get_variable(name='c_beta', shape=self.b_shape,
+                                                       initializer=tf.ones_initializer(), dtype=tf.float32)
+
+    def generate_weight_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
         if self.w_config[var_key]['type'] == 'continuous':
             return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.sqrt(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
-            if exact:
-                return -1. + 2. * tf.cast(tf.argmax([-self.var_dict[var_key + '_sb']
-                                                     - tf.log(-tf.log(self.uniform.sample(shape))),
-                                                     -tf.log(-tf.log(self.uniform.sample(shape)))]), dtype=tf.float32)
-            else:
-                return tf.nn.tanh((self.var_dict[var_key + '_sb']
-                                   - tf.log(-tf.log(self.uniform.sample(shape)))
-                                   + tf.log(-tf.log(self.uniform.sample(shape))))
-                                  / (self.layer_config['tau'] * 2))
+            if self.w_config['parametrization'] == 'sigmoid':
+                if exact:
+                    return -1. + 2. * tf.cast(tf.argmax([-self.var_dict[var_key + '_sb']
+                                                         - tf.log(-tf.log(self.uniform.sample(shape))),
+                                                         -tf.log(-tf.log(self.uniform.sample(shape)))]), dtype=tf.float32)
+                else:
+                    return tf.nn.tanh((self.var_dict[var_key + '_sb']
+                                       - tf.log(-tf.log(self.uniform.sample(shape)))
+                                       + tf.log(-tf.log(self.uniform.sample(shape))))
+                                      / (self.layer_config['tau'] * 2))
+            elif self.w_config['parametrization'] == 'logits':
+                probs = tf.nn.softmax([self.var_dict[var_key + '_log_neg'], self.var_dict[var_key + '_log_zer'],
+                                       self.var_dict[var_key + '_log_pos']])
+                if exact:
+                    return -1. + 2*tf.cast(tf.argmax([tf.divide(probs[0], -tf.log(self.uniform.sample(shape))),
+                                                    tf.divide(probs[1], -tf.log(self.uniform.sample(shape)))]),
+                                           dtype=tf.float32)
+                else:
+                    return tf.nn.tanh((self.var_dict[var_key + '_sb']
+                                       - tf.log(-tf.log(self.uniform.sample(shape)))
+                                       + tf.log(-tf.log(self.uniform.sample(shape))))
+                                      / (self.layer_config['tau'] * 2))
         elif self.w_config[var_key]['type'] == 'ternary':
             probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
             if exact:
@@ -149,7 +211,7 @@ class Weights:
 
     def create_tensor_samples(self, suffix=''):
         for var_key in self.var_keys:
-            self.tensor_dict[var_key+suffix] = self.generate_sample(var_key, False)
+            self.tensor_dict[var_key+suffix] = self.generate_weight_sample(var_key, False)
 
     def create_init_op(self):
         init_ops = []
@@ -274,41 +336,6 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)
 
-    # Used by local reparametrization
-    # Supports continuous, binary and ternary weights
-    # If normalize_mean == True: Bias is set to mean of batch
-    # If act_func == None: Returns sample of activation
-    #                Else: Returns sample of discretized tanh or sig
-    def sample_activation(self, w_var_key, b_var_key, x_m, act_func=None):
-        w_m, w_v = self.get_stats(w_var_key)
-        b_m, b_v = self.get_stats(b_var_key)
-
-        if self.layer_config['normalize_mean']:
-            std = tf.sqrt(tf.matmul(tf.square(x_m), w_v))
-            with tf.control_dependencies([tf.assign(self.var_dict[b_var_key + '_m'],
-                                                    -tf.reduce_mean(tf.matmul(x_m, w_m), axis=0, keepdims=True))]):
-                mean = tf.zeros_like(std)
-        else:
-            mean = tf.matmul(x_m, w_m) + b_m
-            std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
-
-        shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
-
-        if act_func is None:
-            return mean + tf.multiply(self.gauss.sample(sample_shape=shape), std)
-        else:
-            prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2)))
-            prob_1 = 0.0001 + (0.9999 - 0.0001) * prob_1
-            output = tf.nn.tanh((tf.log(prob_1) - tf.log(1. - prob_1)
-                                 - tf.log(-tf.log(self.uniform.sample(shape)))
-                                 + tf.log(-tf.log(self.uniform.sample(shape))))
-                                / (self.layer_config['tau'] * 2))
-            if act_func == 'tanh':
-                return output
-            elif act_func == 'sig':
-                return (output + 1.) / 2.
-            else:
-                raise Exception('activation function not understood')
 
 
 
