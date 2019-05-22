@@ -103,12 +103,12 @@ class Weights:
                 weight_summaries.append(tf.summary.histogram(var_key + '_v', self.var_dict[var_key + '_v']))
             # binary distribution is represented with a bernoulli parameter p(w=1) = sb
             elif self.w_config[var_key]['type'] == 'binary':
-                if self.w_config['parametrization'] == 'sigmoid':
+                if self.layer_config['parametrization'] == 'sigmoid':
                     #  p(w=1) = sigm(sb) -> from paper 1710.07739
                     self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
                                                                      initializer=tf.zeros_initializer(), dtype=tf.float32)
                     weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
-                elif self.w_config['parametrization'] == 'logits':
+                elif self.layer_config['parametrization'] == 'logits':
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for negative and positive weight value
                     self.var_dict[var_key + '_log_neg'] = tf.get_variable(name=var_key + '_log_neg', shape=shape,
                                                                           initializer=tf.zeros_initializer(), dtype=tf.float32)
@@ -119,7 +119,7 @@ class Weights:
                 else:
                     raise Exception("Weight parametrization not understood")
             elif self.w_config[var_key]['type'] == 'ternary':
-                if self.w_config['parametrization'] == 'sigmoid':
+                if self.layer_config['parametrization'] == 'sigmoid':
                     # p(w=0) = sigm(sa), p(w=1 | w !=0) = sigm(sb) -> from paper 1710.07739
                     self.var_dict[var_key + '_sa'] = tf.get_variable(name=var_key + '_sa', shape=shape,
                                                                      initializer=tf.zeros_initializer(), dtype=tf.float32)
@@ -127,7 +127,7 @@ class Weights:
                                                                      initializer=tf.zeros_initializer(), dtype=tf.float32)
                     weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
                     weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
-                elif self.w_config['parametrization'] == 'logits':
+                elif self.layer_config['parametrization'] == 'logits':
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for negative, zero and positive weight value
                     self.var_dict[var_key + '_log_neg'] = tf.get_variable(name=var_key + '_log_neg', shape=shape,
                                                                           initializer=tf.zeros_initializer(), dtype=tf.float32)
@@ -172,7 +172,7 @@ class Weights:
         if self.w_config[var_key]['type'] == 'continuous':
             return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.sqrt(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
-            if self.w_config['parametrization'] == 'sigmoid':
+            if self.layer_config['parametrization'] == 'sigmoid':
                 if exact:
                     return -1. + 2. * tf.cast(tf.argmax([-self.var_dict[var_key + '_sb']
                                                          - tf.log(-tf.log(self.uniform.sample(shape))),
@@ -182,7 +182,7 @@ class Weights:
                                        - tf.log(-tf.log(self.uniform.sample(shape)))
                                        + tf.log(-tf.log(self.uniform.sample(shape))))
                                       / (self.layer_config['tau'] * 2))
-            elif self.w_config['parametrization'] == 'logits':
+            elif self.layer_config['parametrization'] == 'logits':
                 probs = tf.nn.softmax([self.var_dict[var_key + '_log_neg'], self.var_dict[var_key + '_log_zer'],
                                        self.var_dict[var_key + '_log_pos']])
                 if exact:
