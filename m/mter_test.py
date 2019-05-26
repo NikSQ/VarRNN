@@ -19,7 +19,8 @@ except KeyError:
 
 runs = 1
 filename = 'exp'
-tau = .8
+tau = .5
+parametrization = 'sigmoid'
 
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
@@ -44,13 +45,13 @@ labelled_data_config = {'dataset': penstroke_dataset,
 priors = [[0.2, 0.6, 0.2],[0.1, 0.8, 0.1]]
 input_config = {'layer_type': 'input'}
 b_config = {'init_m': 'xavier', 'prior_m': 0., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
-w_config = {'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
+w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
 
 hidden_2_config = {'layer_type': 'lstm',
                    'var_scope': 'lstm_1',
+                   'parametrization': parametrization,
                    'tau': tau,
                    'discrete_act': False,
-                   'normalize_mean': False,
                    'init_config': {'f': {'w': 'all_zero', 'b': 'all_one'},
                                    'i': {'w': 'xavier', 'b': 'all_zero'},
                                    'c': {'w': 'xavier', 'b': 'all_zero'},
@@ -71,7 +72,7 @@ hidden_1_config['var_scope'] = 'lstm_0'
 
 output_config = {'layer_type': 'fc',
                  'var_scope': 'output_layer',
-                 'normalize_mean': False,
+                 'parametrization': parametrization,
                  'tau': tau,
                  'is_recurrent': False,
                  'is_output': True,
@@ -80,18 +81,19 @@ output_config = {'layer_type': 'fc',
                  'w': w_config,
                  'b': b_config}
 
-datam = [150]*3 + [600.]*3
+datam = [300, 300]
 rnn_config = {'layout': [4, 60, 60, 10],
               'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
               'data_multiplier': datam[task_id]}
 
-ent_reg = [0.001, 0.01, 0.1] * 2
+ent_reg = [0.0001, 0.001]
 
-training_config = {'learning_rate': .03, 
+training_config = {'learning_rate': .2, 
                    'type': 'g_sampling',
                    'is_pretrain': False,
+                   'batchnorm': True,
                    'var_reg': 0.,
                    'ent_reg': ent_reg[task_id],
                    'dir_reg': 0., 
@@ -117,8 +119,8 @@ pretrain_config['mode'] = {'name': 'inc_lengths',
 #pretrain_config['mode']['max_epochs'] = 10
 pretrain_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 200} 
 pretrain_config['reg'] = 0.02
-pretrain_config['path'] = 'pretrain_mnist_1' 
-pretrain_config['just_load'] = True
+pretrain_config['path'] = 'pretrain_mnist_batchnorm_1' 
+pretrain_config['just_load'] = False
 pretrain_config['no_pretraining'] = False
 
 
