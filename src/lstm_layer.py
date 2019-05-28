@@ -106,13 +106,13 @@ class LSTMLayer:
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
         if self.training_config['batchnorm']:
-            f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.var_dict) + \
+            f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.tensor_dict) + \
                     self.weights.var_dict['bf']
-            i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.var_dict) + \
+            i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.tensor_dict) + \
                     self.weights.var_dict['bi']
-            c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.var_dict) + \
+            c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.tensor_dict) + \
                     self.weights.var_dict['bc']
-            o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.var_dict) + \
+            o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.tensor_dict) + \
                     self.weights.var_dict['bo']
             f = tf.sigmoid(f_act)
             i = tf.sigmoid(i_act)
