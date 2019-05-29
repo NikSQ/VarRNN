@@ -107,13 +107,13 @@ class LSTMLayer:
 
         if self.training_config['batchnorm']:
             f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.tensor_dict) + \
-                    self.weights.var_dict['bf']
+                    self.weights.tensor_dict['bf']
             i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.tensor_dict) + \
-                    self.weights.var_dict['bi']
+                    self.weights.tensor_dict['bi']
             c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.tensor_dict) + \
-                    self.weights.var_dict['bc']
+                    self.weights.tensor_dict['bc']
             o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.tensor_dict) + \
-                    self.weights.var_dict['bo']
+                    self.weights.tensor_dict['bo']
             f = tf.sigmoid(f_act)
             i = tf.sigmoid(i_act)
             c = tf.tanh(c_act)
