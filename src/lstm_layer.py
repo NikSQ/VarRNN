@@ -90,9 +90,9 @@ class LSTMLayer:
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
-        else:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
 
         # TODO implement batch norm
         return self.weights.tensor_dict['co']
