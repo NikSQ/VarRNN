@@ -32,16 +32,16 @@ class ActivationLogic:
             else:
                 mean_x = tf.matmul(x_m, tf.slice(w_m, begin=(0, 0),
                                                  size=(self.weights.w_shape[0] - self.weights.w_shape[1], -1)))
-                var_x = tf.matmul(tf.square(x_m), tf.square(tf.slice(w_m, begin=(0, 0),
+                var_x = tf.matmul(tf.square(x_m), tf.slice(w_v, begin=(0, 0),
                                                            size=(self.weights.w_shape[0] - self.weights.w_shape[1],
-                                                                 -1))))
+                                                                 -1)))
                 mean_x_mean, mean_x_var = tf.nn.moments(mean_x, axes=0)
 
                 mean_h = tf.matmul(h_m, tf.slice(w_m, begin=(self.weights.w_shape[0] - self.weights.w_shape[1],0),
                                                  size=(-1, -1)))
-                var_h = tf.matmul(tf.square(h_m), tf.square(tf.slice(w_m,
+                var_h = tf.matmul(tf.square(h_m), tf.slice(w_v,
                                                            begin=(self.weights.w_shape[0] - self.weights.w_shape[1], 0),
-                                                           size=(-1, -1))))
+                                                           size=(-1, -1)))
                 mean_h_mean, mean_h_var = tf.nn.moments(mean_h, axes=0)
 
                 mean = b_m + tf.multiply(self.weights.var_dict[w_var_key + '_gamma'],
