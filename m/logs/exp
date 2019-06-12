@@ -17,14 +17,14 @@ except KeyError:
     print('Using ID 0 instead')
     task_id = 0
 
-lr = [.02, .05, .02, .05, .02, .05]
-datam = [None] * 6
-taus = [.3, .3, .5, .5, .8, .8]
+lr = [.03, .05, .1, .2] * 2
+datam = [None] * 8
+taus = [.5] * 4 + [1.] * 4
 
 runs = 1
 tau = taus[task_id]
-filename = 'exp_logits'
-parametrization = 'logits'
+filename = 'exp'
+parametrization = 'sigmoid'
 
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
@@ -92,7 +92,7 @@ rnn_config = {'layout': [4, 60, 60, 10],
               'data_multiplier': datam[task_id]} 
 
 training_config = {'learning_rate': lr[task_id], 
-                   'type': 'l_sampling',
+                   'type': 'g_sampling',
                    'is_pretrain': False,
                    'batchnorm': True,
                    'var_reg': 0.,
@@ -120,7 +120,7 @@ pretrain_config['mode'] = {'name': 'inc_lengths',
 #pretrain_config['mode']['max_epochs'] = 10
 pretrain_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 200} 
 pretrain_config['reg'] = 0.02
-pretrain_config['path'] = 'pretrain_mnist_logits_batchnorm_1' 
+pretrain_config['path'] = 'pretrain_mnist_batchnorm_1' 
 pretrain_config['just_load'] = True
 pretrain_config['no_pretraining'] = False
 
