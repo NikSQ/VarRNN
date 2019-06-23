@@ -20,9 +20,11 @@ except KeyError:
 runs = 1
 filename = 'exp'
 tau = .5
-lr = [.01, .1, .01, .1]
-datam = [400, 400, None, None]
-parametrization = 'sigmoid'
+lr = [.01, .01, .01] * 2
+datam = [1000, 2000, None] * 2
+bn = [False, True]
+filenames =  ['pretrain_timit_logits_70_70', 'pretrain_timit_logitsbn_70_70'] 
+parametrization = 'logits'
 
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
@@ -100,7 +102,7 @@ rnn_config = {'layout': [13, 70, 70, 54],
 training_config = {'learning_rate': lr[task_id], 
                    'type': 'l_sampling',
                    'is_pretrain': False,
-                   'batchnorm': True,
+                   'batchnorm': bn[int(task_id / 3)],
                    'var_reg': 0.,
                    'ent_reg': 0.,
                    'dir_reg': 0., 
@@ -126,8 +128,8 @@ pretrain_config['mode'] = {'name': 'inc_lengths',
 #pretrain_config['mode']['max_epochs'] = 10
 pretrain_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 200} 
 pretrain_config['reg'] = 0.02
-pretrain_config['path'] = 'pretrain_timit_70_70_0_bn'
-pretrain_config['just_load'] = True
+pretrain_config['path'] = filenames[int(task_id / 3)]
+pretrain_config['just_load'] = False
 pretrain_config['no_pretraining'] = False
 
 
