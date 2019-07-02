@@ -163,19 +163,20 @@ class Weights:
     def create_batchnorm_vars(self):
         # Iterate over all w - variables and add the gamma parameter. In case of lstm layers, we need two linear
         # transforms per w - variable and an additional one for gate. See paper 1603.09025
+        init_ops = []
         for var_key in self.var_keys:
             if var_key.startswith('w'):
                 self.var_dict[var_key + '_gamma'] = tf.get_variable(name=var_key + '_gamma', shape=self.b_shape,
-                                                                    initializer=tf.ones_initializer(), dtype=tf.float32)
+                                                                    initializer=tf.constant_initializer(0.1, dtype=tf.float32), dtype=tf.float32)
                 if self.layer_config['layer_type'] == 'lstm':
                     self.var_dict[var_key + '_gamma2'] = tf.get_variable(name=var_key + '_gamma2', shape=self.b_shape,
-                                                                         initializer=tf.ones_initializer(),
+                                                                         initializer=tf.constant_initializer(0.1, dtype=tf.float32),
                                                                          dtype=tf.float32)
         if self.layer_config['layer_type'] == 'lstm':
             self.var_dict['c_gamma'] = tf.get_variable(name='c_gamma', shape=self.b_shape,
-                                                                initializer=tf.ones_initializer(), dtype=tf.float32)
+                                                                initializer=tf.constant_initializer(0.1, dtype=tf.float32), dtype=tf.float32)
             self.var_dict['c_beta'] = tf.get_variable(name='c_beta', shape=self.b_shape,
-                                                       initializer=tf.ones_initializer(), dtype=tf.float32)
+                                                       initializer=tf.zeros_initializer(), dtype=tf.float32)
 
     def generate_weight_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
@@ -246,12 +247,18 @@ class Weights:
         for var_key in self.var_keys:
             self.tensor_dict[var_key+suffix] = self.generate_weight_sample(var_key, False)
 
+    def normalize_weights(self, var_key):
+        mean, var = tf.nn.moments(self.var_dict[var_key], axes=[0,1])
+        tf.assign(self.var_dict[var_key], tf.divide(self.var_dict[var_key], mean))
+
     def create_init_op(self):
         init_ops = []
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'continuous':
                 init_ops.append(tf.assign(self.var_dict[var_key + '_m'], self.var_dict[var_key]))
             elif self.w_config[var_key]['type'] == 'binary':
+                if var_key.startswith('w'):
+                    self.normalize_weights(var_key)
                 prob_1 = get_init_one_prob(self.w_config[var_key], 0., self.var_dict[var_key])
                 if self.layer_config['parametrization'] == 'sigmoid':
                     init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log(tf.divide(1. - prob_1, prob_1))))
@@ -259,6 +266,8 @@ class Weights:
                     init_ops.append(tf.assign(self.var_dict[var_key + '_log_neg'], tf.zeros_like(self.var_dict[var_key])))
                     init_ops.append(tf.assign(self.var_dict[var_key + '_log_pos'], tf.log(tf.divide(prob_1, (1 - prob_1)))))
             elif self.w_config[var_key]['type'] == 'ternary':
+                if var_key.startswith('w'):
+                    self.normalize_weights(var_key)
                 weight, prob_0 = get_init_zero_prob(self.var_dict[var_key], self.w_config[var_key])
                 prob_1 = get_init_one_prob(self.w_config[var_key], prob_0, weight)
                 if self.layer_config['parametrization'] == 'sigmoid':

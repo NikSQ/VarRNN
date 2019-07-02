@@ -2,7 +2,6 @@
 
 import tensorflow as tf
 import numpy as np
-import math
 
 
 # Returns statistics of the activations of a layer

@@ -62,10 +62,17 @@ class RNN:
             with tf.variable_scope(layer.layer_config['var_scope']):
                 for act_key in layer.acts.keys():
                     if self.act_summaries is None:
-                        self.act_summaries = tf.summary.histogram(act_key, layer.acts[act_key])
+                        if len(act_key) == 1:
+                            self.act_summaries = tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -40, 40))
+                        else:
+                            self.act_summaries = tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -10, 10))
                     else:
-                        self.act_summaries = tf.summary.merge([self.act_summaries,
-                                                               tf.summary.histogram(act_key, layer.acts[act_key])])
+                        if len(act_key) == 1:
+                            self.act_summaries = tf.summary.merge([self.act_summaries,
+                                                               tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -40, 40))])
+                        else:
+                            self.act_summaries = tf.summary.merge([self.act_summaries,
+                                                                   tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -10, 10))])
 
     # TODO: Make predictions based on predictive distribution rather than on mode
     def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True):
