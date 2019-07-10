@@ -407,6 +407,35 @@ class Weights:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         return tf.cast(kl_loss, dtype=tf.float64)
 
+    def adapt_weights(self, x_m, w_var_key, b_var_key, a):
+        w_m_new = []
+        w_v_new = []
+        b_m_new = []
+        b_v_new = []
+        w_var_key = w_var_key + '_adapt'
+        b_var_key = b_var_key + '_adapt'
+        x_m = tf.unstack(tf.expand_dims(x_m, axis=2), axis=0)
+        acts = tf.unstack(tf.expand_dims(a, axis=1), axis=0)
+        for x, a, w_m, w_v, b_m, b_v in zip(x_m, acts, self.tensor_dict[w_var_key + '_m'], self.tensor_dict[w_var_key + '_v'],
+                                         self.tensor_dict[b_var_key + '_v'], self.tensor_dict[b_var_key + '_v']):
+            x_square = tf.square(x)
+            r_means = tf.concat([b_m, tf.multiply(x, w_m)], axis=0)
+            r_vars = tf.concat([b_v, tf.multiply(x_square, w_v)], axis=0)
+            lambda_m = tf.reduce_mean(r_means, axis=0, keepdims=True)
+            lambda_v = tf.reduce_mean(r_vars, axis=0, keepdims=True)
+            r_means_new = tf.split(r_means + tf.multiply(tf.divide(a-lambda_m, lambda_v), r_vars), [1, -1], axis=0)
+            r_vars_new = tf.split(r_vars - tf.divide(tf.square(r_vars), lambda_v), [1,-1], axis=0)
+            w_m_new.append(tf.divide(r_means_new[1], x))
+            w_v_new.append(tf.divide(r_vars_new[1], x_square))
+            b_m_new.append(r_means_new[0])
+            b_v_new.append(r_vars_new[0])
 
+        self.tensor_dict[w_var_key + '_m'] = w_m_new
+        self.tensor_dict[w_var_key + '_v'] = w_v_new
+        self.tensor_dict[b_var_key + '_m'] = b_m_new
+        self.tensor_dict[b_var_key + '_v'] = b_v_new
 
+    def create_adapted_weights(self, var_key, m, v):
+        self.tensor_dict[var_key + '_adapt_m'] = m
+        self.tensor_dict[var_key + '_adapt_v'] = v
 

@@ -72,20 +72,20 @@ class LSTMLayer:
 
         if self.training_config['batchnorm'] is False:
             x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
-
+        print('l sampling lstm')
         if self.layer_config['discrete_act'] is True:
-            f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], 'sig')
+            f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], 'sig', init)
             i = 1. - f
-            c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'], 'tanh')
-            o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'], 'sig')
+            c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'], 'tanh', init)
+            o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'], 'sig', init)
         else:
-            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'])
+            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], None, init)
             f = tf.nn.sigmoid(a_f)
-            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, self.weights.tensor_dict['co'])
+            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, self.weights.tensor_dict['co'], None, init)
             i = tf.nn.sigmoid(a_i)
-            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'])
+            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'], None, init)
             c = tf.nn.tanh(a_c)
-            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'])
+            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'], None, init)
             o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
