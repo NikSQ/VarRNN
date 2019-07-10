@@ -35,7 +35,8 @@ class FCLayer:
             raise Exception('fc layer can only be used as output')
 
     def create_l_sampling_pass(self, x, mod_layer_config, init):
-        return self.act_logic.sample_activation('w', 'b', x, None)
+        print('l sampling fc')
+        return self.act_logic.sample_activation('w', 'b', x, None, None, init)
 
     def create_g_sampling_pass(self, x, mod_layer_config, init):
         if init:
