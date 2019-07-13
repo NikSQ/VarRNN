@@ -96,7 +96,7 @@ class RNN:
 
             for layer_idx, layer in enumerate(self.layers, 1):
                 if bayesian is False:
-                    m = layer.create_var_fp(m, seq_idx == 0)
+                    m = layer.create_var_fp(m, seq_idx == 0, x_shape[2], seq_idx)
                 elif self.training_config['type'] == 'pfp':
                     m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
                 elif self.training_config['type'] == 'l_sampling':

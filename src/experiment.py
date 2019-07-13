@@ -161,6 +161,12 @@ class Experiment:
                             f.write(trace)
 
                 model_saver.save(sess, temp_model_path)
+                # TODO: Clean the cell access code
+                if info_config['cell_access']:
+                    ca_1, ca_2 = sess.run([self.rnn.layers[0].cell_access_mat, self.rnn.layers[1].cell_access_mat],
+                             feed_dict={self.l_data.batch_idx: 0})
+                    np.save(file='../nr/ca_1_'+ str(train_config['task_id']), arr=ca_1)
+                    np.save(file='../nr/ca_2_'+ str(train_config['task_id']), arr=ca_2)
         writer.close()
         return self.rnn.t_metrics.result_dict
 

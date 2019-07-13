@@ -14,6 +14,7 @@ class LSTMLayer:
         self.w_shape = (rnn_config['layout'][layer_idx-1] + rnn_config['layout'][layer_idx],
                         rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
+        self.cell_access_mat = []
 
         # Activation summaries and specific neurons to gather individual histograms
         self.acts = dict()
@@ -72,7 +73,7 @@ class LSTMLayer:
 
         if self.training_config['batchnorm'] is False:
             x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
-        print('l sampling lstm')
+
         if self.layer_config['discrete_act'] is True:
             f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], 'sig', init)
             i = 1. - f
@@ -132,7 +133,7 @@ class LSTMLayer:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
-    def create_var_fp(self, x, init):
+    def create_var_fp(self, x, init, seq_len, seq_idx):
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
@@ -160,6 +161,7 @@ class LSTMLayer:
                 self.acts[act_type] = act
                 for neuron_idc in range(len(self.act_neurons)):
                     self.acts[act_type + '_' + str(neuron_idc)] = tf.slice(act, begin=(0, neuron_idc), size=(-1, 1))
+
         else:
             for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
                 self.acts[act_type] = tf.concat([act, self.acts[act_type]], axis=0)
@@ -173,6 +175,9 @@ class LSTMLayer:
             i = 1. - f
             c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
             o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
+
+            if self.info_config['cell_access']:
+                self.cell_access_mat.append(i)
         else:
             f = tf.sigmoid(f_act)
             i = tf.sigmoid(i_act)

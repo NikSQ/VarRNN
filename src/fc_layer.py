@@ -35,7 +35,6 @@ class FCLayer:
             raise Exception('fc layer can only be used as output')
 
     def create_l_sampling_pass(self, x, mod_layer_config, init):
-        print('l sampling fc')
         return self.act_logic.sample_activation('w', 'b', x, None, None, init)
 
     def create_g_sampling_pass(self, x, mod_layer_config, init):
@@ -50,7 +49,7 @@ class FCLayer:
         else:
             raise Exception('FC layer is currently only implemented as output layer')
 
-    def create_var_fp(self, x, init):
+    def create_var_fp(self, x, init, seq_len, seq_idx):
         if self.training_config['batchnorm']:
             act = self.act_logic.batchnorm_transform(x, None, 'w', self.weights.var_dict) + self.weights.var_dict['b']
         else:

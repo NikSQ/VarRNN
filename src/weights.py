@@ -430,12 +430,14 @@ class Weights:
             b_m_new.append(r_means_new[0])
             b_v_new.append(r_vars_new[0])
 
-        self.tensor_dict[w_var_key + '_m'] = w_m_new
-        self.tensor_dict[w_var_key + '_v'] = w_v_new
-        self.tensor_dict[b_var_key + '_m'] = b_m_new
-        self.tensor_dict[b_var_key + '_v'] = b_v_new
+        self.tensor_dict[w_var_key + '_m'] = tf.stack(w_m_new, axis=0)
+        self.tensor_dict[w_var_key + '_v'] = tf.stack(w_v_new, axis=0)
+        self.tensor_dict[b_var_key + '_m'] = tf.stack(b_m_new, axis=0)
+        self.tensor_dict[b_var_key + '_v'] = tf.stack(b_v_new, axis=0)
 
-    def create_adapted_weights(self, var_key, m, v):
+    def create_adapted_stats(self, var_key, m, v):
         self.tensor_dict[var_key + '_adapt_m'] = m
         self.tensor_dict[var_key + '_adapt_v'] = v
 
+    def get_adapted_stats(self, var_key, m, v):
+        return self.tensor_dict[var_key + '_adapt_m'], self.tensor_dict[var_key + '_adapt_v']
