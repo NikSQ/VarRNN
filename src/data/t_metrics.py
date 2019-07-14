@@ -131,10 +131,7 @@ class TMetrics:
         losses = list()
         accs = list()
 
-        if is_pretrain is False:
-            loop_range = range(self.info_config['n_samples'])
-        else:
-            loop_range = range(1)
+        loop_range = range(1)
 
         for sample_idx in loop_range:
             cum_loss = 0

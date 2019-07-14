@@ -154,7 +154,7 @@ class Weights:
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-            sample_ops.append(tf.assign(self.var_dict[var_key], self.generate_weight_sample(var_key, True)))
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_stats[var_key][0]))
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
@@ -249,7 +249,7 @@ class Weights:
 
     def normalize_weights(self, var_key):
         mean, var = tf.nn.moments(self.var_dict[var_key], axes=[0,1])
-        tf.assign(self.var_dict[var_key], tf.divide(self.var_dict[var_key], mean))
+        tf.assign(self.var_dict[var_key], tf.divide(self.var_dict[var_key], tf.sqrt(var)))
 
     def create_init_op(self):
         init_ops = []
