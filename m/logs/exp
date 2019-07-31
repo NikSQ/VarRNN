@@ -24,6 +24,7 @@ acts = [False, False, True]
 discrete_act = acts[task_id] 
 lr = [.05, .05, .05] 
 epochs = 15000
+layouts = [[60, 60], [60, 60], [90, 90]]
 load_file=['pretrain_mnist_batchnorm_1', 'pretrain_mnist_1', 'pretrain_mnist_90_90', 'pretrain_mnist_90_90_bn']
 load_file = load_file[0]
 
@@ -100,7 +101,7 @@ output_config = {'layer_type': 'fc',
                  'w': w_config,
                  'b': b_config}
 
-rnn_config = {'layout': [4, 60, 60, 10],
+rnn_config = {'layout': [4, layout[0], layout[1], 10],
               'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
