@@ -6,6 +6,8 @@ from src.data.t_metrics import TMetrics
 import copy
 
 
+
+
 class RNN:
     def __init__(self, rnn_config, training_config, info_config, l_data):
         self.c = None
@@ -17,22 +19,23 @@ class RNN:
         self.train_s_op = None
         self.accuracy = None
         self.gradients = None  # Used to find a good value to clip
-        self.t_metrics = TMetrics(l_data.l_data_config, l_data, info_config)
+        self.t_metrics = TMetrics(l_data.l_data_config, l_data, info_config, training_config, self)
         self.t_metric_summaries = None
         self.act_summaries = None
         self.gradient_summaries = None
 
         with tf.variable_scope('global'):
             self.learning_rate = tf.placeholder(tf.float32)
+            self.is_training = tf.placeholder(tf.bool)
 
         weight_summaries = []
         sample_ops = []
         init_ops = []
         for layer_idx, layer_config in enumerate(self.rnn_config['layer_configs']):
             if layer_config['layer_type'] == 'fc':
-                layer = FCLayer(rnn_config, training_config, info_config, layer_idx)
+                layer = FCLayer(rnn_config, training_config, info_config, layer_idx, self.is_training)
             elif layer_config['layer_type'] == 'lstm':
-                layer = LSTMLayer(rnn_config, training_config, info_config, layer_idx)
+                layer = LSTMLayer(rnn_config, training_config, info_config, layer_idx, self.is_training)
             elif layer_config['layer_type'] == 'input':
                 continue
             else:
@@ -52,10 +55,12 @@ class RNN:
 
         self.create_b_training_graph('tr')
         for data_key in l_data.data:
-            if data_key != 'tr':
+            if data_key not in ['tr', 'te']:
                 self.create_b_evaluation_graph(data_key)
-                self.create_s_evaluation_graph(data_key)
-                self.get_activation_summaries()
+            self.create_s_evaluation_graph(data_key)
+            self.get_activation_summaries()
+
+        print(tf.get_collection(tf.GraphKeys.UPDATE_OPS))
 
     def get_activation_summaries(self):
         for layer in self.layers:
@@ -78,16 +83,16 @@ class RNN:
     def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True):
         x = self.l_data.data[data_key]['x']
         y = self.l_data.data[data_key]['y']
+
         x_shape = self.l_data.data[data_key]['x_shape']
         y_shape = self.l_data.data[data_key]['y_shape']
 
         # Elements of the list will be the means and variances of the output sequence
         m_outputs = []
         v_outputs = []
-        outputs = []
 
-        # This captures the seq_idx from which on the output will be computed
-        start_output_idx = x_shape[2] - y_shape[2]
+        # This captures the seq_idx from which the output will be computed
+        output_idcs = self.l_data.data[data_key]['end_time']
 
         # Create graph by connecting the appropriate layers unrolled in time
         for seq_idx in range(x_shape[2]):
@@ -106,16 +111,17 @@ class RNN:
                 else:
                     raise Exception('Training type not understood')
 
-            if seq_idx >= start_output_idx:
-                if bayesian:
-                    m_outputs.append(tf.expand_dims(m, axis=2))
-                    v_outputs.append(tf.expand_dims(v, axis=2))
-                else:
-                    outputs.append(tf.expand_dims(m, axis=2))
+            m_outputs.append(m)
+            if self.training_config['type'] == 'pfp':
+                v_outputs.append(v)
+
+        m_outputs = tf.stack(m_outputs, axis=1)
+        gather_idcs = tf.stack([tf.range(y_shape[0]), output_idcs], axis=1)
+        m_outputs = tf.gather_nd(m_outputs, gather_idcs)
 
         # Process output of non bayesian network
         if bayesian is False:
-            output = tf.cast(tf.concat(outputs, axis=2), dtype=tf.float64)
+            output = tf.cast(m_outputs, dtype=tf.float64)
             if self.rnn_config['output_type'] == 'classification':
                 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
                 prediction = tf.argmax(output, axis=1)
@@ -136,8 +142,8 @@ class RNN:
         # Process output of bayesian network
         else:
             if self.rnn_config['output_type'] == 'classification' and self.training_config['type'] == 'pfp':
-                m_output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
-                v_output = tf.cast(tf.concat(v_outputs, axis=2), dtype=tf.float64)
+                m_output = tf.cast(dtype=tf.float64)
+                v_output = tf.cast(tf.stack(v_outputs, axis=0), dtype=tf.float64)
                 smax = tf.nn.softmax(logits=m_output, axis=1)
                 t = tf.argmax(y, axis=1)
                 batch_range = np.arange(y_shape[0])
@@ -164,7 +170,7 @@ class RNN:
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif self.rnn_config['output_type'] == 'classification' and \
                     (self.training_config['type'] == 'l_sampling' or self.training_config['type'] == 'g_sampling'):
-                output = tf.cast(tf.concat(m_outputs, axis=2), dtype=tf.float64)
+                output = tf.cast(m_outputs, dtype=tf.float64)
                 smax = tf.nn.softmax(logits=output, axis=1)
                 t = tf.argmax(y, axis=1)
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
@@ -298,8 +304,5 @@ class RNN:
     def create_s_evaluation_graph(self, data_key):
         with tf.variable_scope(data_key + '_s'):
             self.create_rnn_graph(data_key, None, bayesian=False)
-
-
-
 
 

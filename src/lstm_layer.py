@@ -3,10 +3,11 @@ import numpy as np
 from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
 from src.activation_logic import ActivationLogic
+from src.tools import get_batchnormalizer
 
 
 class LSTMLayer:
-    def __init__(self, rnn_config, training_config, info_config, layer_idx):
+    def __init__(self, rnn_config, training_config, info_config, layer_idx, is_training):
         self.rnn_config = rnn_config
         self.training_config = training_config
         self.info_config = info_config
@@ -15,6 +16,7 @@ class LSTMLayer:
                         rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
         self.cell_access_mat = []
+        self.is_training = is_training
 
         # Activation summaries and specific neurons to gather individual histograms
         self.acts = dict()
@@ -71,31 +73,29 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        if self.training_config['batchnorm'] is False:
-            x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
+        x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
 
         if self.layer_config['discrete_act'] is True:
-            f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], 'sig', init)
+            f = self.act_logic.sample_activation('wf', 'bf', x_m, 'sig', init, self.is_training)
             i = 1. - f
-            c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'], 'tanh', init)
-            o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'], 'sig', init)
+            c = self.act_logic.sample_activation('wc', 'bc', x_m, 'tanh', init, self.is_training)
+            o = self.act_logic.sample_activation('wo', 'bo', x_m, 'sig', init, self.is_training)
         else:
-            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, self.weights.tensor_dict['co'], None, init)
+            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, None, init, self.is_training)
             f = tf.nn.sigmoid(a_f)
-            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, self.weights.tensor_dict['co'], None, init)
+            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, None, init, self.is_training)
             i = tf.nn.sigmoid(a_i)
-            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, self.weights.tensor_dict['co'], None, init)
+            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, None, init, self.is_training)
             c = tf.nn.tanh(a_c)
-            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, self.weights.tensor_dict['co'], None, init)
+            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, None, init, self.is_training)
             o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.get_batchnormalized_cs()))
         else:
             self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
 
-        # TODO implement batch norm
         return self.weights.tensor_dict['co']
 
     # Global reparametrization trick
@@ -106,30 +106,20 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
+        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
         if self.training_config['batchnorm']:
-            f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.tensor_dict) + \
-                    self.weights.tensor_dict['bf']
-            i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.tensor_dict) + \
-                    self.weights.tensor_dict['bi']
-            c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.tensor_dict) + \
-                    self.weights.tensor_dict['bc']
-            o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.tensor_dict) + \
-                    self.weights.tensor_dict['bo']
-            f = tf.sigmoid(f_act)
-            i = tf.sigmoid(i_act)
-            c = tf.tanh(c_act)
-            o = tf.sigmoid(o_act)
+            x = get_batchnormalizer()(x, self.is_training)
 
-            self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+        f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
+        i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
+        c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
+        o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
+
+        self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
+
+        if self.training_config['batchnorm']:
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.get_batchnormalized_cs()))
         else:
-            x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
-            f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
-            i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
-            c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
-            o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
-
-            self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
@@ -139,22 +129,14 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
+        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
         if self.training_config['batchnorm']:
-            f_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wf', self.weights.var_dict) + \
-                    self.weights.var_dict['bf']
-            i_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wi', self.weights.var_dict) + \
-                    self.weights.var_dict['bi']
-            c_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wc', self.weights.var_dict) + \
-                    self.weights.var_dict['bc']
-            o_act = self.act_logic.batchnorm_transform(x, self.weights.tensor_dict['co'], 'wo', self.weights.var_dict) + \
-                    self.weights.var_dict['bo']
-        else:
-            x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+            x = get_batchnormalizer()(x, self.is_training)
 
-            f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
-            i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
-            c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
-            o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
+        f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
+        i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
+        c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
+        o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
 
         if init:
             for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
@@ -187,13 +169,10 @@ class LSTMLayer:
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
 
         if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.batchnorm_celloutput()))
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.get_batchnormalized_cs()))
         else:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
-    def batchnorm_celloutput(self):
-        mean, var = tf.nn.moments(self.weights.tensor_dict['cs'], axes=0)
-        return self.weights.var_dict['c_beta'] + tf.multiply(self.weights.var_dict['c_gamma'],
-                                                             tf.divide(self.weights.tensor_dict['cs'] - mean,
-                                                                       tf.sqrt(var + 0.001)))
+    def get_batchnormalized_cs(self):
+        return get_batchnormalizer()(self.weights.tensor_dict['cs'], self.is_training)

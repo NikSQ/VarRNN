@@ -124,18 +124,18 @@ class Experiment:
                             and current_epoch % info_config['tensorboard']['period'] == 0:
                         if info_config['tensorboard']['weights']:
                             weight_summary = sess.run(self.rnn.weight_summaries,
-                                                      feed_dict={self.l_data.batch_idx: 0})
+                                                      feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(weight_summary, current_epoch)
                         if info_config['tensorboard']['gradients']:
                             gradient_summary = sess.run(self.rnn.gradient_summaries,
-                                                        feed_dict={self.l_data.batch_idx: 0})
+                                                        feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(gradient_summary, current_epoch)
                         if info_config['tensorboard']['results']:
                             t_result_summaries = sess.run(self.rnn.t_metric_summaries,
-                                                          feed_dict={self.l_data.batch_idx: 0})
+                                                          feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(t_result_summaries, current_epoch)
                         if info_config['tensorboard']['acts']:
-                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.l_data.batch_idx: 0})
+                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(act_summaries, current_epoch)
 
                     self.timer.restart('Tensorboard')
@@ -145,7 +145,7 @@ class Experiment:
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_b_op,
                                  feed_dict={self.rnn.learning_rate: train_config['learning_rate'],
-                                            self.l_data.batch_idx: minibatch_idx},
+                                            self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True},
                                  options=options, run_metadata=run_metadata)
 
                     if info_config['profiling']['enabled']:
@@ -235,8 +235,8 @@ class Experiment:
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     self.rnn.t_metrics.retrieve_results(sess, current_epoch, is_pretrain=True)
-                    if self.rnn.t_metrics.result_dict['tr_s']['m_loss'][-1] < min_error:
-                        print(self.rnn.t_metrics.result_dict['tr_s']['m_acc'][-1])
+                    if self.rnn.t_metrics.result_dict['tr_s']['loss'][-1] < min_error:
+                        print(self.rnn.t_metrics.result_dict['tr_s']['acc'][-1])
                         break
 
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
@@ -245,8 +245,8 @@ class Experiment:
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_s_op,
                                  feed_dict={self.rnn.learning_rate: pretrain_config['learning_rate'],
-                                            self.l_data.batch_idx: minibatch_idx})
+                                            self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True})
 
                 model_saver.save(sess, model_path)
-                print(self.rnn.t_metrics.result_dict['tr_s']['m_acc'][-1])
+                print(self.rnn.t_metrics.result_dict['tr_s']['acc'][-1])
 

@@ -2,6 +2,7 @@
 # Offers methods for retrieving these results from the rnn class and storing them
 
 import numpy as np
+import tensorflow as tf
 
 
 def save_to_file(result_dicts, path):
@@ -10,8 +11,7 @@ def save_to_file(result_dicts, path):
             continue
 
         if process_key.endswith('_s'):
-            metrics = convert_to_array(result_dicts, process_key, ['m_loss', 's_loss', 'm_acc', 's_acc', 'max_acc',
-                                                                   'min_loss'])
+            metrics = convert_to_array(result_dicts, process_key, ['acc', 'loss'])
         elif process_key.endswith('_b'):
             metrics = convert_to_array(result_dicts, process_key, ['vfe', 'kl', 'elogl', 'acc'])
         else:
@@ -28,7 +28,7 @@ def print_results(result_dicts):
         if process_key in ['va_b', 'va_s']:
             print('Results for {}'.format(process_key))
             if process_key.endswith('s'):
-                metric_keys = ['max_acc']
+                metric_keys = ['acc']
             else:
                 metric_keys = ['elogl', 'acc']
 
@@ -47,7 +47,7 @@ def print_results(result_dicts):
         if process_key in ['te_b', 'te_s']:
             print('EARLY STOP FOR {}'.format(process_key))
             if process_key.endswith('s'):
-                metric_keys = ['max_acc']
+                metric_keys = ['acc']
             else:
                 metric_keys = ['elogl', 'acc']
             for metric_key in metric_keys:
@@ -77,11 +77,15 @@ def convert_to_array(result_dicts, process_key, metric_keys):
 
 
 class TMetrics:
-    def __init__(self, l_data_config, l_data, info_config):
+    def __init__(self, l_data_config, l_data, info_config, training_config, rnn):
+        self.rnn = rnn
         self.info_config = info_config
         self.l_data_config = l_data_config
         self.l_data = l_data
+        self.training_config = training_config
         self.result_dict = {'epoch': list()}
+        self.s_batchnorm_stats_op = None
+        self.b_batchnorm_stats_op = None
         self.op_dict = {}
 
     # Connects metrics of datasets to TResults. Needs to be called for each dataset (training, validation and or test)
@@ -91,30 +95,32 @@ class TMetrics:
         self.op_dict.update({process_key: [vfe_op, kl_op, elogl_op, accs_op]})
 
     def add_s_vars(self, process_key, sample_op, loss_op, accs_op):
-        self.result_dict.update({process_key: {'m_loss': [], 's_loss': [], 'm_acc': [], 's_acc': [], 'max_acc': [],
-                                               'min_loss': []}})
+        self.result_dict.update({process_key: {'loss': [], 'acc': []}})
         self.op_dict.update({process_key: {'metrics': [loss_op, accs_op], 'sample': sample_op}})
 
     # Retrieves metrics of the performance of the processes which were added using add_vars()
     # A process is a method of operating a RNN (bayesian or sampled weights) combined with a dataset
     def retrieve_results(self, sess, epoch, is_pretrain=False):
+        if self.training_config['batchnorm']:
+            self.retrieve_s_results(sess, 'tr_s', is_pretrain, True)
+
         for process_key in self.op_dict.keys():
-            if process_key.endswith('_s'):
-                self.retrieve_s_results(sess, process_key, is_pretrain)
+            if process_key.endswith('_s') and process_key is not 'tr_s':
+                self.retrieve_s_results(sess, process_key, is_pretrain, False)
             elif process_key.endswith('_b'):
-                self.retrieve_b_results(sess, process_key)
+                self.retrieve_b_results(sess, process_key, False)
             else:
                 raise Exception('process key {} not understood'.format(process_key))
         self.result_dict['epoch'].append(epoch)
 
-    def retrieve_b_results(self, sess, process_key):
+    def retrieve_b_results(self, sess, process_key, is_training):
         data_key = process_key[:-2]
         cum_vfe = 0
         cum_acc = 0
         elogl = 0
         for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
             vfe, kl, elogl, acc = sess.run(self.op_dict[process_key],
-                                             feed_dict={self.l_data.batch_idx: minibatch_idx})
+                                             feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: is_training})
             cum_vfe += vfe
             cum_acc += acc
             elogl += elogl
@@ -126,35 +132,24 @@ class TMetrics:
         self.result_dict[process_key]['elogl'].append(elogl)
         self.result_dict[process_key]['acc'].append(acc)
 
-    def retrieve_s_results(self, sess, process_key, is_pretrain):
+    def retrieve_s_results(self, sess, process_key, is_pretrain, is_training):
         data_key = process_key[:-2]
-        losses = list()
-        accs = list()
 
-        loop_range = range(1)
-
-        for sample_idx in loop_range:
-            cum_loss = 0
-            cum_acc = 0
-            if is_pretrain is False:
-                sess.run(self.op_dict[process_key]['sample'])
-            for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
-                loss, acc = sess.run(self.op_dict[process_key]['metrics'],
-                                     feed_dict={self.l_data.batch_idx: minibatch_idx})
-                cum_loss += loss
-                cum_acc += acc
-            accs.append(cum_acc / self.l_data.data[data_key]['n_minibatches'])
-            losses.append(cum_loss / self.l_data.data[data_key]['n_minibatches'])
-        losses = np.asarray(losses)
-        accs = np.asarray(accs)
-        self.result_dict[process_key]['m_loss'].append(np.mean(losses))
-        self.result_dict[process_key]['m_acc'].append(np.mean(accs))
-        self.result_dict[process_key]['max_acc'].append(np.max(accs))
-        self.result_dict[process_key]['min_loss'].append(np.min(losses))
-
+        cum_loss = 0
+        cum_acc = 0
         if is_pretrain is False:
-            self.result_dict[process_key]['s_loss'].append(np.std(losses, ddof=1))
-            self.result_dict[process_key]['s_acc'].append(np.std(accs, ddof=1))
+            sess.run(self.op_dict[process_key]['sample'])
+        for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
+            loss, acc = sess.run(self.op_dict[process_key]['metrics'],
+                                 feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: is_training})
+            cum_loss += loss
+            cum_acc += acc
+        if is_training:
+            return
+        loss = np.mean(np.asarray(cum_loss))
+        acc = np.mean(np.asarray(cum_acc))
+        self.result_dict[process_key]['loss'].append(np.mean(loss))
+        self.result_dict[process_key]['acc'].append(acc)
 
     # Prints the latest metrics of the performance
     def print(self, session_idx):
@@ -162,6 +157,6 @@ class TMetrics:
               .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
                       self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],
                       self.result_dict['va_b']['vfe'][-1]) +
-              '\t {} sampled NNs | MaxAcc: {:6.4f} | MinLoss: {:6.4f}'
-              .format(self.info_config['n_samples'], self.result_dict['va_s']['max_acc'][-1],
-                      self.result_dict['va_s']['min_loss'][-1]))
+              '\t MAP NN | Acc: {:6.4f} | Loss: {:6.4f}'
+              .format(self.result_dict['va_s']['acc'][-1],
+                      self.result_dict['va_s']['loss'][-1]))

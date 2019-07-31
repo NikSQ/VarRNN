@@ -21,9 +21,12 @@ class LabeledData:
                                                    trainable=False)
                 l_data['y'] = tf.get_variable(name='y_' + data_key, shape=l_data['y_shape'], dtype=tf.float32,
                                                    trainable=False)
+                l_data['end_time'] = tf.get_variable(name='end_time_' + data_key, shape=data_dict[data_key]['end_time'].shape,
+                                                   dtype=tf.int32, trainable=False)
                 assign_x = tf.assign(l_data['x'], l_data['x_ph'])
                 assign_y = tf.assign(l_data['y'], l_data['y_ph'])
-                l_data['load'] = tf.group(*[assign_x, assign_y])
+                assign_seqlens = tf.assign(l_data['end_time'], data_dict[data_key]['end_time'])
+                l_data['load'] = tf.group(*[assign_x, assign_y, assign_seqlens])
 
                 if l_data_config[data_key]['minibatch_enabled']:
                     batch_size = l_data_config[data_key]['minibatch_size']
@@ -41,6 +44,7 @@ class LabeledData:
 
                     l_data['x'] = tf.gather(l_data['x'], indices=sample_list[self.batch_idx:self.batch_idx+batch_size])
                     l_data['y'] = tf.gather(l_data['y'], indices=sample_list[self.batch_idx:self.batch_idx+batch_size])
+                    l_data['end_time'] = tf.gather(l_data['end_time'], indices=sample_list[self.batch_idx:self.batch_idx+batch_size])
                     l_data['x_shape'] = (l_data_config[data_key]['minibatch_size'],) + l_data['x_shape'][1:]
                     l_data['y_shape'] = (l_data_config[data_key]['minibatch_size'],) + l_data['y_shape'][1:]
                 else:

@@ -135,10 +135,9 @@ def load_penstroke(l_data_config):
         if data_key in l_data_config.keys():
             dataset = loadmat(filenames['penstroke_' + data_key])
             data_dict[data_key] = dict()
-            data_dict[data_key]['seqlen'] = np.squeeze(dataset['seqlen']).astype(np.int32)
-            data_dict[data_key]['x'], data_dict[data_key]['y'] = extract_seqs(dataset['x'], dataset['y'],
-                                                                              data_dict[data_key]['seqlen'],
-                                                                              l_data_config['tr'])
+            data_dict[data_key]['x'], data_dict[data_key]['y'], data_dict[data_key]['end_time'] = \
+                extract_seqs(dataset['x'], dataset['y'], np.squeeze(dataset['seqlen']).astype(np.int32),
+                             l_data_config['tr'])
             print(data_key)
             print(data_dict[data_key]['x'].shape)
     return data_dict

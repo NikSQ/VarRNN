@@ -77,9 +77,6 @@ class Weights:
         self.create_vars()
         self.create_init_op()
 
-        if batchnorm:
-            self.create_batchnorm_vars()
-
     # Returns unnormalized probabilities of the concrete distribution
     def get_exp_gumbel(self, probs, shape):
         return tf.exp((tf.log(probs) - tf.log(-tf.log(self.uniform.sample(shape))))/self.layer_config['tau'])
@@ -154,29 +151,10 @@ class Weights:
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_stats[var_key][0]))
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_stats(var_key)[0]))
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
-
-    # Creates the trainable parameters used for linear transformation in batch normalization
-    def create_batchnorm_vars(self):
-        # Iterate over all w - variables and add the gamma parameter. In case of lstm layers, we need two linear
-        # transforms per w - variable and an additional one for gate. See paper 1603.09025
-        init_ops = []
-        for var_key in self.var_keys:
-            if var_key.startswith('w'):
-                self.var_dict[var_key + '_gamma'] = tf.get_variable(name=var_key + '_gamma', shape=self.b_shape,
-                                                                    initializer=tf.constant_initializer(0.1, dtype=tf.float32), dtype=tf.float32)
-                if self.layer_config['layer_type'] == 'lstm':
-                    self.var_dict[var_key + '_gamma2'] = tf.get_variable(name=var_key + '_gamma2', shape=self.b_shape,
-                                                                         initializer=tf.constant_initializer(0.1, dtype=tf.float32),
-                                                                         dtype=tf.float32)
-        if self.layer_config['layer_type'] == 'lstm':
-            self.var_dict['c_gamma'] = tf.get_variable(name='c_gamma', shape=self.b_shape,
-                                                                initializer=tf.constant_initializer(0.1, dtype=tf.float32), dtype=tf.float32)
-            self.var_dict['c_beta'] = tf.get_variable(name='c_beta', shape=self.b_shape,
-                                                       initializer=tf.zeros_initializer(), dtype=tf.float32)
 
     def generate_weight_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape

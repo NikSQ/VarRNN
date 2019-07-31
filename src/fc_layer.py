@@ -3,18 +3,20 @@ import numpy as np
 from src.fp_tools import approx_activation
 from src.weights import Weights
 from src.activation_logic import ActivationLogic
+from src.tools import get_batchnormalizer
 
 
 # FC LAYER..
 # Can only be used as output
 class FCLayer:
-    def __init__(self, rnn_config, training_config, info_config, layer_idx):
+    def __init__(self, rnn_config, training_config, info_config, layer_idx, is_training):
         self.rnn_config = rnn_config
         self.training_config = training_config
         self.info_config = info_config
         self.layer_config = rnn_config['layer_configs'][layer_idx]
         self.w_shape = (rnn_config['layout'][layer_idx-1], rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
+        self.is_training = is_training
 
         # Activation summaries and specific neurons to gather individual histograms
         self.acts = dict()
@@ -42,18 +44,15 @@ class FCLayer:
             self.weights.create_tensor_samples()
         if self.layer_config['is_output']:
             if self.training_config['batchnorm']:
-                return self.act_logic.batchnorm_transform(x, None, 'w', self.weights.tensor_dict) + \
-                       self.weights.tensor_dict['b']
-            else:
-                return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
+                x = get_batchnormalizer()(x, self.is_training)
+            return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
         else:
             raise Exception('FC layer is currently only implemented as output layer')
 
     def create_var_fp(self, x, init, seq_len, seq_idx):
         if self.training_config['batchnorm']:
-            act = self.act_logic.batchnorm_transform(x, None, 'w', self.weights.var_dict) + self.weights.var_dict['b']
-        else:
-            act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
+            x = get_batchnormalizer()(x, self.is_training)
+        act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
 
         # Store activations over layer and over single neurons.
         if init:
