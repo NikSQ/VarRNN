@@ -6,8 +6,10 @@ import copy
 def get_mean_initializer(w_config, shape):
     if w_config['init_m'] == 'xavier':
         init_vals = np.random.randn(shape[0], shape[1]) * np.sqrt(2/sum(shape))
-    elif w_config['init_m'] == 'same':
-        init_vals = np.ones(shape) * w_config['prior_m']
+    elif w_config['init_m'] == 'zeros':
+        init_vals = np.zeros(shape)
+    elif w_config['init_m'] == 'ones':
+        init_vals = np.ones(shape)
     else:
         raise Exception("{} is not a valid weight initialization".format(w_config['init_m']))
     return tf.constant_initializer(init_vals)
@@ -113,14 +115,14 @@ class Weights:
                 if self.layer_config['parametrization'] == 'sigmoid':
                     #  p(w=1) = sigm(sb) -> from paper 1710.07739
                     self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
-                                                                     initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                     initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
                 elif self.layer_config['parametrization'] == 'logits':
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for negative and positive weight value
                     self.var_dict[var_key + '_log_neg'] = tf.get_variable(name=var_key + '_log_neg', shape=shape,
-                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                          initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     self.var_dict[var_key + '_log_pos'] = tf.get_variable(name=var_key + '_log_pos', shape=shape,
-                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                          initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     weight_summaries.append(tf.summary.histogram(var_key + '_log_neg', self.var_dict[var_key + '_log_neg']))
                     weight_summaries.append(tf.summary.histogram(var_key + '_log_pos', self.var_dict[var_key + '_log_pos']))
                 else:
@@ -129,19 +131,19 @@ class Weights:
                 if self.layer_config['parametrization'] == 'sigmoid':
                     # p(w=0) = sigm(sa), p(w=1 | w !=0) = sigm(sb) -> from paper 1710.07739
                     self.var_dict[var_key + '_sa'] = tf.get_variable(name=var_key + '_sa', shape=shape,
-                                                                     initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                     initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
-                                                                     initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                     initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
                     weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
                 elif self.layer_config['parametrization'] == 'logits':
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for negative, zero and positive weight value
                     self.var_dict[var_key + '_log_neg'] = tf.get_variable(name=var_key + '_log_neg', shape=shape,
-                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                          initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     self.var_dict[var_key + '_log_zer'] = tf.get_variable(name=var_key + '_log_zer', shape=shape,
-                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                          initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     self.var_dict[var_key + '_log_pos'] = tf.get_variable(name=var_key + '_log_pos', shape=shape,
-                                                                          initializer=tf.zeros_initializer(), dtype=tf.float32)
+                                                                          initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     weight_summaries.append(tf.summary.histogram(var_key + '_log_neg', self.var_dict[var_key + '_log_neg']))
                     weight_summaries.append(tf.summary.histogram(var_key + '_log_zer', self.var_dict[var_key + '_log_zer']))
                     weight_summaries.append(tf.summary.histogram(var_key + '_log_pos', self.var_dict[var_key + '_log_pos']))
@@ -151,10 +153,29 @@ class Weights:
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_stats(var_key)[0]))
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_map_estimate(var_key)))
 
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
+
+    def get_map_estimate(self, var_key):
+        if self.w_config[var_key]['type'] == 'continuous':
+            return self.var_dict[var_key + '_m']
+        elif self.w_config[var_key]['type'] == 'binary':
+            if self.layer_config['parametrization'] == 'sigmoid':
+                return -1. + 2. * tf.cast(tf.argmax[tf.zeros_like(self.var_dict[var_key + '_sb']),
+                                                  self.var_dict[var_key + '_sb']], tf.float32)
+            elif self.layer_config['parametrization'] == 'logits':
+                return -1. + 2 * tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg'],
+                                          self.var_dict[var_key + '_log_pos']], tf.float32))
+        elif self.w_config[var_key]['type'] == 'ternary':
+            if self.layer_config['parametrization'] == 'sigmoid':
+                probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
+                return -1. + tf.cast(tf.argmax(probs), tf.float32)
+            elif self.layer_config['parametrization'] == 'logits':
+                return -1. + tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg'],
+                                          self.var_dict[var_key + '_log_zer'],
+                                          self.var_dict[var_key + '_log_pos']]))
 
     def generate_weight_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
@@ -275,7 +296,7 @@ class Weights:
                 count += 1.
         if count == 0.:
             return 0.
-        return tf.cast(dir_reg / count, dtype=tf.float64)
+        return dir_reg / count
 
     # Adds a L2 regularizer on the parameters sa and sb (probability decay) to penalize low entropy
     # TODO: Support for logit parametrization
@@ -293,17 +314,18 @@ class Weights:
                                  dtype=tf.float32)
         if count == 0.:
             return 0.
-        return tf.cast(ent_reg / count, dtype=tf.float64)
+
+        return ent_reg / count
 
     # Adds a L2 regularizer for pretraining a deterministic network (non-bayesian)
     def get_pretraining_reg(self):
         l1_regu = tf.contrib.layers.l1_regularizer(scale=4.0)
-        reg_term = 0
+        reg_term = 0.
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
                 reg_term += tf.nn.l2_loss(self.var_dict[var_key] - 1) + \
                            tf.nn.l2_loss(self.var_dict[var_key] + 1) - l1_regu(self.var_dict[var_key])
-        return tf.cast(reg_term, dtype=tf.float64)
+        return reg_term
 
     # Adds a regularization term on the posterior variance
     def get_var_reg(self):
@@ -314,7 +336,7 @@ class Weights:
                 m, v = self.get_stats(var_key)
                 var_reg += tf.reduce_mean(v)
                 count += 1
-        return tf.cast(var_reg / count, dtype=tf.float64)
+        return var_reg / count
 
     # Returns mean and variance of a specified weight / bias
     def get_stats(self, var_key):

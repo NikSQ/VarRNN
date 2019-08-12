@@ -4,7 +4,7 @@ from tensorflow.python.client import timeline
 from src.data.loader import load_dataset
 from src.data.labeled_data import LabeledData
 from src.rnn import RNN
-from src.tools import print_config
+from src.tools import print_config, set_momentum
 from src.timer import Timer
 import time
 
@@ -20,8 +20,8 @@ class Experiment:
         self.timer = None
 
     def create_rnn(self, train_config, l_data, l_data_config):
+        set_momentum(train_config['batchnorm_momentum'])
         self.rnn = RNN(self.rnn_config, train_config, self.info_config, l_data)
-
         self.l_data = l_data
         self.l_data_config = l_data_config
 
@@ -141,6 +141,33 @@ class Experiment:
                     self.timer.restart('Tensorboard')
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
                     # then do a training step for each minibatch.
+                    info = sess.run([self.rnn.m, self.rnn.m2, self.rnn.m3, self.rnn.m4, self.rnn.m5], feed_dict={self.rnn.is_training: False})
+                    #info = np.argmax(info, axis=1)
+                    nrs = [39, 5902]
+                    #print(self.data_dict['tr']['y'][nrs[0]])
+                    #print(self.data_dict['tr']['y'][nrs[1]])
+                    print(np.isnan(info[0]).any())
+                    print(np.isnan(info[1]).any())
+                    print(np.isnan(info[2]).any())
+                    print(np.isnan(info[3]).any())
+                    print(np.isnan(info[4]).any())
+                    #print(info[0][nrs[0]])
+                    #print(info[0][nrs[1]])
+                    #print(info[1][nrs[0]])
+                    #print(info[1][nrs[1]])
+                    #print(info[2][nrs[0]])
+                    #print(info[2][nrs[1]])
+                    #print(info[3][nrs[0]])
+                    #print(info[3][nrs[1]])
+                    #print(info[4][nrs[0]])
+                    #print(info[4][nrs[1]])
+                    #print(info[5][nrs[0]])
+                    #print(info[5][nrs[1]])
+                    #print(info[6][nrs[0]])
+                    #print(info[6][nrs[1]])
+                    #print(info[7][nrs[0]])
+                    #print(info[7][nrs[1]])
+                    #print('NEW')
                     sess.run(self.l_data.data['tr']['shuffle'])
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_b_op,

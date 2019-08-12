@@ -109,7 +109,6 @@ class LSTMLayer:
         x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
         if self.training_config['batchnorm']:
             x = get_batchnormalizer()(x, self.is_training)
-
         f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
@@ -123,7 +122,7 @@ class LSTMLayer:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
-    def create_var_fp(self, x, init, seq_len, seq_idx):
+    def create_var_fp(self, x, init, seq_len, seq_idx, data_key):
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)

@@ -60,24 +60,22 @@ class RNN:
             self.create_s_evaluation_graph(data_key)
             self.get_activation_summaries()
 
-        print(tf.get_collection(tf.GraphKeys.UPDATE_OPS))
-
     def get_activation_summaries(self):
         for layer in self.layers:
             with tf.variable_scope(layer.layer_config['var_scope']):
                 for act_key in layer.acts.keys():
                     if self.act_summaries is None:
                         if len(act_key) == 1:
-                            self.act_summaries = tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -40, 40))
+                            self.act_summaries = tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -20, 20))
                         else:
-                            self.act_summaries = tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -10, 10))
+                            self.act_summaries = tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -7, 7))
                     else:
                         if len(act_key) == 1:
                             self.act_summaries = tf.summary.merge([self.act_summaries,
-                                                               tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -40, 40))])
+                                                               tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -20, 20))])
                         else:
                             self.act_summaries = tf.summary.merge([self.act_summaries,
-                                                                   tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -10, 10))])
+                                                                   tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -7, 7))])
 
     # TODO: Make predictions based on predictive distribution rather than on mode
     def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True):
@@ -101,7 +99,7 @@ class RNN:
 
             for layer_idx, layer in enumerate(self.layers, 1):
                 if bayesian is False:
-                    m = layer.create_var_fp(m, seq_idx == 0, x_shape[2], seq_idx)
+                    m = layer.create_var_fp(m, seq_idx == 0, x_shape[2], seq_idx, data_key)
                 elif self.training_config['type'] == 'pfp':
                     m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
                 elif self.training_config['type'] == 'l_sampling':
@@ -110,6 +108,8 @@ class RNN:
                     m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
                 else:
                     raise Exception('Training type not understood')
+            if seq_idx == 0 and data_key == 'tr' and bayesian:
+                self.m3 = m
 
             m_outputs.append(m)
             if self.training_config['type'] == 'pfp':
@@ -118,6 +118,8 @@ class RNN:
         m_outputs = tf.stack(m_outputs, axis=1)
         gather_idcs = tf.stack([tf.range(y_shape[0]), output_idcs], axis=1)
         m_outputs = tf.gather_nd(m_outputs, gather_idcs)
+        if bayesian and data_key == 'tr':
+            self.m2 = m_outputs
 
         # Process output of non bayesian network
         if bayesian is False:
@@ -153,7 +155,6 @@ class RNN:
                                       np.expand_dims(seqq, axis=2)], axis=2)
                 elogl = tf.reduce_mean(tf.log(np.finfo(np.float64).eps + tf.gather_nd(smax, g_indices))) - \
                     0.5 * tf.reduce_mean(tf.reduce_sum(tf.multiply(v_output, tf.multiply(smax, 1 - smax)), axis=1))
-
                 kl = 0
                 if self.rnn_config['data_multiplier'] is not None:
                     for layer in self.layers:
@@ -170,10 +171,11 @@ class RNN:
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif self.rnn_config['output_type'] == 'classification' and \
                     (self.training_config['type'] == 'l_sampling' or self.training_config['type'] == 'g_sampling'):
-                output = tf.cast(m_outputs, dtype=tf.float64)
-                smax = tf.nn.softmax(logits=output, axis=1)
+                smax = tf.nn.softmax(logits=m_outputs, axis=1)
                 t = tf.argmax(y, axis=1)
-                elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
+                elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))
+                if data_key == 'tr':
+                    self.m = elogl
 
                 kl = 0
                 if self.rnn_config['data_multiplier'] is not None:
@@ -247,6 +249,7 @@ class RNN:
                 if var.name[:var.name.index('/')] == 'output_layer':
                     vars3.append(var)
 
+            self.m4 = vfe + dir_reg + var_reg + ent_reg
             self.gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
 
             gradient_summaries = []
@@ -264,6 +267,7 @@ class RNN:
             grads2 = clipped_gradients[len(vars1):len(vars1)+len(vars2)]
             grads3 = clipped_gradients[len(vars1) + len(vars2):]
             train_ops = []
+            self.m5 = tf.concat([tf.reshape(grads1, [-1]),tf.reshape(grads2, [-1]),tf.reshape(grads3, [-1])], axis=0)
             if len(vars1) != 0:
                 train_ops.append(opt1.apply_gradients(zip(grads1, vars1)))
             if len(vars2) != 0:

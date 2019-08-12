@@ -30,8 +30,7 @@ class ActivationLogic:
             std = tf.sqrt(tf.matmul(tf.square(x_m_normalized), w_v))
         else:
             if self.layer_config['lr_adapt'] is False:
-                x_m_normalized = get_batchnormalizer()(x_m, is_training)
-                mean = tf.matmul(x_m_normalized, w_m) + b_m
+                mean = tf.matmul(x_m, w_m) + b_m
                 std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
             else:
                 layer_inputs = tf.unstack(tf.expand_dims(x_m, axis=1), axis=0)

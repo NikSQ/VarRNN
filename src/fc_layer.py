@@ -31,10 +31,7 @@ class FCLayer:
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         a_m, a_v = approx_activation(self.weights.var_dict['w_m'], self.weights.var_dict['w_v'], self.weights.var_dict['b_m'], self.weights.var_dict['b_v'], x_m, x_v)
-        if self.layer_config['is_output']:
-            return a_m, a_v
-        else:
-            raise Exception('fc layer can only be used as output')
+        return a_m, a_v
 
     def create_l_sampling_pass(self, x, mod_layer_config, init):
         return self.act_logic.sample_activation('w', 'b', x, None, None, init)
@@ -42,14 +39,11 @@ class FCLayer:
     def create_g_sampling_pass(self, x, mod_layer_config, init):
         if init:
             self.weights.create_tensor_samples()
-        if self.layer_config['is_output']:
-            if self.training_config['batchnorm']:
-                x = get_batchnormalizer()(x, self.is_training)
-            return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
-        else:
-            raise Exception('FC layer is currently only implemented as output layer')
+        if self.training_config['batchnorm']:
+            x = get_batchnormalizer()(x, self.is_training)
+        return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
 
-    def create_var_fp(self, x, init, seq_len, seq_idx):
+    def create_var_fp(self, x, init, seq_len, seq_idx, data_key):
         if self.training_config['batchnorm']:
             x = get_batchnormalizer()(x, self.is_training)
         act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
@@ -65,8 +59,7 @@ class FCLayer:
                 self.acts['n' + '_' + str(neuron_idc)] = tf.concat([tf.slice(act, begin=(0, neuron_idc), size=(-1, 1)),
                                                                     self.acts['n_' + str(neuron_idc)]], axis=0)
 
-        if self.layer_config['is_output']:
-            return act
+        return act
 
 
 

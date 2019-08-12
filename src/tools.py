@@ -14,6 +14,13 @@ def print_config(rnn_config, training_config, data_config):
     print('==============================\n\n')
 
 
+momentum = None
+
+def set_momentum(value):
+    global momentum
+    momentum = value
+
+
 def get_batchnormalizer():
     gamma_init = tf.constant_initializer(value=.1)
-    return tf.keras.layers.BatchNormalization(center=False, gamma_initializer=gamma_init, momentum=.98)
+    return tf.keras.layers.BatchNormalization(center=False, gamma_initializer=gamma_init, momentum=momentum)
