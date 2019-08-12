@@ -23,7 +23,7 @@ def save_to_file(result_dicts, path):
 
 
 def print_results(result_dicts):
-    it_earlystop = [dict()] * len(result_dicts)
+    it_earlystop = []
     for process_key in result_dicts[0].keys():
         if process_key in ['va_b', 'va_s']:
             print('Results for {}'.format(process_key))
@@ -37,27 +37,19 @@ def print_results(result_dicts):
                 for run in range(len(result_dicts)):
                     extrema = np.max(result_dicts[run][process_key][metric_key])
                     idx = np.argmax(result_dicts[run][process_key][metric_key])
-                    it_earlystop[run][metric_key[-1]] = idx
-                    if metric_key == 'elogl':
+                    if metric_key == 'acc' and process_key == 'va_s':
+                        it_earlystop.append(idx)
                         print('{:6.3f} in iteration {:4d}'.format(-extrema, idx))
                     else:
                         print('{:6.2f} % in iteration {:4d}'.format(extrema*100, idx))
 
     for process_key in result_dicts[0].keys():
-        if process_key in ['te_b', 'te_s']:
+        if process_key in ['te_s']:
             print('EARLY STOP FOR {}'.format(process_key))
-            if process_key.endswith('s'):
-                metric_keys = ['acc']
-            else:
-                metric_keys = ['elogl', 'acc']
-            for metric_key in metric_keys:
-                for run in range(len(result_dicts)):
-                    idx = it_earlystop[run][metric_key[-1]]
-                    value = result_dicts[run][process_key][metric_key][idx]
-                    if metric_key == 'elogl':
-                        print('{:6.3f} in iteration {:4d}'.format(-value, idx))
-                    else:
-                        print('{:6.2f} % in iteration {:4d}'.format(value*100, idx))
+            metric_key = 'acc'
+            idx = it_earlystop[0]
+            value = result_dicts[0][process_key][metric_key][idx]
+            print('{:6.2f} % in iteration {:4d}'.format(value*100, idx))
 
 
 def convert_to_array(result_dicts, process_key, metric_keys):
