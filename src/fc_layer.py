@@ -37,25 +37,25 @@ class FCLayer:
         a_m, a_v = approx_activation(self.weights.var_dict['w_m'], self.weights.var_dict['w_v'], self.weights.var_dict['b_m'], self.weights.var_dict['b_v'], x_m, x_v)
         return a_m, a_v
 
-    def create_l_sampling_pass(self, x, mod_layer_config, init):
+    def create_l_sampling_pass(self, x, mod_layer_config, time_idx):
         if self.training_config['batchnorm']:
             x = self.bn_b_x(x, self.is_training)
-        return self.act_logic.sample_activation('w', 'b', x, None, init)
+        return self.act_logic.sample_activation('w', 'b', x, None, time_idx == 0)
 
-    def create_g_sampling_pass(self, x, mod_layer_config, init):
-        if init:
+    def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
+        if time_idx == 0:
             self.weights.create_tensor_samples()
         if self.training_config['batchnorm']:
             x = self.bn_b_x(x, self.is_training)
         return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
 
-    def create_var_fp(self, x, init, seq_len, seq_idx, data_key):
+    def create_var_fp(self, x, time_idx):
         if self.training_config['batchnorm']:
             x = self.bn_s_x(x, self.is_training)
         act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
 
         # Store activations over layer and over single neurons.
-        if init:
+        if time_idx == 0:
             self.acts['n'] = act
             for neuron_idc in range(len(self.act_neurons)):
                 self.acts['n' + '_' + str(neuron_idc)] = tf.slice(act, begin=(0, neuron_idc), size=(-1, 1))

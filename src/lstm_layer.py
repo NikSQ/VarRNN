@@ -24,10 +24,12 @@ class LSTMLayer:
                                             size=(info_config['tensorboard']['single_acts'],), replace=False)
 
         if self.training_config['batchnorm']:
-            self.bn_s_x = get_batchnormalizer()
-            self.bn_s_cs = get_batchnormalizer()
-            self.bn_b_x = get_batchnormalizer()
-            self.bn_b_cs = get_batchnormalizer()
+            self.bn_s_x = []
+            self.bn_s_h = []
+            self.bn_s_cs = []
+            self.bn_b_x = []
+            self.bn_b_h = []
+            self.bn_b_cs = []
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
@@ -73,16 +75,23 @@ class LSTMLayer:
         return self.weights.tensor_dict['co_m'], self.weights.tensor_dict['co_v']
 
     # Local reparametrization trick
-    def create_l_sampling_pass(self, x_m, mod_layer_config, init):
+    def create_l_sampling_pass(self, x_m, mod_layer_config, time_idx):
+        init = time_idx == 0
         if init:
             cell_shape = (tf.shape(x_m)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
-        if self.training_config['batchnorm']:
-            x_m = self.bn_b_x(x_m, self.is_training)
+        #if self.training_config['batchnorm']:
+            #if len(self.bn_b_x) == time_idx:
+                #self.bn_b_x.append(get_batchnormalizer())
+                #self.bn_b_h.append(get_batchnormalizer())
+            #x_m = self.bn_b_x[time_idx](x_m, self.is_training)
+            ##co = self.bn_b_h[time_idx](self.weights.tensor_dict['co'], self.is_training)
+        #else:
+            #co = self.weights.tensor_dict['co']
 
+        x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
         if self.layer_config['discrete_act'] is True:
             f = self.act_logic.sample_activation('wf', 'bf', x_m, 'sig', init, self.is_training)
             i = 1. - f
@@ -99,49 +108,56 @@ class LSTMLayer:
             o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, self.bn_b_cs(self.weights.tensor_dict['cs'],
-                                                                         self.is_training))
-        else:
-            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
+        self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
 
         return self.weights.tensor_dict['co']
 
     # Global reparametrization trick
-    def create_g_sampling_pass(self, x, mod_layer_config, init, x_fp=None):
+    def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
+        init = time_idx == 0
         if init:
             self.weights.create_tensor_samples()
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
-        if self.training_config['batchnorm']:
-            x = self.bn_b_x(x, self.is_training)
+        #bn_idx = time_idx
+        #if self.training_config['batchnorm'] and bn_idx >= 0:
+            #if len(self.bn_b_x) == bn_idx:
+                ##self.bn_b_x.append(get_batchnormalizer())
+                #self.bn_b_h.append(get_batchnormalizer())
+            #x = self.bn_b_x[bn_idx](x, self.is_training)
+            #co = self.bn_b_h[bn_idx](self.weights.tensor_dict['co'], self.is_training)
+        #else:
+            #co = self.weights.tensor_dict['co']
 
+        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
         f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
         o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-
-        if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, self.bn_b_cs(self.weights.tensor_dict['cs'],
-                                                                         self.is_training))
-        else:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
-    def create_var_fp(self, x, init, seq_len, seq_idx, data_key):
+    def create_var_fp(self, x, time_idx):
+        init = time_idx == 0
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
+        #if self.training_config['batchnorm']:
+            #if len(self.bn_s_x) == time_idx:
+                #self.bn_s_x.append(get_batchnormalizer())
+                #self.bn_s_h.append(get_batchnormalizer())
+            #x = self.bn_s_x[time_idx](x, self.is_training)
+            #co = self.bn_s_h[time_idx](self.weights.tensor_dict['co'], self.is_training)
+        #else:
+            #co = self.weights.tensor_dict['co']
+
         x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
-        if self.training_config['batchnorm']:
-            x = self.bn_s_x(x, self.is_training)
 
         f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
         i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
@@ -177,11 +193,6 @@ class LSTMLayer:
             o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-
-        if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, self.bn_s_cs(self.weights.tensor_dict['cs'],
-                                                                         self.is_training))
-        else:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 

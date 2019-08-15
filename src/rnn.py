@@ -93,23 +93,21 @@ class RNN:
         output_idcs = self.l_data.data[data_key]['end_time']
 
         # Create graph by connecting the appropriate layers unrolled in time
-        for seq_idx in range(x_shape[2]):
-            m = x[:, :, seq_idx]  # Mean of input to network at time seq_idx
+        for time_idx in range(x_shape[2]):
+            m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
             v = tf.fill(tf.shape(m), 0.)  # Variance of input to network at time seq_idx
 
             for layer_idx, layer in enumerate(self.layers, 1):
                 if bayesian is False:
-                    m = layer.create_var_fp(m, seq_idx == 0, x_shape[2], seq_idx, data_key)
+                    m = layer.create_var_fp(m, time_idx)
                 elif self.training_config['type'] == 'pfp':
-                    m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                    m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx])
                 elif self.training_config['type'] == 'l_sampling':
-                    m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                    m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
                 elif self.training_config['type'] == 'g_sampling':
-                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], seq_idx == 0)
+                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
                 else:
                     raise Exception('Training type not understood')
-            if seq_idx == 0 and data_key == 'tr' and bayesian:
-                self.m3 = m
 
             m_outputs.append(m)
             if self.training_config['type'] == 'pfp':
@@ -118,8 +116,6 @@ class RNN:
         m_outputs = tf.stack(m_outputs, axis=1)
         gather_idcs = tf.stack([tf.range(y_shape[0]), output_idcs], axis=1)
         m_outputs = tf.gather_nd(m_outputs, gather_idcs)
-        if bayesian and data_key == 'tr':
-            self.m2 = m_outputs
 
         # Process output of non bayesian network
         if bayesian is False:
@@ -174,8 +170,6 @@ class RNN:
                 smax = tf.nn.softmax(logits=m_outputs, axis=1)
                 t = tf.argmax(y, axis=1)
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))
-                if data_key == 'tr':
-                    self.m = elogl
 
                 kl = 0
                 if self.rnn_config['data_multiplier'] is not None:
@@ -249,7 +243,6 @@ class RNN:
                 if var.name[:var.name.index('/')] == 'output_layer':
                     vars3.append(var)
 
-            self.m4 = vfe + dir_reg + var_reg + ent_reg
             self.gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
 
             gradient_summaries = []
@@ -267,22 +260,7 @@ class RNN:
             grads2 = clipped_gradients[len(vars1):len(vars1)+len(vars2)]
             grads3 = clipped_gradients[len(vars1) + len(vars2):]
             train_ops = []
-            #self.m5 = tf.concat([tf.reshape(grads1, [-1]),tf.reshape(grads2, [-1]),tf.reshape(grads3, [-1])], axis=0)
-            self.m5 = []
-            for grad in grads1:
-                if grad is not None:
-                    self.m5.append(tf.reshape(grad, [-1]))
-            self.m5 = tf.concat(self.m5, axis=0)
-            self.m6 = []
-            for grad in grads2:
-                if grad is not None:
-                    self.m6.append(tf.reshape(grad, [-1]))
-            self.m6 = tf.concat(self.m6, axis=0)
-            self.m7 = []
-            for grad in grads3:
-                if grad is not None:
-                    self.m7.append(tf.reshape(grad, [-1]))
-            self.m7 = tf.concat(self.m7, axis=0)
+
             if len(vars1) != 0:
                 train_ops.append(opt1.apply_gradients(zip(grads1, vars1)))
             if len(vars2) != 0:
