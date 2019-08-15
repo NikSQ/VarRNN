@@ -143,31 +143,7 @@ class Experiment:
                     self.timer.restart('Tensorboard')
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
                     # then do a training step for each minibatch.
-                    info = sess.run([self.rnn.m5, self.rnn.m6, self.rnn.m7], feed_dict={self.rnn.is_training: False})
-                    #info = np.argmax(info, axis=1)
-                    nrs = [39, 5902]
-                    #print(self.data_dict['tr']['y'][nrs[0]])
-                    #print(self.data_dict['tr']['y'][nrs[1]])
-                    print('{} {} {}'.format(np.isnan(info[0]).any(), np.isnan(info[1]).any(), np.isnan(info[2]).any()))
-                    if np.isnan(info[0]).any():
-                        quit()
-                    #print(info[0][nrs[0]])
-                    #print(info[0][nrs[1]])
-                    #print(info[1][nrs[0]])
-                    #print(info[1][nrs[1]])
-                    #print(info[2][nrs[0]])
-                    #print(info[2][nrs[1]])
-                    #print(info[3][nrs[0]])
-                    #print(info[3][nrs[1]])
-                    #print(info[4][nrs[0]])
-                    #print(info[4][nrs[1]])
-                    #print(info[5][nrs[0]])
-                    #print(info[5][nrs[1]])
-                    #print(info[6][nrs[0]])
-                    #print(info[6][nrs[1]])
-                    #print(info[7][nrs[0]])
-                    #print(info[7][nrs[1]])
-                    #print('NEW')
+
                     sess.run(self.l_data.data['tr']['shuffle'])
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_b_op,

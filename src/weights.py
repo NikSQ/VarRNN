@@ -363,7 +363,7 @@ class Weights:
                                        self.var_dict[var_key + '_log_pos']])
                 prob_not_zero = probs[0] + probs[2]
                 m = (probs[2] - probs[0]) * prob_not_zero
-            v = prob_not_zero - tf.square(m) + .1
+            v = prob_not_zero - tf.square(m)
         else:
             raise Exception()
         return m, v

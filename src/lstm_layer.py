@@ -23,11 +23,17 @@ class LSTMLayer:
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
                                             size=(info_config['tensorboard']['single_acts'],), replace=False)
 
+        if self.training_config['batchnorm']:
+            self.bn_s_x = get_batchnormalizer()
+            self.bn_s_cs = get_batchnormalizer()
+            self.bn_b_x = get_batchnormalizer()
+            self.bn_b_cs = get_batchnormalizer()
+
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape,
                                    self.training_config['batchnorm'])
-            self.act_logic = ActivationLogic(self.layer_config, self.weights, self.training_config['batchnorm'])
+            self.act_logic = ActivationLogic(self.layer_config, self.weights)
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         if init:
@@ -74,6 +80,8 @@ class LSTMLayer:
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
         x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
+        if self.training_config['batchnorm']:
+            x_m = self.bn_b_x(x_m, self.is_training)
 
         if self.layer_config['discrete_act'] is True:
             f = self.act_logic.sample_activation('wf', 'bf', x_m, 'sig', init, self.is_training)
@@ -92,7 +100,8 @@ class LSTMLayer:
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.get_batchnormalized_cs()))
+            self.weights.tensor_dict['co'] = tf.multiply(o, self.bn_b_cs(self.weights.tensor_dict['cs'],
+                                                                         self.is_training))
         else:
             self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
 
@@ -108,7 +117,8 @@ class LSTMLayer:
 
         x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
         if self.training_config['batchnorm']:
-            x = get_batchnormalizer()(x, self.is_training)
+            x = self.bn_b_x(x, self.is_training)
+
         f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
@@ -117,7 +127,8 @@ class LSTMLayer:
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
 
         if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.get_batchnormalized_cs()))
+            self.weights.tensor_dict['co'] = tf.multiply(o, self.bn_b_cs(self.weights.tensor_dict['cs'],
+                                                                         self.is_training))
         else:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
@@ -130,7 +141,7 @@ class LSTMLayer:
 
         x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
         if self.training_config['batchnorm']:
-            x = get_batchnormalizer()(x, self.is_training)
+            x = self.bn_s_x(x, self.is_training)
 
         f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
         i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
@@ -168,10 +179,9 @@ class LSTMLayer:
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
 
         if self.training_config['batchnorm']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.get_batchnormalized_cs()))
+            self.weights.tensor_dict['co'] = tf.multiply(o, self.bn_s_cs(self.weights.tensor_dict['cs'],
+                                                                         self.is_training))
         else:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 
-    def get_batchnormalized_cs(self):
-        return get_batchnormalizer()(self.weights.tensor_dict['cs'], self.is_training)
