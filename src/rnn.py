@@ -267,7 +267,22 @@ class RNN:
             grads2 = clipped_gradients[len(vars1):len(vars1)+len(vars2)]
             grads3 = clipped_gradients[len(vars1) + len(vars2):]
             train_ops = []
-            self.m5 = tf.concat([tf.reshape(grads1, [-1]),tf.reshape(grads2, [-1]),tf.reshape(grads3, [-1])], axis=0)
+            #self.m5 = tf.concat([tf.reshape(grads1, [-1]),tf.reshape(grads2, [-1]),tf.reshape(grads3, [-1])], axis=0)
+            self.m5 = []
+            for grad in grads1:
+                if grad is not None:
+                    self.m5.append(tf.reshape(grad, [-1]))
+            self.m5 = tf.concat(self.m5, axis=0)
+            self.m6 = []
+            for grad in grads2:
+                if grad is not None:
+                    self.m6.append(tf.reshape(grad, [-1]))
+            self.m6 = tf.concat(self.m6, axis=0)
+            self.m7 = []
+            for grad in grads3:
+                if grad is not None:
+                    self.m7.append(tf.reshape(grad, [-1]))
+            self.m7 = tf.concat(self.m7, axis=0)
             if len(vars1) != 0:
                 train_ops.append(opt1.apply_gradients(zip(grads1, vars1)))
             if len(vars2) != 0:

@@ -6,6 +6,7 @@ from src.data.labeled_data import LabeledData
 from src.rnn import RNN
 from src.tools import print_config, set_momentum
 from src.timer import Timer
+from tensorflow.python import debug as tf_debug
 import time
 
 
@@ -94,7 +95,8 @@ class Experiment:
                 elif pretrain_config['no_pretraining'] is False:
                     model_saver.restore(sess, pretrained_model_path)
                     sess.run(self.rnn.init_op)
-
+                #sess = tf_debug.LocalCLIDebugWrapperSession(sess, ui_type="readline")
+                #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
                 self.timer.restart('Intialization')
 
                 # Loading datasets into GPU (via tf.Variables)
@@ -141,16 +143,14 @@ class Experiment:
                     self.timer.restart('Tensorboard')
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
                     # then do a training step for each minibatch.
-                    info = sess.run([self.rnn.m, self.rnn.m2, self.rnn.m3, self.rnn.m4, self.rnn.m5], feed_dict={self.rnn.is_training: False})
+                    info = sess.run([self.rnn.m5, self.rnn.m6, self.rnn.m7], feed_dict={self.rnn.is_training: False})
                     #info = np.argmax(info, axis=1)
                     nrs = [39, 5902]
                     #print(self.data_dict['tr']['y'][nrs[0]])
                     #print(self.data_dict['tr']['y'][nrs[1]])
-                    print(np.isnan(info[0]).any())
-                    print(np.isnan(info[1]).any())
-                    print(np.isnan(info[2]).any())
-                    print(np.isnan(info[3]).any())
-                    print(np.isnan(info[4]).any())
+                    print('{} {} {}'.format(np.isnan(info[0]).any(), np.isnan(info[1]).any(), np.isnan(info[2]).any()))
+                    if np.isnan(info[0]).any():
+                        quit()
                     #print(info[0][nrs[0]])
                     #print(info[0][nrs[1]])
                     #print(info[1][nrs[0]])
@@ -187,13 +187,13 @@ class Experiment:
                         with open(path + 'training.json', 'w') as f:
                             f.write(trace)
 
-                model_saver.save(sess, temp_model_path)
                 # TODO: Clean the cell access code
                 if info_config['cell_access']:
                     ca_1, ca_2 = sess.run([self.rnn.layers[0].cell_access_mat, self.rnn.layers[1].cell_access_mat],
                              feed_dict={self.l_data.batch_idx: 0})
                     np.save(file='../nr/ca_1_'+ str(train_config['task_id']), arr=ca_1)
                     np.save(file='../nr/ca_2_'+ str(train_config['task_id']), arr=ca_2)
+            #model_saver.save(sess, temp_model_path)
         writer.close()
         return self.rnn.t_metrics.result_dict
 

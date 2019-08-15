@@ -138,13 +138,15 @@ class TMetrics:
             cum_acc += acc
         if is_training:
             return
-        loss = np.mean(np.asarray(cum_loss))
-        acc = np.mean(np.asarray(cum_acc))
+        loss = cum_loss / self.l_data.data[data_key]['n_minibatches']
+        acc = cum_acc / self.l_data.data[data_key]['n_minibatches']
         self.result_dict[process_key]['loss'].append(np.mean(loss))
         self.result_dict[process_key]['acc'].append(acc)
 
     # Prints the latest metrics of the performance
     def print(self, session_idx):
+        #print('{:3} | TrAcc: {:6.4f}, TrLoss: {:8.5f}'.format(self.result_dict['epoch'][-1], self.result_dict['tr_b']['acc'][-1],
+                      #self.result_dict['tr_b']['vfe'][-1]))
         print('{:3}, {:2} | TrAcc: {:6.4f}, TrLoss: {:8.5f}, VaAcc: {:6.4f}, VaLoss: {:8.5f}'
               .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
                       self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],

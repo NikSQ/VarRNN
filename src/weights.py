@@ -1,4 +1,5 @@
 import tensorflow as tf
+#import tensorflow_probability as tfp
 import numpy as np
 import copy
 
@@ -54,14 +55,18 @@ def get_init_one_prob(w_config, prob_0, weight):
 def get_ternary_probs(sa, sb):
     prob_0 = tf.nn.sigmoid(sa)
     prob_1 = tf.nn.sigmoid(sb)*(1 - prob_0)
-    return [1. - prob_0 - prob_1, prob_0, prob_1]
+    prob_2 = 1. - prob_0 - prob_1
+    #prob_0 = (.99 - .05) * prob_0 + .05
+    #prob_1 = (.95 - .05) * prob_1 + .05
+    #prob_2 = (.95 - .05) * prob_2 + .05
+    return [prob_2, prob_0, prob_1]
 
 
 class Weights:
     def __init__(self, var_keys, layer_config, w_shape, b_shape, batchnorm):
         self.var_keys = var_keys
         self.gauss = tf.distributions.Normal(loc=0., scale=1.)
-        self.uniform = tf.distributions.Uniform(low=0., high=1.)
+        self.uniform = tf.distributions.Uniform(low=0.01, high=.99)
         self.w_shape = w_shape
         self.b_shape = b_shape
 
@@ -358,7 +363,7 @@ class Weights:
                                        self.var_dict[var_key + '_log_pos']])
                 prob_not_zero = probs[0] + probs[2]
                 m = (probs[2] - probs[0]) * prob_not_zero
-            v = prob_not_zero - tf.square(m)
+            v = prob_not_zero - tf.square(m) + .1
         else:
             raise Exception()
         return m, v
