@@ -28,7 +28,7 @@ def print_results(result_dicts):
         if process_key in ['va_b', 'va_s']:
             print('Results for {}'.format(process_key))
             if process_key.endswith('s'):
-                metric_keys = ['acc']
+                metric_keys = ['acc', 'loss']
             else:
                 metric_keys = ['elogl', 'acc']
 
@@ -37,10 +37,11 @@ def print_results(result_dicts):
                 for run in range(len(result_dicts)):
                     extrema = np.max(result_dicts[run][process_key][metric_key])
                     idx = np.argmax(result_dicts[run][process_key][metric_key])
-                    if metric_key == 'acc' and process_key == 'va_s':
+                    if metric_key == 'loss' and process_key == 'va_s':
                         it_earlystop.append(idx)
+                    elif metric_key == 'elogl':
                         print('{:6.3f} in iteration {:4d}'.format(-extrema, idx))
-                    else:
+                    elif metric_key == 'acc':
                         print('{:6.2f} % in iteration {:4d}'.format(extrema*100, idx))
 
     for process_key in result_dicts[0].keys():
@@ -140,7 +141,7 @@ class TMetrics:
             return
         loss = cum_loss / self.l_data.data[data_key]['n_minibatches']
         acc = cum_acc / self.l_data.data[data_key]['n_minibatches']
-        self.result_dict[process_key]['loss'].append(np.mean(loss))
+        self.result_dict[process_key]['loss'].append(loss)
         self.result_dict[process_key]['acc'].append(acc)
 
     # Prints the latest metrics of the performance
