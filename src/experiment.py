@@ -53,7 +53,7 @@ class Experiment:
             raise Exception('training mode not understood')
 
         self.timer.start()
-        if pretrain_config['no_pretraining'] is False and pretrain_config['just_load'] is False:
+        if pretrain_config['status'] == 'create':
             self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
             print('pretraning is over')
         self.timer.restart('Pretraining')
@@ -92,7 +92,7 @@ class Experiment:
 
                 if session_idx != 0:
                     model_saver.restore(sess, temp_model_path)
-                elif pretrain_config['no_pretraining'] is False:
+                elif pretrain_config['status'] != 'disable':
                     model_saver.restore(sess, pretrained_model_path)
                     sess.run(self.rnn.init_op)
                 #sess = tf_debug.LocalCLIDebugWrapperSession(sess, ui_type="readline")
