@@ -36,7 +36,7 @@ def print_results(result_dicts):
                 print('Metric: {:6s}'.format(metric_key))
                 for run in range(len(result_dicts)):
                     extrema = np.max(result_dicts[run][process_key][metric_key])
-                    idx = np.argmax(result_dicts[run][process_key][metric_key])
+                    idx = np.argmin(result_dicts[run][process_key][metric_key])
                     if metric_key == 'loss' and process_key == 'va_s':
                         it_earlystop.append(idx)
                     elif metric_key == 'elogl':
