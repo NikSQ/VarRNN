@@ -80,7 +80,7 @@ class Experiment:
             self.timer.restart('Graph creation')
 
             # Saver is used for restoring weights for new session if more than one is used for training
-            model_saver = tf.train.Saver(tf.trainable_variables())
+            model_saver = tf.train.Saver()
             with tf.Session() as sess:
                 if info_config['profiling']['enabled']:
                     options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -93,7 +93,7 @@ class Experiment:
                 if session_idx != 0:
                     model_saver.restore(sess, temp_model_path)
                 elif pretrain_config['status'] != 'disable':
-                    model_saver.restore(sess, pretrained_model_path)
+                    self.optimistic_restore(sess, pretrained_model_path)
                     sess.run(self.rnn.init_op)
                 #sess = tf_debug.LocalCLIDebugWrapperSession(sess, ui_type="readline")
                 #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
@@ -169,7 +169,7 @@ class Experiment:
                              feed_dict={self.l_data.batch_idx: 0})
                     np.save(file='../nr/ca_1_'+ str(train_config['task_id']), arr=ca_1)
                     np.save(file='../nr/ca_2_'+ str(train_config['task_id']), arr=ca_2)
-            #model_saver.save(sess, temp_model_path)
+            model_saver.save(sess, temp_model_path)
         writer.close()
         return self.rnn.t_metrics.result_dict
 
@@ -253,3 +253,17 @@ class Experiment:
                 model_saver.save(sess, model_path)
                 print(self.rnn.t_metrics.result_dict['tr_s']['acc'][-1])
 
+    def optimistic_restore(self, sess, file):
+        reader = tf.train.NewCheckpointReader(file)
+        saved_shapes = reader.get_variable_to_shape_map()
+        var_names = sorted([(var.name, var.name.split(':')[0]) for var in tf.global_variables()
+                if var.name.split(':')[0] in saved_shapes])
+        restore_vars = []
+        with tf.variable_scope('', reuse=True):
+            for var_name, saved_var_name in var_names:
+                curr_var = tf.get_variable(saved_var_name)
+                var_shape = curr_var.get_shape().as_list()
+                if var_shape == saved_shapes[saved_var_name]:
+                    restore_vars.append(curr_var)
+        opt_saver = tf.train.Saver(restore_vars)
+        opt_saver.restore(sess, file)
