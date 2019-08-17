@@ -38,11 +38,11 @@ def print_results(result_dicts):
                     extrema = np.max(result_dicts[run][process_key][metric_key])
                     if metric_key == 'loss' and process_key == 'va_s':
                         idx = np.argmin(result_dicts[run][process_key][metric_key])
-                        it_earlystop.append(idx)
                     elif metric_key == 'elogl':
                         idx = np.argmin(result_dicts[run][process_key][metric_key])
                         print('{:6.3f} in iteration {:4d}'.format(-extrema, idx))
                     elif metric_key == 'acc':
+                        it_earlystop.append(idx)
                         idx = np.argmax(result_dicts[run][process_key][metric_key])
                         print('{:6.2f} % in iteration {:4d}'.format(extrema*100, idx))
 
