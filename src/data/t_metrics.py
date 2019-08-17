@@ -36,12 +36,14 @@ def print_results(result_dicts):
                 print('Metric: {:6s}'.format(metric_key))
                 for run in range(len(result_dicts)):
                     extrema = np.max(result_dicts[run][process_key][metric_key])
-                    idx = np.argmin(result_dicts[run][process_key][metric_key])
                     if metric_key == 'loss' and process_key == 'va_s':
+                        idx = np.argmin(result_dicts[run][process_key][metric_key])
                         it_earlystop.append(idx)
                     elif metric_key == 'elogl':
+                        idx = np.argmin(result_dicts[run][process_key][metric_key])
                         print('{:6.3f} in iteration {:4d}'.format(-extrema, idx))
                     elif metric_key == 'acc':
+                        idx = np.argmax(result_dicts[run][process_key][metric_key])
                         print('{:6.2f} % in iteration {:4d}'.format(extrema*100, idx))
 
     for process_key in result_dicts[0].keys():

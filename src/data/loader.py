@@ -32,11 +32,9 @@ def load_dataset(l_data_config):
 
 def load_timit(l_data_config):
     if l_data_config['dataset'] == 'timit_s':
-        n_tr_phonems = 10000
-        n_va_phonems = 1000
-        n_te_phonems = 1500
+        n_te_phonems = 15000
+        n_tv_phonems = 30000
     timit_path = '../../datasets/timit/'
-    n_tv_phonems = n_tr_phonems + n_va_phonems
     data_dict = {'tr': dict(), 'va': dict(), 'te': dict()}
 
     partial_dict = {'x': [], 'y': [], 'seqlen': []}
@@ -66,41 +64,43 @@ def load_timit(l_data_config):
         ys.append(np.concatenate([np.zeros((y_shape[0], y_shape[1], max_len - y_shape[2])), y], axis=2))
     partial_dict['x'] = np.concatenate(xs, axis=0)
     partial_dict['y'] = np.concatenate(ys, axis=0)
-    permuted_indices = np.random.permutation(np.arange(n_tv_phonems))
+    permuted_indices = np.random.permutation(np.arange(n_phonems))
+    n_tr_phonems = int(len(permuted_indices) * 0.8)
     tr_speaker_idc = permuted_indices[:n_tr_phonems]
     tr_idc = tr_speaker_idc
-    va_idc = permuted_indices[n_tr_phonems:n_tr_phonems + n_va_phonems]
+    va_idc = permuted_indices[n_tr_phonems:]
     data_dict['tr']['x'], data_dict['tr']['y'], data_dict['tr']['end_time'] = \
         extract_seqs(partial_dict['x'][tr_idc], partial_dict['y'][tr_idc],
-                     partial_dict['seqlen'][tr_idc], l_data_config['tr'])
+                     partial_dict['seqlen'][tr_idc], l_data_config['tr'], False)
 
     data_dict['va']['x'], data_dict['va']['y'], data_dict['va']['end_time'] = \
         extract_seqs(partial_dict['x'][va_idc], partial_dict['y'][va_idc],
-                     partial_dict['seqlen'][va_idc], l_data_config['va'])
+                     partial_dict['seqlen'][va_idc], l_data_config['va'], False)
 
     data_dict['te'] = {'end_time': [], 'x': [], 'y': []}
     n_phonems = 0
     for mat in range(7):
         partial_set = loadmat(timit_path + 'te' + str(mat + 1) + '.mat')
         seqlen = np.squeeze(partial_set['seqlen']).astype(np.int32)
-        x, y, end_time = extract_seqs(partial_set['x'], partial_set['y'], seqlen, l_data_config['te'])
+        x, y, end_time = extract_seqs(partial_set['x'], partial_set['y'], seqlen, l_data_config['te'], False)
         data_dict['te']['x'].append(x)
         data_dict['te']['y'].append(y)
         data_dict['te']['end_time'].append(end_time)
-        n_phonems += partial_set['x'].shape[0]
+        n_phonems += x.shape[0]
         if n_phonems > n_te_phonems:
             break
 
     data_dict['te']['x'] = np.concatenate(data_dict['te']['x'], axis=0)
     data_dict['te']['y'] = np.concatenate(data_dict['te']['y'], axis=0)
     data_dict['te']['end_time'] = np.concatenate(data_dict['te']['end_time'], axis=0)
-    te_idc = np.random.permutation(np.arange(n_te_phonems))
+    te_idc = np.random.permutation(np.arange(n_phonems))
     data_dict['te']['x'] = data_dict['te']['x'][te_idc]
     data_dict['te']['y'] = data_dict['te']['y'][te_idc]
     data_dict['te']['end_time'] = data_dict['te']['end_time'][te_idc]
     print(data_dict['tr']['x'].shape)
     print(data_dict['va']['x'].shape)
     print(data_dict['te']['x'].shape)
+    quit(0)
     return data_dict
 
 
