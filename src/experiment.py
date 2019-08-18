@@ -31,8 +31,7 @@ class Experiment:
     def create_modificated_model(self, train_config, l_data_config, mod_data_config):
         incremental_idx = mod_data_config['session_idx']
         l_data_config['tr']['in_seq_len'] = mod_data_config['in_seq_len'][incremental_idx]
-        l_data_config['tr']['out_seq_len'] = mod_data_config['out_seq_len'][incremental_idx]
-        l_data_config['tr']['zero_padding'] = mod_data_config['zero_padding'][incremental_idx]
+        l_data_config['tr']['max_truncation'] = mod_data_config['max_truncation'][incremental_idx]
         self.data_dict = load_dataset(l_data_config)
         labeled_data = LabeledData(l_data_config, self.data_dict)
         self.create_rnn(train_config, labeled_data, l_data_config)
@@ -91,6 +90,7 @@ class Experiment:
                 sess.run(tf.global_variables_initializer())
 
                 if session_idx != 0:
+                    #self.optimistic_restore(sess, pretrained_model_path)
                     model_saver.restore(sess, temp_model_path)
                 elif pretrain_config['status'] != 'disable':
                     self.optimistic_restore(sess, pretrained_model_path)

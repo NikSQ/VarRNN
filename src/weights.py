@@ -410,7 +410,7 @@ class Weights:
                                          probs[2] * tf.log(epsilon + tf.divide(probs[2], priors[2])))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
-        return tf.cast(kl_loss, dtype=tf.float64)
+        return kl_loss
 
     def adapt_weights(self, x_m, w_var_key, b_var_key, a):
         w_m_new = []

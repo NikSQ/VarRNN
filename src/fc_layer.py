@@ -50,7 +50,7 @@ class FCLayer:
         return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
 
     def create_var_fp(self, x, time_idx):
-        if self.training_config['batchnorm']:
+        if self.training_config['batchnorm'] != 'none':
             x = self.bn_s_x(x, self.is_training)
         act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
 

@@ -75,40 +75,51 @@ class LSTMLayer:
         return self.weights.tensor_dict['co_m'], self.weights.tensor_dict['co_v']
 
     # Local reparametrization trick
-    def create_l_sampling_pass(self, x_m, mod_layer_config, time_idx):
+    def create_l_sampling_pass(self, x, mod_layer_config, time_idx):
         init = time_idx == 0
         if init:
-            cell_shape = (tf.shape(x_m)[0], self.b_shape[1])
+            cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        #if self.training_config['batchnorm']:
-            #if len(self.bn_b_x) == time_idx:
-                #self.bn_b_x.append(get_batchnormalizer())
-                #self.bn_b_h.append(get_batchnormalizer())
-            #x_m = self.bn_b_x[time_idx](x_m, self.is_training)
-            ##co = self.bn_b_h[time_idx](self.weights.tensor_dict['co'], self.is_training)
-        #else:
-            #co = self.weights.tensor_dict['co']
-
-        x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
-        if self.layer_config['discrete_act'] is True:
-            f = self.act_logic.sample_activation('wf', 'bf', x_m, 'sig', init)
-            i = 1. - f
-            c = self.act_logic.sample_activation('wc', 'bc', x_m, 'tanh', init)
-            o = self.act_logic.sample_activation('wo', 'bo', x_m, 'sig', init)
+        if self.training_config['batchnorm'] in ['x+fc', 'x+h+fc']:
+            if len(self.bn_b_x) == time_idx:
+                self.bn_s_x.append(get_batchnormalizer())
+            x = self.bn_s_x[time_idx](x, self.is_training)
+        if self.training_config['batchnorm'] in ['h+fc', 'x+h+fc']:
+            if len(self.bn_b_h) == time_idx-1:
+                self.bn_s_h.append(get_batchnormalizer())
+            co = self.bn_s_h[time_idx-1](self.weights.tensor_dict['co'], self.is_training)
         else:
-            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, None, init)
-            f = tf.nn.sigmoid(a_f)
-            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, None, init)
-            i = tf.nn.sigmoid(a_i)
-            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, None, init)
+            co = self.weights.tensor_dict['co']
+
+        x = tf.concat([x, co], axis=1)
+
+        if self.layer_config['discrete_act'] != 'complete':
+            a_c = self.act_logic.sample_activation('wc', 'bc', x, None, init)
             c = tf.nn.tanh(a_c)
-            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, None, init)
+        else:
+            c = self.act_logic.sample_activation('wc', 'bc', x, 'tanh', init)
+
+        if self.layer_config['discrete_act'] in ['complete', 'gates']:
+            f = self.act_logic.sample_activation('wf', 'bf', x, 'sig', init)
+            i = 1. - f
+            o = self.act_logic.sample_activation('wo', 'bo', x, 'sig', init)
+        elif self.layer_config['discrete_act'] == 'disabled':
+            a_f = self.act_logic.sample_activation('wf', 'bf', x, None, init)
+            f = tf.nn.sigmoid(a_f)
+            a_i = self.act_logic.sample_activation('wi', 'bi', x, None, init)
+            i = tf.nn.sigmoid(a_i)
+            a_o = self.act_logic.sample_activation('wo', 'bo', x, None, init)
             o = tf.nn.sigmoid(a_o)
+        else:
+            raise Exception('discrete act mode not understood')
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
+        if self.layer_config['discrete_act'] == 'disabled':
+            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(self.weights.tensor_dict['cs'], o)
 
         return self.weights.tensor_dict['co']
 
@@ -121,17 +132,18 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        #bn_idx = time_idx
-        #if self.training_config['batchnorm'] and bn_idx >= 0:
-            #if len(self.bn_b_x) == bn_idx:
-                ##self.bn_b_x.append(get_batchnormalizer())
-                #self.bn_b_h.append(get_batchnormalizer())
-            #x = self.bn_b_x[bn_idx](x, self.is_training)
-            #co = self.bn_b_h[bn_idx](self.weights.tensor_dict['co'], self.is_training)
-        #else:
-            #co = self.weights.tensor_dict['co']
+        if self.training_config['batchnorm'] in ['x+fc', 'x+h+fc']:
+            if len(self.bn_b_x) == time_idx:
+                self.bn_b_x.append(get_batchnormalizer())
+            x = self.bn_b_x[time_idx](x, self.is_training)
+        if self.training_config['batchnorm'] in ['h+fc', 'x+h+fc']:
+            if len(self.bn_b_h) == time_idx-1:
+                self.bn_b_h.append(get_batchnormalizer())
+            co = self.bn_b_h[time_idx-1](self.weights.tensor_dict['co'], self.is_training)
+        else:
+            co = self.weights.tensor_dict['co']
 
-        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+        x = tf.concat([x, co], axis=1)
         f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
@@ -148,16 +160,18 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        #if self.training_config['batchnorm']:
-            #if len(self.bn_s_x) == time_idx:
-                #self.bn_s_x.append(get_batchnormalizer())
-                #self.bn_s_h.append(get_batchnormalizer())
-            #x = self.bn_s_x[time_idx](x, self.is_training)
-            #co = self.bn_s_h[time_idx](self.weights.tensor_dict['co'], self.is_training)
-        #else:
-            #co = self.weights.tensor_dict['co']
+        if self.training_config['batchnorm'] in ['x+fc', 'x+h+fc']:
+            if len(self.bn_s_x) == time_idx:
+                self.bn_s_x.append(get_batchnormalizer())
+            x = self.bn_s_x[time_idx](x, self.is_training)
+        if self.training_config['batchnorm'] in ['h+fc', 'x+h+fc']:
+            if len(self.bn_s_h) == time_idx-1:
+                self.bn_s_h.append(get_batchnormalizer())
+            co = self.bn_s_h[time_idx-1](self.weights.tensor_dict['co'], self.is_training)
+        else:
+            co = self.weights.tensor_dict['co']
 
-        x = tf.concat([x, self.weights.tensor_dict['co']], axis=1)
+        x = tf.concat([x, co], axis=1)
 
         f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
         i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
@@ -178,10 +192,9 @@ class LSTMLayer:
                         tf.concat([tf.slice(act, begin=(0, neuron_idc), size=(-1, 1)),
                                    self.acts[act_type + '_' + str(neuron_idc)]], axis=0)
 
-        if self.layer_config['discrete_act'] is True:
+        if self.layer_config['discrete_act'] != 'disabled':
             f = tf.cast(tf.greater_equal(f_act, 0), tf.float32)
             i = 1. - f
-            c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
             o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
 
             if self.info_config['cell_access']:
@@ -189,10 +202,18 @@ class LSTMLayer:
         else:
             f = tf.sigmoid(f_act)
             i = tf.sigmoid(i_act)
-            c = tf.tanh(c_act)
             o = tf.sigmoid(o_act)
 
+        if self.layer_config['discrete_act'] == 'complete':
+            c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
+        else:
+            c = tf.tanh(c_act)
+
+
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        if self.layer_config['discrete_act'] == 'disabled':
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(o, self.weights.tensor_dict['cs'])
         return self.weights.tensor_dict['co']
 
