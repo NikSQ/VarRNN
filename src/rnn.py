@@ -90,7 +90,7 @@ class RNN:
         v_outputs = []
 
         # This captures the seq_idx from which the output will be computed
-        output_idcs = self.l_data.data[data_key]['end_time']
+        output_idcs = self.l_data.data[data_key]['end']
 
         # Create graph by connecting the appropriate layers unrolled in time
         for time_idx in range(x_shape[2]):

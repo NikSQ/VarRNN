@@ -93,18 +93,18 @@ class LSTMLayer:
 
         x_m = tf.concat([x_m, self.weights.tensor_dict['co']], axis=1)
         if self.layer_config['discrete_act'] is True:
-            f = self.act_logic.sample_activation('wf', 'bf', x_m, 'sig', init, self.is_training)
+            f = self.act_logic.sample_activation('wf', 'bf', x_m, 'sig', init)
             i = 1. - f
-            c = self.act_logic.sample_activation('wc', 'bc', x_m, 'tanh', init, self.is_training)
-            o = self.act_logic.sample_activation('wo', 'bo', x_m, 'sig', init, self.is_training)
+            c = self.act_logic.sample_activation('wc', 'bc', x_m, 'tanh', init)
+            o = self.act_logic.sample_activation('wo', 'bo', x_m, 'sig', init)
         else:
-            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, None, init, self.is_training)
+            a_f = self.act_logic.sample_activation('wf', 'bf', x_m, None, init)
             f = tf.nn.sigmoid(a_f)
-            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, None, init, self.is_training)
+            a_i = self.act_logic.sample_activation('wi', 'bi', x_m, None, init)
             i = tf.nn.sigmoid(a_i)
-            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, None, init, self.is_training)
+            a_c = self.act_logic.sample_activation('wc', 'bc', x_m, None, init)
             c = tf.nn.tanh(a_c)
-            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, None, init, self.is_training)
+            a_o = self.act_logic.sample_activation('wo', 'bo', x_m, None, init)
             o = tf.nn.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
