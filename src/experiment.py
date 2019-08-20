@@ -169,7 +169,7 @@ class Experiment:
                              feed_dict={self.l_data.batch_idx: 0})
                     np.save(file='../nr/ca_1_'+ str(train_config['task_id']), arr=ca_1)
                     np.save(file='../nr/ca_2_'+ str(train_config['task_id']), arr=ca_2)
-            model_saver.save(sess, temp_model_path)
+                model_saver.save(sess, temp_model_path)
         writer.close()
         return self.rnn.t_metrics.result_dict
 
@@ -257,7 +257,7 @@ class Experiment:
         reader = tf.train.NewCheckpointReader(file)
         saved_shapes = reader.get_variable_to_shape_map()
         var_names = sorted([(var.name, var.name.split(':')[0]) for var in tf.global_variables()
-                if var.name.split(':')[0] in saved_shapes])
+                if var.name.split(':')[0] in saved_shapes and 'batch_normalization' not in var.name])
         restore_vars = []
         with tf.variable_scope('', reuse=True):
             for var_name, saved_var_name in var_names:
