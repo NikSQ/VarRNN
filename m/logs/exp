@@ -18,16 +18,17 @@ except KeyError:
     task_id = 0
 
 datam = None
-samplingop = 'l_sampling' 
-tau = .5
+samplingop = 'g_sampling' 
+tau = [.3, .5, .8] * 2
+tau = tau[task_id]
 discrete_act = False
 batchnorm = True
-lr = [.005, .007, .01, .02, .03, .05, .1, .2]
+lr = [.015]*6 
 lr = lr[task_id]
-epochs = 10000
+epochs = 20000
 #layout = [[40, 40], [50, 50], [60, 60], [70, 70]][task_id]
-layout = [[50, 50], [60, 60], [80, 80]][1]
-load_file = ['mnist_s_40_50_50', 'mnist_s_40_60_60_bn', 'mnist_s_40_80_80_bn'][1]
+layout = [[60, 60], [80, 80]][int(task_id / 3)]
+load_file = ['mnist_s_40_60_60_bn', 'mnist_s_40_80_80_bn'][int(task_id / 3)]
 pretrain_mode = ['load', 'disable', 'create'][0]
 
 
