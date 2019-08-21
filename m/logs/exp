@@ -17,13 +17,14 @@ except KeyError:
     print('Using ID 0 instead')
     task_id = 0
 
-datam = [500, 1500, 5000, 15000, None][task_id]
+datam = [15000, None][task_id % 2]
 samplingop = 'g_sampling' 
-tau = .5
+tau = [.3, .3, .8, .8, .3, .3, .8, .8][task_id]
 discrete_act = False
 batchnorm = True
-lr = .015 
-epochs = 20000
+lr = [.015 ] * 4 + [.0075] * 4
+lr = lr[task_id]
+epochs = 25000
 #layout = [[40, 40], [50, 50], [60, 60], [70, 70]][task_id]
 layout = [60, 60]
 load_file = ['mnist_s_40_60_60_bn', 'mnist_s_40_80_80_bn'][0]
