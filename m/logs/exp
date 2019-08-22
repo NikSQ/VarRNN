@@ -17,17 +17,19 @@ except KeyError:
     print('Using ID 0 instead')
     task_id = 0
 
-datam = [15000, None][task_id % 2]
-samplingop = 'g_sampling' 
-tau = [.3, .3, .8, .8, .3, .3, .8, .8][task_id]
-discrete_act = False
-batchnorm = True
-lr = [.015 ] * 4 + [.0075] * 4
-lr = lr[task_id]
+save_results=False
+datam = [None, 50000, 10000][task_id % 3]
+samplingop = 'l_sampling' 
+tau = .4
+#discrete_act = ['disabled', 'complete', 'gates'][1]
+discrete_act = ['complete'] * 3 + ['gates']*3
+discrete_act = discrete_act[task_id]
+batchnorm = 'fc'
+lr = .03
 epochs = 25000
 #layout = [[40, 40], [50, 50], [60, 60], [70, 70]][task_id]
-layout = [60, 60]
-load_file = ['mnist_s_40_60_60_bn', 'mnist_s_40_80_80_bn'][0]
+layout = [80, 80]
+load_file = ['mnist_s_40_60_60_bn', 'mnist_s_40_80_80_bn'][1]
 pretrain_mode = ['load', 'disable', 'create'][0]
 
 
@@ -44,8 +46,8 @@ penstroke_dataset = 'penstroke'
 # penstroke: 4 -> 10
 labelled_data_config = {'dataset': penstroke_dataset,
                         'tr': {'in_seq_len': 40,
-                               'minibatch_enabled': False,
-                               'minibatch_size': 200,
+                               'minibatch_enabled': True,
+                               'minibatch_size': 2000,
                                'max_truncation': 5},
                         'va': {'in_seq_len': 40,
                                'minibatch_enabled': False,
@@ -101,17 +103,16 @@ rnn_config = {'layout': [4, layout[0], layout[1], 10],
 training_config = {'learning_rate': lr, 
                    'type': samplingop,
                    'is_pretrain': False,
-                   'batchnorm': True,
-                   'batchnorm_momentum': .0,
+                   'batchnorm': batchnorm,
+                   'batchnorm_momentum': .98,
                    'var_reg': 0.,
                    'ent_reg': 0.,
                    'dir_reg': 0., 
                    'mode': {'name': 'inc_lengths',
-                            'in_seq_len': [2, 4, 8, 15, 25],
-                            'out_seq_len': [1, 1, 1, 1, 1],
-                            'zero_padding': [0, 0, 0, 0, 0],
+                            'in_seq_len': [2, 4, 8, 15, 40],
+                            'max_truncation': [43 ,41, 37, 25, 5],
                             'min_errors': [0., 0., 0., 0., 0.],
-                            'max_epochs': [5, 30, 100, 1000, 5000]},
+                            'max_epochs': [5, 30, 500, 3000, 15000]},
                    'task_id': task_id}
 
 training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': epochs} 
@@ -133,13 +134,13 @@ pretrain_config['status'] = pretrain_mode
 
 info_config = {'calc_performance_every': 1,
                'cell_access': False,
-               'tensorboard': {'enabled': True, 'path': '../m/tb/' + filename + '_' + str(task_id), 'period': 200,
+               'tensorboard': {'enabled': save_results, 'path': '../m/tb/' + filename + '_' + str(task_id), 'period': 200,
                                'weights': True, 'gradients': False, 'results': True, 'acts': True, 'single_acts': 1},
                'profiling': {'enabled': False, 'path': '../profiling/' + filename}, 
                'timer': {'enabled': False}}
                
 
-result_config = {'save_results': True,
+result_config = {'save_results': save_results,
                  'path': '../m/nr/' + filename + '_' + str(task_id),
                  'plot_results': False,
                  'print_final_stats': True}
