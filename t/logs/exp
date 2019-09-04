@@ -17,26 +17,23 @@ except KeyError:
     print('Using ID 0 instead')
     task_id = 0
 
-save_results=False
-datam = None
-samplingop = 'l_sampling' 
-tau = .4
-#discrete_act = [''] * 3 + ['gates']*3
-discrete_act = ['complete', 'gates'][task_id % 2]
-#batchnorm = ['fc', 'x+fc', 'h+fc', 'x+h+fc', 'none'][task_id]
-batchnorm = 'none'
-lr = [.04, .04, .008, .008][task_id]
-epochs = 20000
-#layout = [[40, 40], [50, 50], [60, 60], [70, 70]][task_id]
-layout = [80, 80]
-load_file = ['mnist_s_40_60_60_bn', 'mnist_s_40_80_80_bn'][1]
-pretrain_mode = ['load', 'disable', 'create'][0]
-
-
 runs = 1
 filename = 'exp'
+tau = .4
+lr = .002
+datam = None
+bn = 'fc'
+sampling_op = 'l_sampling'
+max_epochs = 30000
+pretrain_mode = ['load', 'create', 'disable'][0]
+#pretrain_filename = ['timit_s_30_60_60_bn', 'timit_s_80_80', 'timit_s_30_100_100', 'timit_s_140_140'][1]
+#layout = [[60, 60], [80, 80], [100, 100], [140, 140]][]
+pretrain_filename = ['timit_s_80_80', 'timit_s_140_140', 'timit_s_200_200'][2]
+layout = [[80, 80], [140, 140], [200, 200]][2]
 parametrization = 'sigmoid'
-lr_adapt = False
+discrete_act = ['complete', 'gates']
+discrete_act = discrete_act[task_id]
+
 
 timit_dataset = ['timit_tr_small_0', 'timit_va_small_0']
 timit_s_dataset = ['timit_tr_s_0', 'timit_va_s_0']
@@ -44,35 +41,40 @@ timit_l_dataset = ['timit_tr_l_0', 'timit_va_l_0']
 penstroke_dataset = 'penstroke'
 # timit: 13 -> 54
 # penstroke: 4 -> 10
-labelled_data_config = {'dataset': penstroke_dataset,
-                        'tr': {'in_seq_len': 40,
+labelled_data_config = {'dataset': 'timit_s',
+                        'tr': {'in_seq_len': 20,
+                               'max_truncation': 5,
                                'minibatch_enabled': True,
-                               'minibatch_size': 2000,
-                               'max_truncation': 5},
-                        'va': {'in_seq_len': 40,
+                               'minibatch_size': 2000},
+                        'va': {'in_seq_len': 20,
+                               'max_truncation': 5,
                                'minibatch_enabled': False,
-                               'minibatch_size': 200,
-                               'max_truncation': 5},
-                        'te': {'in_seq_len': 40,
+                               'minibatch_size': 200},
+                        'te': {'in_seq_len': 20,
+                               'max_truncation': 5,
                                'minibatch_enabled': False,
-                               'minibatch_size': 200,
-                               'max_truncation': 5}}
+                               'minibatch_size': 200}}
 
 priors = [[0.2, 0.6, 0.2],[0.1, 0.8, 0.1]]
 input_config = {'layer_type': 'input'}
-b_config = {'init_m': 'zeros', 'prior_m': 0., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
-bf_config = {'init_m': 'ones', 'prior_m': 1., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
-w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
-w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
+b_config = {'init_m': 'xavier', 'prior_m': 0., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
+w_config = {'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
 
 hidden_2_config = {'layer_type': 'lstm',
                    'var_scope': 'lstm_1',
-                   'parametrization': parametrization,
                    'tau': tau,
+                   'parametrization': parametrization,
                    'discrete_act': discrete_act,
-                   'lr_adapt': lr_adapt,
+                   'normalize_mean': False,
+                   'lr_adapt': False,
+                   'init_config': {'f': {'w': 'all_zero', 'b': 'all_one'},
+                                   'i': {'w': 'xavier', 'b': 'all_zero'},
+                                   'c': {'w': 'xavier', 'b': 'all_zero'},
+                                   'o': {'w': 'xavier', 'b': 'all_zero'}},
+                   'is_recurrent': True,
+                   'is_output': False,
                    'wf': w_config,
-                   'bf': bf_config,
+                   'bf': b_config,
                    'wi': w_config,
                    'bi': b_config,
                    'wc': w_config,
@@ -86,62 +88,66 @@ hidden_1_config['var_scope'] = 'lstm_0'
 output_config = {'layer_type': 'fc',
                  'var_scope': 'output_layer',
                  'parametrization': parametrization,
+                 'normalize_mean': False,
                  'tau': tau,
-                 'lr_adapt': lr_adapt,
+                 'is_recurrent': False,
+                 'is_output': True,
+                 'lr_adapt': False,
                  'regularization': {'mode': None,
                                     'strength': 0.02},
                  'w': w_config,
                  'b': b_config}
 
-rnn_config = {'layout': [4, layout[0], layout[1], 10],
+rnn_config = {'layout': [13, layout[0], layout[1], 54],
               'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
-              'data_multiplier': datam} 
-
+              'data_multiplier': datam}
 
 training_config = {'learning_rate': lr, 
-                   'type': samplingop,
+                   'type': sampling_op,
                    'is_pretrain': False,
-                   'batchnorm': batchnorm,
+                   'batchnorm': bn,
                    'batchnorm_momentum': .98,
                    'var_reg': 0.,
                    'ent_reg': 0.,
                    'dir_reg': 0., 
                    'mode': {'name': 'inc_lengths',
-                            'in_seq_len': [2, 4, 8, 15, 40],
-                            'max_truncation': [43 ,41, 37, 25, 5],
+                            'in_seq_len': [1, 2, 4, 8, 30],
+                            'out_seq_len': [1, 1, 2, 4, 5],
+                            'zero_padding': [0, 0, 0, 2, 23],
                             'min_errors': [0., 0., 0., 0., 0.],
-                            'max_epochs': [5, 30, 500, 3000, 15000]},
+                            'max_epochs': [5, 20, 50, 100, 1000]},
                    'task_id': task_id}
 
-training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': epochs} 
+training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': max_epochs} 
 pretrain_config = copy.deepcopy(training_config)
 
 
 pretrain_config['is_pretrain'] = True
 pretrain_config['mode'] = {'name': 'inc_lengths',
                            'in_seq_len': [1, 2, 4, 8, 30],
+                           'out_seq_len': [1, 1, 2, 4, 5],
+                           'zero_padding': [0, 0, 0, 2, 23],
                            'min_errors': [0., 0., 0., 0., 0.],
                            'max_epochs': [3, 10, 20, 50, 200]}
 #pretrain_config['mode']['max_epochs'] = 10
-
-pretrain_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 200} 
-pretrain_config['reg'] = 0.02
-pretrain_config['path'] = load_file
+pretrain_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': 300} 
+pretrain_config['reg'] = 0.05
+pretrain_config['path'] = pretrain_filename
 pretrain_config['status'] = pretrain_mode
 
 
 info_config = {'calc_performance_every': 1,
                'cell_access': False,
-               'tensorboard': {'enabled': save_results, 'path': '../m/tb/' + filename + '_' + str(task_id), 'period': 200,
+               'tensorboard': {'enabled': False, 'path': '../t/tb/' + filename + '_' + str(task_id), 'period': 200,
                                'weights': True, 'gradients': False, 'results': True, 'acts': True, 'single_acts': 1},
                'profiling': {'enabled': False, 'path': '../profiling/' + filename}, 
                'timer': {'enabled': False}}
                
 
-result_config = {'save_results': save_results,
-                 'path': '../m/nr/' + filename + '_' + str(task_id),
+result_config = {'save_results': True,
+                 'path': '../t/nr/' + filename + '_' + str(task_id),
                  'plot_results': False,
                  'print_final_stats': True}
 
