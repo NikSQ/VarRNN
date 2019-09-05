@@ -3,6 +3,7 @@
 
 import numpy as np
 import tensorflow as tf
+from src.global_variable import get_train_config
 
 
 def save_to_file(result_dicts, path):
@@ -71,12 +72,11 @@ def convert_to_array(result_dicts, process_key, metric_keys):
 
 
 class TMetrics:
-    def __init__(self, l_data_config, l_data, info_config, training_config, rnn):
-        self.rnn = rnn
-        self.info_config = info_config
+    def __init__(self, l_data_config, l_data, is_training, tau):
+        self.is_training = is_training
+        self.tau = tau
         self.l_data_config = l_data_config
         self.l_data = l_data
-        self.training_config = training_config
         self.result_dict = {'epoch': list()}
         self.s_batchnorm_stats_op = None
         self.b_batchnorm_stats_op = None
@@ -94,27 +94,28 @@ class TMetrics:
 
     # Retrieves metrics of the performance of the processes which were added using add_vars()
     # A process is a method of operating a RNN (bayesian or sampled weights) combined with a dataset
-    def retrieve_results(self, sess, epoch, is_pretrain=False):
-        if self.training_config['batchnorm']:
+    def retrieve_results(self, sess, epoch, tau, is_pretrain=False):
+        if get_train_config()['batchnorm']:
             self.retrieve_s_results(sess, 'tr_s', is_pretrain, True)
 
         for process_key in self.op_dict.keys():
             if process_key.endswith('_s') and process_key is not 'tr_s':
                 self.retrieve_s_results(sess, process_key, is_pretrain, False)
             elif process_key.endswith('_b'):
-                self.retrieve_b_results(sess, process_key, False)
+                self.retrieve_b_results(sess, process_key, False, tau)
             else:
                 raise Exception('process key {} not understood'.format(process_key))
         self.result_dict['epoch'].append(epoch)
 
-    def retrieve_b_results(self, sess, process_key, is_training):
+    def retrieve_b_results(self, sess, process_key, is_training, tau):
         data_key = process_key[:-2]
         cum_vfe = 0
         cum_acc = 0
         elogl = 0
         for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
             vfe, kl, elogl, acc = sess.run(self.op_dict[process_key],
-                                             feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: is_training})
+                                             feed_dict={self.tau: tau, self.l_data.batch_idx: minibatch_idx,
+                                                        self.is_training: is_training})
             cum_vfe += vfe
             cum_acc += acc
             elogl += elogl
@@ -135,7 +136,7 @@ class TMetrics:
             sess.run(self.op_dict[process_key]['sample'])
         for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
             loss, acc = sess.run(self.op_dict[process_key]['metrics'],
-                                 feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: is_training})
+                                 feed_dict={self.l_data.batch_idx: minibatch_idx, self.is_training: is_training})
             cum_loss += loss
             cum_acc += acc
         if is_training:

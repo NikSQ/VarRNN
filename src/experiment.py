@@ -6,6 +6,7 @@ from src.data.labeled_data import LabeledData
 from src.rnn import RNN
 from src.tools import print_config, set_momentum
 from src.timer import Timer
+from src.global_variable import set_rnn_config, set_info_config, set_train_config
 from tensorflow.python import debug as tf_debug
 import time
 
@@ -15,30 +16,34 @@ class Experiment:
         self.rnn = None
         self.l_data = None
         self.l_data_config = None
-        self.rnn_config = None
         self.data_dict = None
+        self.rnn_config = None
         self.info_config = None
+        self.train_config = None
         self.timer = None
 
-    def create_rnn(self, train_config, l_data, l_data_config):
-        set_momentum(train_config['batchnorm_momentum'])
-        self.rnn = RNN(self.rnn_config, train_config, self.info_config, l_data)
+    def create_rnn(self, l_data, l_data_config):
+        set_momentum(self.train_config['batchnorm']['momentum'])
+        self.rnn = RNN(l_data)
         self.l_data = l_data
         self.l_data_config = l_data_config
 
     # Creates a RNN using a modified l_data_config
     # Used e.g. by incremental sequence training, where the l_data_config is changed while training
-    def create_modificated_model(self, train_config, l_data_config, mod_data_config):
-        incremental_idx = mod_data_config['session_idx']
-        l_data_config['tr']['in_seq_len'] = mod_data_config['in_seq_len'][incremental_idx]
-        l_data_config['tr']['max_truncation'] = mod_data_config['max_truncation'][incremental_idx]
+    def create_modificated_model(self, l_data_config, session_idx):
+        l_data_config['tr']['in_seq_len'] = self.train_config['mode']['in_seq_len'][session_idx]
+        l_data_config['tr']['max_truncation'] = self.train_config['mode']['max_truncation'][session_idx]
         self.data_dict = load_dataset(l_data_config)
         labeled_data = LabeledData(l_data_config, self.data_dict)
-        self.create_rnn(train_config, labeled_data, l_data_config)
+        self.create_rnn(labeled_data, l_data_config)
 
     def train(self, rnn_config, l_data_config, train_config, pretrain_config, info_config):
         self.rnn_config = rnn_config
         self.info_config = info_config
+        self.train_config = train_config
+        set_rnn_config(rnn_config)
+        set_info_config(info_config)
+
         self.timer = Timer(info_config['timer']['enabled'])
         print_config(rnn_config, train_config, l_data_config)
         temp_model_path = '../models/temp' + str(train_config['task_id'])
@@ -54,7 +59,9 @@ class Experiment:
         self.timer.start()
         if pretrain_config['status'] == 'create':
             self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
-            print('pretraning is over')
+            quit()
+
+        set_train_config(train_config)
         self.timer.restart('Pretraining')
         # Sessions refer to training with different architectures. If one RNN is used throughout the training process
         # then only one session is created. Training with incremental sequence lengths for example requires multiple
@@ -62,31 +69,32 @@ class Experiment:
         # RNN, only the RNN structure used for the training set varies. current_epoch stores the total amounts of epochs
         # and epoch the epoch within a session
         current_epoch = 0
+        tau = self.train_config['tau']
+        learning_rate = self.train_config['learning_rate']
         for session_idx in range(n_sessions):
             tf.reset_default_graph()
-            if train_config['mode']['name'] == 'inc_lengths':
-                train_config['mode']['session_idx'] = session_idx
-                max_epochs = train_config['mode']['max_epochs'][session_idx]
-                min_error = train_config['mode']['min_errors'][session_idx]
-                self.create_modificated_model(train_config, l_data_config, train_config['mode'])
-            elif train_config['mode']['name'] == 'classic':
+            if self.train_config['mode']['name'] == 'inc_lengths':
+                max_epochs = self.train_config['mode']['max_epochs'][session_idx]
+                min_error = self.train_config['mode']['min_errors'][session_idx]
+                self.create_modificated_model(l_data_config, session_idx)
+            elif self.train_config['mode']['name'] == 'classic':
                 self.data_dict = load_dataset(l_data_config)
                 l_data = LabeledData(l_data_config, self.data_dict)
-                self.create_rnn(train_config, l_data, l_data_config)
-                max_epochs = train_config['mode']['max_epochs']
-                min_error = train_config['mode']['min_error']
+                self.create_rnn(l_data, l_data_config)
+                max_epochs = self.train_config['mode']['max_epochs']
+                min_error = self.train_config['mode']['min_error']
 
             self.timer.restart('Graph creation')
 
             # Saver is used for restoring weights for new session if more than one is used for training
-            model_saver = tf.train.Saver()
+            model_saver = tf.train.Saver(var_list=tf.trainable_variables())
             with tf.Session() as sess:
                 if info_config['profiling']['enabled']:
                     options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 else:
                     options = tf.RunOptions(trace_level=tf.RunOptions.NO_TRACE)
                 run_metadata = tf.RunMetadata()
-                writer = tf.summary.FileWriter(info_config['tensorboard']['path'] + str(train_config['task_id']))
+                writer = tf.summary.FileWriter(info_config['tensorboard']['path'] + str(self.train_config['task_id']))
                 sess.run(tf.global_variables_initializer())
 
                 if session_idx != 0:
@@ -111,11 +119,11 @@ class Experiment:
                 traces = list()
 
                 for epoch in range(max_epochs):
-                    #self.save_gradient_variance(sess, train_config, epoch)
+                    #self.save_gradient_variance(sess, self.train_config, epoch)
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     if current_epoch % info_config['calc_performance_every'] == 0:
-                        self.rnn.t_metrics.retrieve_results(sess, current_epoch)
+                        self.rnn.t_metrics.retrieve_results(sess, current_epoch, tau)
                         self.rnn.t_metrics.print(session_idx)
                         if self.rnn.t_metrics.result_dict['tr_b']['vfe'][-1] < min_error:
                             break
@@ -126,28 +134,31 @@ class Experiment:
                             and current_epoch % info_config['tensorboard']['period'] == 0:
                         if info_config['tensorboard']['weights']:
                             weight_summary = sess.run(self.rnn.weight_summaries,
-                                                      feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                                                      feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(weight_summary, current_epoch)
                         if info_config['tensorboard']['gradients']:
                             gradient_summary = sess.run(self.rnn.gradient_summaries,
-                                                        feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                                                        feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(gradient_summary, current_epoch)
                         if info_config['tensorboard']['results']:
                             t_result_summaries = sess.run(self.rnn.t_metric_summaries,
-                                                          feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                                                          feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(t_result_summaries, current_epoch)
                         if info_config['tensorboard']['acts']:
-                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(act_summaries, current_epoch)
 
                     self.timer.restart('Tensorboard')
                     # Train for one full epoch. First shuffle to create new minibatches from the given data and
                     # then do a training step for each minibatch.
+                    # Also anneal learning rate and tau if necessary
+                    if (current_epoch + 1) % self.train_config['learning_rate_tau'] == 0:
+                        learning_rate /= 2
 
                     sess.run(self.l_data.data['tr']['shuffle'])
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_b_op,
-                                 feed_dict={self.rnn.learning_rate: train_config['learning_rate'],
+                                 feed_dict={self.rnn.learning_rate: learning_rate, self.rnn.tau: tau,
                                             self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True},
                                  options=options, run_metadata=run_metadata)
 
@@ -167,14 +178,14 @@ class Experiment:
                 if info_config['cell_access']:
                     ca_1, ca_2 = sess.run([self.rnn.layers[0].cell_access_mat, self.rnn.layers[1].cell_access_mat],
                              feed_dict={self.l_data.batch_idx: 0})
-                    np.save(file='../nr/ca_1_'+ str(train_config['task_id']), arr=ca_1)
-                    np.save(file='../nr/ca_2_'+ str(train_config['task_id']), arr=ca_2)
+                    np.save(file='../nr/ca_1_'+ str(self.train_config['task_id']), arr=ca_1)
+                    np.save(file='../nr/ca_2_'+ str(self.train_config['task_id']), arr=ca_2)
                 model_saver.save(sess, temp_model_path)
         writer.close()
         return self.rnn.t_metrics.result_dict
 
     # Empirically estimates variance of gradient, saves results and quits
-    def save_gradient_variance(self, sess, train_config, epoch):
+    def save_gradient_variance(self, sess, epoch):
         n_gradients = 20
         tf_grads = []
 
@@ -195,10 +206,11 @@ class Experiment:
             grad_distribution = np.concatenate(gradients[grad_key], axis=0)
             variance = np.var(grad_distribution, axis=0, ddof=1)
 
-            np.save(file='../numerical_results/g_var_' + str(train_config['task_id']) + '_' + str(grad_key) + '_' +
+            np.save(file='../numerical_results/g_var_' + str(self.train_config['task_id']) + '_' + str(grad_key) + '_' +
                          str(epoch), arr=variance)
 
     def pretrain(self, l_data_config, pretrain_config, model_path):
+        set_train_config(pretrain_config)
         if pretrain_config['mode']['name'] == 'inc_lengths':
             n_sessions = len(pretrain_config['mode']['in_seq_len'])
         elif pretrain_config['mode']['name'] == 'classic':
@@ -213,11 +225,11 @@ class Experiment:
                 pretrain_config['mode']['session_idx'] = session_idx
                 max_epochs = pretrain_config['mode']['max_epochs'][session_idx]
                 min_error = pretrain_config['mode']['min_errors'][session_idx]
-                self.create_modificated_model(pretrain_config, l_data_config, pretrain_config['mode'])
+                self.create_modificated_model(l_data_config, session_idx)
             elif pretrain_config['mode']['name'] == 'classic':
                 self.data_dict = load_dataset(l_data_config)
                 l_data = LabeledData(l_data_config, self.data_dict)
-                self.create_rnn(pretrain_config, l_data, l_data_config)
+                self.create_rnn(l_data, l_data_config)
                 max_epochs = pretrain_config['mode']['max_epochs']
                 min_error = pretrain_config['mode']['min_error']
 
@@ -237,7 +249,7 @@ class Experiment:
                 for epoch in range(max_epochs):
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
-                    self.rnn.t_metrics.retrieve_results(sess, current_epoch, is_pretrain=True)
+                    self.rnn.t_metrics.retrieve_results(sess, current_epoch, None, is_pretrain=True)
                     if self.rnn.t_metrics.result_dict['tr_s']['loss'][-1] < min_error:
                         print(self.rnn.t_metrics.result_dict['tr_s']['acc'][-1])
                         break

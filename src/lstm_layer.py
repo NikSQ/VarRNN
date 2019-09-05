@@ -2,15 +2,14 @@ import tensorflow as tf
 import numpy as np
 from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
-from src.activation_logic import ActivationLogic
 from src.tools import get_batchnormalizer
+from src.global_variable import get_train_config, get_info_config, get_rnn_config
 
 
 class LSTMLayer:
-    def __init__(self, rnn_config, training_config, info_config, layer_idx, is_training):
-        self.rnn_config = rnn_config
-        self.training_config = training_config
-        self.info_config = info_config
+    def __init__(self, layer_idx, is_training, tau):
+        rnn_config = get_rnn_config()
+        self.train_config = get_train_config()
         self.layer_config = rnn_config['layer_configs'][layer_idx]
         self.w_shape = (rnn_config['layout'][layer_idx-1] + rnn_config['layout'][layer_idx],
                         rnn_config['layout'][layer_idx])
@@ -21,21 +20,16 @@ class LSTMLayer:
         # Activation summaries and specific neurons to gather individual histograms
         self.acts = dict()
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
-                                            size=(info_config['tensorboard']['single_acts'],), replace=False)
+                                            size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
 
-        if self.training_config['batchnorm']:
-            self.bn_s_x = []
-            self.bn_s_h = []
-            self.bn_s_cs = []
-            self.bn_b_x = []
-            self.bn_b_h = []
-            self.bn_b_cs = []
+        self.bn_s_x = []
+        self.bn_s_h = []
+        self.bn_b_x = []
+        self.bn_b_h = []
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
-            self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape,
-                                   self.training_config['batchnorm'])
-            self.act_logic = ActivationLogic(self.layer_config, self.weights)
+            self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape, tau)
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
         if init:
@@ -45,15 +39,13 @@ class LSTMLayer:
             self.weights.tensor_dict['co_m'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co_v'] = tf.zeros(cell_shape)
 
-        if self.training_config['batchnorm']:
+        if self.train_config['batchnorm']:
             raise Exception('Batchnorm not implemented for probabilistic forward pass')
 
         # Vector concatenation (input with recurrent)
         m = tf.concat([x_m, self.weights.tensor_dict['co_m']], axis=1)
         v = tf.concat([x_v, self.weights.tensor_dict['co_v']], axis=1)
 
-        a_f_m, a_f_v = approx_activation(self.weights.var_dict['wf_m'], self.weights.var_dict['wf_v'], self.weights.var_dict['bf_m'], self.weights.var_dict['bf_v'], m, v)
-        f_m, f_v = transform_sig_activation(a_f_m, a_f_v)
         a_i_m, a_i_v = approx_activation(self.weights.var_dict['wi_m'], self.weights.var_dict['wi_v'], self.weights.var_dict['bi_m'], self.weights.var_dict['bi_v'], m, v)
         i_m, i_v = transform_sig_activation(a_i_m, a_i_v)
         a_c_m, a_c_v = approx_activation(self.weights.var_dict['wc_m'], self.weights.var_dict['wc_v'], self.weights.var_dict['bc_m'], self.weights.var_dict['bc_v'], m, v)
@@ -61,6 +53,8 @@ class LSTMLayer:
         a_o_m, a_o_v = approx_activation(self.weights.var_dict['wo_m'], self.weights.var_dict['wo_v'], self.weights.var_dict['bo_m'], self.weights.var_dict['bo_v'], m, v)
         o_m, o_v = transform_sig_activation(a_o_m, a_o_v)
 
+        f_m = 1 - i_m
+        f_v = i_v
         f_2nd_mom = tf.square(f_m) + f_v
         i_2nd_mom = tf.square(i_m) + i_v
         self.weights.tensor_dict['cs_v'] = tf.multiply(self.weights.tensor_dict['cs_v'], f_2nd_mom) + tf.multiply(c_v, i_2nd_mom) + \
@@ -82,41 +76,41 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        if self.training_config['batchnorm'] in ['x+fc', 'x+h+fc']:
-            if len(self.bn_b_x) == time_idx:
-                self.bn_s_x.append(get_batchnormalizer())
-            x = self.bn_s_x[time_idx](x, self.is_training)
-        if self.training_config['batchnorm'] in ['h+fc', 'x+h+fc']:
-            if len(self.bn_b_h) == time_idx-1:
-                self.bn_s_h.append(get_batchnormalizer())
-            co = self.bn_s_h[time_idx-1](self.weights.tensor_dict['co'], self.is_training)
+        bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
+        if 'x' in self.train_config['batchnorm']['modes']:
+            if len(self.bn_b_x) == bn_idx:
+                self.bn_b_x.append(get_batchnormalizer())
+            x = self.bn_b_x[bn_idx](x, self.is_training)
+        if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
+            if len(self.bn_b_h) == bn_idx - 1:
+                self.bn_b_h.append(get_batchnormalizer())
+            co = self.bn_b_h[bn_idx - 1](self.weights.tensor_dict['co'], self.is_training)
         else:
             co = self.weights.tensor_dict['co']
 
         x = tf.concat([x, co], axis=1)
 
-        if self.layer_config['discrete_act'] != 'complete':
-            a_c = self.act_logic.sample_activation('wc', 'bc', x, None, init)
-            c = tf.nn.tanh(a_c)
+        if 'i' in self.layer_config['act_disc']:
+            a_i = self.weights.sample_activation('wi', 'bi', x, None, init)
+            i = tf.sigmoid(a_i)
         else:
-            c = self.act_logic.sample_activation('wc', 'bc', x, 'tanh', init)
+            i = self.weights.sample_activation('wi', 'bi', x, 'sig', init)
+        f = 1. - i
 
-        if self.layer_config['discrete_act'] in ['complete', 'gates']:
-            f = self.act_logic.sample_activation('wf', 'bf', x, 'sig', init)
-            i = 1. - f
-            o = self.act_logic.sample_activation('wo', 'bo', x, 'sig', init)
-        elif self.layer_config['discrete_act'] == 'disabled':
-            a_f = self.act_logic.sample_activation('wf', 'bf', x, None, init)
-            f = tf.nn.sigmoid(a_f)
-            a_i = self.act_logic.sample_activation('wi', 'bi', x, None, init)
-            i = tf.nn.sigmoid(a_i)
-            a_o = self.act_logic.sample_activation('wo', 'bo', x, None, init)
-            o = tf.nn.sigmoid(a_o)
+        if 'c' in self.layer_config['act_disc']:
+            a_c = self.weights.sample_activation('wc', 'bc', x, None, init)
+            c = tf.tanh(a_c)
         else:
-            raise Exception('discrete act mode not understood')
+            c = self.weights.sample_activation('wc', 'bc', x, 'tanh', init)
+
+        if 'o' in self.layer_config['act_disc']:
+            a_o = self.weights.sample_activation('wo', 'bo', x, None, init)
+            o = tf.sigmoid(a_o)
+        else:
+            o = self.weights.sample_activation('wo', 'bo', x, 'sig', init)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        if self.layer_config['discrete_act'] == 'disabled':
+        if 'i' in self.layer_config['act_disc']:
             self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
         else:
             self.weights.tensor_dict['co'] = tf.multiply(self.weights.tensor_dict['cs'], o)
@@ -132,14 +126,15 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        if self.training_config['batchnorm'] in ['x+fc', 'x+h+fc']:
-            if len(self.bn_b_x) == time_idx:
+        bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
+        if 'x' in self.train_config['batchnorm']['modes']:
+            if len(self.bn_b_x) == bn_idx:
                 self.bn_b_x.append(get_batchnormalizer())
-            x = self.bn_b_x[time_idx](x, self.is_training)
-        if self.training_config['batchnorm'] in ['h+fc', 'x+h+fc']:
-            if len(self.bn_b_h) == time_idx-1:
+            x = self.bn_b_x[bn_idx](x, self.is_training)
+        if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
+            if len(self.bn_b_h) == bn_idx - 1:
                 self.bn_b_h.append(get_batchnormalizer())
-            co = self.bn_b_h[time_idx-1](self.weights.tensor_dict['co'], self.is_training)
+            co = self.bn_b_h[bn_idx - 1](self.weights.tensor_dict['co'], self.is_training)
         else:
             co = self.weights.tensor_dict['co']
 
@@ -160,14 +155,15 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        if self.training_config['batchnorm'] in ['x+fc', 'x+h+fc']:
-            if len(self.bn_s_x) == time_idx:
+        bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
+        if 'x' in self.train_config['batchnorm']['modes']:
+            if len(self.bn_s_x) == bn_idx:
                 self.bn_s_x.append(get_batchnormalizer())
-            x = self.bn_s_x[time_idx](x, self.is_training)
-        if self.training_config['batchnorm'] in ['h+fc', 'x+h+fc']:
-            if len(self.bn_s_h) == time_idx-1:
+            x = self.bn_s_x[bn_idx](x, self.is_training)
+        if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
+            if len(self.bn_s_h) == bn_idx - 1:
                 self.bn_s_h.append(get_batchnormalizer())
-            co = self.bn_s_h[time_idx-1](self.weights.tensor_dict['co'], self.is_training)
+            co = self.bn_s_h[bn_idx - 1](self.weights.tensor_dict['co'], self.is_training)
         else:
             co = self.weights.tensor_dict['co']
 
@@ -197,7 +193,7 @@ class LSTMLayer:
             i = 1. - f
             o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
 
-            if self.info_config['cell_access']:
+            if get_info_config()['cell_access']:
                 self.cell_access_mat.append(i)
         else:
             f = tf.sigmoid(f_act)

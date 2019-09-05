@@ -3,39 +3,42 @@ import numpy as np
 from src.fc_layer import FCLayer
 from src.lstm_layer import LSTMLayer
 from src.data.t_metrics import TMetrics
+from src.global_variable import get_rnn_config, get_train_config
 import copy
 
 
 
 
 class RNN:
-    def __init__(self, rnn_config, training_config, info_config, l_data):
+    def __init__(self, l_data):
         self.c = None
-        self.rnn_config = rnn_config
-        self.training_config = training_config
         self.l_data = l_data
         self.layers = []
         self.train_b_op = None
         self.train_s_op = None
         self.accuracy = None
         self.gradients = None  # Used to find a good value to clip
-        self.t_metrics = TMetrics(l_data.l_data_config, l_data, info_config, training_config, self)
-        self.t_metric_summaries = None
         self.act_summaries = None
         self.gradient_summaries = None
 
         with tf.variable_scope('global'):
             self.learning_rate = tf.placeholder(tf.float32)
+            self.tau = tf.placeholder(tf.float32)
             self.is_training = tf.placeholder(tf.bool)
+
+        self.rnn_config = get_rnn_config()
+        self.train_config = get_train_config()
+        self.t_metrics = TMetrics(l_data.l_data_config, l_data, self.is_training, self.tau)
+        self.t_metric_summaries = None
 
         weight_summaries = []
         sample_ops = []
         init_ops = []
         for layer_idx, layer_config in enumerate(self.rnn_config['layer_configs']):
             if layer_config['layer_type'] == 'fc':
-                layer = FCLayer(rnn_config, training_config, info_config, layer_idx, self.is_training)
+                layer = FCLayer(layer_idx, self.is_training, self.tau)
             elif layer_config['layer_type'] == 'lstm':
-                layer = LSTMLayer(rnn_config, training_config, info_config, layer_idx, self.is_training)
+                layer = LSTMLayer(layer_idx, self.is_training, self.tau)
             elif layer_config['layer_type'] == 'input':
                 continue
             else:
@@ -49,7 +52,7 @@ class RNN:
         self.init_op = tf.group(*init_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
 
-        if self.training_config['is_pretrain'] is True:
+        if self.train_config['is_pretrain'] is True:
             self.create_s_training_graph('tr')
             return
 
@@ -100,17 +103,17 @@ class RNN:
             for layer_idx, layer in enumerate(self.layers, 1):
                 if bayesian is False:
                     m = layer.create_var_fp(m, time_idx)
-                elif self.training_config['type'] == 'pfp':
+                elif 'pfp' in self.train_config['algorithm']:
                     m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx])
-                elif self.training_config['type'] == 'l_sampling':
+                elif 'l_reparam' in self.train_config['algorithm']:
                     m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
-                elif self.training_config['type'] == 'g_sampling':
+                elif 'c_reparam' in self.train_config['algorithm']:
                     m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
                 else:
                     raise Exception('Training type not understood')
 
             m_outputs.append(m)
-            if self.training_config['type'] == 'pfp':
+            if 'pfp' in self.train_config['algorithm']:
                 v_outputs.append(v)
 
         m_outputs = tf.stack(m_outputs, axis=1)
@@ -120,12 +123,9 @@ class RNN:
         # Process output of non bayesian network
         if bayesian is False:
             output = tf.cast(m_outputs, dtype=tf.float64)
-            if self.rnn_config['output_type'] == 'classification':
-                loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
-                prediction = tf.argmax(output, axis=1)
-                acc = tf.reduce_mean(tf.cast(tf.equal(prediction, tf.argmax(y, axis=1)), dtype=tf.float32))
-            else:
-                raise Exception('output type of RNN not understood')
+            loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
+            prediction = tf.argmax(output, axis=1)
+            acc = tf.reduce_mean(tf.cast(tf.equal(prediction, tf.argmax(y, axis=1)), dtype=tf.float32))
 
             self.t_metrics.add_s_vars(data_key + '_s', self.sample_op, loss, acc)
             if self.t_metric_summaries is not None:
@@ -139,7 +139,7 @@ class RNN:
 
         # Process output of bayesian network
         else:
-            if self.rnn_config['output_type'] == 'classification' and self.training_config['type'] == 'pfp':
+            if 'pfp' in self.train_config['algorithm']:
                 m_output = tf.cast(dtype=tf.float64)
                 v_output = tf.cast(tf.stack(v_outputs, axis=0), dtype=tf.float64)
                 smax = tf.nn.softmax(logits=m_output, axis=1)
@@ -165,8 +165,7 @@ class RNN:
 
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
-            elif self.rnn_config['output_type'] == 'classification' and \
-                    (self.training_config['type'] == 'l_sampling' or self.training_config['type'] == 'g_sampling'):
+            elif 'l_reparam' in self.train_config['algorithm'] or 'c_reparam' in self.train_config['algorithm']:
                 smax = tf.nn.softmax(logits=m_outputs, axis=1)
                 t = tf.argmax(y, axis=1)
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))
@@ -185,8 +184,6 @@ class RNN:
 
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
-            else:
-                raise Exception('output type of RNN not understood')
 
             self.t_metrics.add_b_vars(data_key + '_b', vfe, kl, elogl, acc)
 
@@ -212,17 +209,17 @@ class RNN:
             var_reg = 0
             ent_reg = 0
             for layer in self.layers:
-                if self.training_config['var_reg'] != 0:
+                if self.train_config['var_reg'] != 0:
                     var_reg += layer.weights.get_var_reg()
-                if self.training_config['dir_reg'] != 0:
+                if self.train_config['dir_reg'] != 0:
                     dir_reg += layer.weights.get_dir_reg()
-                if self.training_config['ent_reg'] != 0:
+                if self.train_config['ent_reg'] != 0:
                     ent_reg += layer.weights.get_entropy_reg()
 
-            var_reg *= self.training_config['var_reg']
-            dir_reg *= self.training_config['dir_reg']
-            ent_reg *= self.training_config['ent_reg']
-            if type(self.training_config['learning_rate']) is list:
+            var_reg *= self.train_config['var_reg']
+            dir_reg *= self.train_config['dir_reg']
+            ent_reg *= self.train_config['ent_reg']
+            if type(self.train_config['learning_rate']) is list:
                 opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[0])
                 opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[1])
                 opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate[2])
@@ -277,7 +274,7 @@ class RNN:
             reg = 0
             for layer in self.layers:
                 reg += layer.weights.get_pretraining_reg()
-            reg *= self.training_config['reg']
+            reg *= self.train_config['reg']
             gradients = optimizer.compute_gradients(loss + reg)
 
             clipped_gradients = [(grad, var) if grad is None else
