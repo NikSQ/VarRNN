@@ -28,7 +28,7 @@ class LSTMLayer:
         self.bn_b_h = []
 
         with tf.variable_scope(self.layer_config['var_scope']):
-            var_keys = ['wf', 'bf', 'wi', 'bi', 'wc', 'bc', 'wo', 'bo']
+            var_keys = ['wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape, tau)
 
     def create_pfp(self, x_m, x_v, mod_layer_config, init):
@@ -139,8 +139,8 @@ class LSTMLayer:
             co = self.weights.tensor_dict['co']
 
         x = tf.concat([x, co], axis=1)
-        f = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wf']) + self.weights.tensor_dict['bf'])
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
+        f = 1. - i
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
         o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
 
@@ -169,45 +169,45 @@ class LSTMLayer:
 
         x = tf.concat([x, co], axis=1)
 
-        f_act = tf.matmul(x, self.weights.var_dict['wf']) + self.weights.var_dict['bf']
         i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
         c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
         o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
 
         if init:
-            for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
+            for act_type, act in zip(['i', 'c', 'o'], [i_act, c_act, o_act]):
                 self.acts[act_type] = act
                 for neuron_idc in range(len(self.act_neurons)):
                     self.acts[act_type + '_' + str(neuron_idc)] = tf.slice(act, begin=(0, neuron_idc), size=(-1, 1))
 
         else:
-            for act_type, act in zip(['f', 'i', 'c', 'o'], [f_act, i_act, c_act, o_act]):
+            for act_type, act in zip(['i', 'c', 'o'], [i_act, c_act, o_act]):
                 self.acts[act_type] = tf.concat([act, self.acts[act_type]], axis=0)
                 for neuron_idc in range(len(self.act_neurons)):
                     self.acts[act_type + '_' + str(neuron_idc)] = \
                         tf.concat([tf.slice(act, begin=(0, neuron_idc), size=(-1, 1)),
                                    self.acts[act_type + '_' + str(neuron_idc)]], axis=0)
 
-        if self.layer_config['discrete_act'] != 'disabled':
-            f = tf.cast(tf.greater_equal(f_act, 0), tf.float32)
-            i = 1. - f
-            o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
-
+        if 'i' in self.layer_config['act_disc']:
+            i = tf.cast(tf.greater_equal(i_act, 0), tf.float32)
             if get_info_config()['cell_access']:
                 self.cell_access_mat.append(i)
-        else:
-            f = tf.sigmoid(f_act)
-            i = tf.sigmoid(i_act)
-            o = tf.sigmoid(o_act)
 
-        if self.layer_config['discrete_act'] == 'complete':
+        else:
+            i = tf.sigmoid(i_act)
+        f = 1. - i
+
+        if 'c' in self.layer_config['act_disc']:
             c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
         else:
             c = tf.tanh(c_act)
 
+        if 'o' in self.layer_config['act_disc']:
+            o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
+        else:
+            o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        if self.layer_config['discrete_act'] == 'disabled':
+        if 'i' in self.layer_config['discrete_act']:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         else:
             self.weights.tensor_dict['co'] = tf.multiply(o, self.weights.tensor_dict['cs'])
