@@ -8,11 +8,11 @@ from src.global_variable import get_train_config, get_info_config, get_rnn_confi
 
 class LSTMLayer:
     def __init__(self, layer_idx, is_training, tau):
-        rnn_config = get_rnn_config()
+        self.rnn_config = get_rnn_config()
         self.train_config = get_train_config()
-        self.layer_config = rnn_config['layer_configs'][layer_idx]
-        self.w_shape = (rnn_config['layout'][layer_idx-1] + rnn_config['layout'][layer_idx],
-                        rnn_config['layout'][layer_idx])
+        self.layer_config = self.rnn_config['layer_configs'][layer_idx]
+        self.w_shape = (self.rnn_config['layout'][layer_idx-1] + self.rnn_config['layout'][layer_idx],
+                        self.rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
         self.cell_access_mat = []
         self.is_training = is_training
@@ -22,10 +22,12 @@ class LSTMLayer:
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
                                             size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
 
-        self.bn_s_x = []
-        self.bn_s_h = []
-        self.bn_b_x = []
-        self.bn_b_h = []
+        if 'x' in self.train_config['batchnorm']['modes']:
+            self.bn_b_x = []
+            self.bn_s_x = []
+        if 'h' in self.train_config['batchnorm']['modes']:
+            self.bn_b_h = []
+            self.bn_s_h = []
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['wi', 'bi', 'wc', 'bc', 'wo', 'bo']
@@ -90,35 +92,38 @@ class LSTMLayer:
 
         x = tf.concat([x, co], axis=1)
 
-        if 'i' in self.layer_config['act_disc']:
+        if 'i' in self.rnn_config['act_disc']:
+            i = self.weights.sample_activation('wi', 'bi', x, 'sig', init)
+        else:
             a_i = self.weights.sample_activation('wi', 'bi', x, None, init)
             i = tf.sigmoid(a_i)
-        else:
-            i = self.weights.sample_activation('wi', 'bi', x, 'sig', init)
         f = 1. - i
 
-        if 'c' in self.layer_config['act_disc']:
+        if 'c' in self.rnn_config['act_disc']:
+            c = self.weights.sample_activation('wc', 'bc', x, 'tanh', init)
+        else:
             a_c = self.weights.sample_activation('wc', 'bc', x, None, init)
             c = tf.tanh(a_c)
-        else:
-            c = self.weights.sample_activation('wc', 'bc', x, 'tanh', init)
 
-        if 'o' in self.layer_config['act_disc']:
+        if 'o' in self.rnn_config['act_disc']:
+            o = self.weights.sample_activation('wo', 'bo', x, 'sig', init)
+        else:
             a_o = self.weights.sample_activation('wo', 'bo', x, None, init)
             o = tf.sigmoid(a_o)
-        else:
-            o = self.weights.sample_activation('wo', 'bo', x, 'sig', init)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        if 'i' in self.layer_config['act_disc']:
-            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
-        else:
+        if 'i' in self.rnn_config['act_disc']:
             self.weights.tensor_dict['co'] = tf.multiply(self.weights.tensor_dict['cs'], o)
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
 
         return self.weights.tensor_dict['co']
 
     # Global reparametrization trick
     def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
+        if len(self.rnn_config['act_disc']) != 0:
+            raise Exception('classic reparametrization does not work with discrete activations')
+
         init = time_idx == 0
         if init:
             self.weights.create_tensor_samples()
@@ -187,7 +192,7 @@ class LSTMLayer:
                         tf.concat([tf.slice(act, begin=(0, neuron_idc), size=(-1, 1)),
                                    self.acts[act_type + '_' + str(neuron_idc)]], axis=0)
 
-        if 'i' in self.layer_config['act_disc']:
+        if 'i' in self.rnn_config['act_disc']:
             i = tf.cast(tf.greater_equal(i_act, 0), tf.float32)
             if get_info_config()['cell_access']:
                 self.cell_access_mat.append(i)
@@ -196,20 +201,20 @@ class LSTMLayer:
             i = tf.sigmoid(i_act)
         f = 1. - i
 
-        if 'c' in self.layer_config['act_disc']:
+        if 'c' in self.rnn_config['act_disc']:
             c = tf.cast(tf.greater_equal(c_act, 0), tf.float32) * 2. - 1.
         else:
             c = tf.tanh(c_act)
 
-        if 'o' in self.layer_config['act_disc']:
+        if 'o' in self.rnn_config['act_disc']:
             o = tf.cast(tf.greater_equal(o_act, 0), tf.float32)
         else:
             o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        if 'i' in self.layer_config['discrete_act']:
-            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
-        else:
+        if 'i' in self.rnn_config['act_disc']:
             self.weights.tensor_dict['co'] = tf.multiply(o, self.weights.tensor_dict['cs'])
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co']
 

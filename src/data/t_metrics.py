@@ -114,7 +114,7 @@ class TMetrics:
         elogl = 0
         for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
             vfe, kl, elogl, acc = sess.run(self.op_dict[process_key],
-                                             feed_dict={self.tau: tau, self.l_data.batch_idx: minibatch_idx,
+                                             feed_dict={self.tau: (tau,), self.l_data.batch_idx: minibatch_idx,
                                                         self.is_training: is_training})
             cum_vfe += vfe
             cum_acc += acc

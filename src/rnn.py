@@ -22,8 +22,8 @@ class RNN:
         self.gradient_summaries = None
 
         with tf.variable_scope('global'):
-            self.learning_rate = tf.placeholder(tf.float32)
-            self.tau = tf.placeholder(tf.float32)
+            self.learning_rate = tf.placeholder(dtype=tf.float32)
+            self.tau = tf.placeholder(shape=(1,), dtype=tf.float32)
             self.is_training = tf.placeholder(tf.bool)
 
         self.rnn_config = get_rnn_config()

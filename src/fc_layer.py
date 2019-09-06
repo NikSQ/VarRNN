@@ -21,9 +21,9 @@ class FCLayer:
         self.acts = dict()
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
                                             size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
-
-        self.bn_s_x = get_batchnormalizer()
-        self.bn_b_x = get_batchnormalizer()
+        if 'fc' in self.train_config['batchnorm']['modes']:
+            self.bn_s_x = get_batchnormalizer()
+            self.bn_b_x = get_batchnormalizer()
 
         with tf.variable_scope(self.layer_config['var_scope']):
             var_keys = ['w', 'b']

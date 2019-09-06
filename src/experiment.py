@@ -119,7 +119,7 @@ class Experiment:
                 traces = list()
 
                 for epoch in range(max_epochs):
-                    #self.save_gradient_variance(sess, self.train_config, epoch)
+                    #self.save_gradient_variance(sess, self.train_config, epoch, tau)
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     if current_epoch % info_config['calc_performance_every'] == 0:
@@ -158,7 +158,7 @@ class Experiment:
                     sess.run(self.l_data.data['tr']['shuffle'])
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         sess.run(self.rnn.train_b_op,
-                                 feed_dict={self.rnn.learning_rate: learning_rate, self.rnn.tau: tau,
+                                 feed_dict={self.rnn.learning_rate: learning_rate, self.rnn.tau: (tau,),
                                             self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True},
                                  options=options, run_metadata=run_metadata)
 
@@ -185,7 +185,7 @@ class Experiment:
         return self.rnn.t_metrics.result_dict
 
     # Empirically estimates variance of gradient, saves results and quits
-    def save_gradient_variance(self, sess, epoch):
+    def save_gradient_variance(self, sess, epoch, tau):
         n_gradients = 20
         tf_grads = []
 
@@ -198,7 +198,7 @@ class Experiment:
             gradients[idx] = []
 
         for gradient_idx in range(n_gradients):
-            gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0})
+            gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0, self.rnn.tau: (tau,)})
             for idx, grad in enumerate(gradient):
                 gradients[idx].append(np.expand_dims(grad, axis=0))
 
