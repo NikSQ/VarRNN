@@ -9,8 +9,8 @@ rnn_config_init = False
 
 def set_train_config(value):
     global train_config_init
-    if train_config_init:
-        raise Exception('Train config set more than once')
+    #if train_config_init:
+        #raise Exception('Train config set more than once')
     train_config_init = True
 
     global train_config
@@ -19,8 +19,8 @@ def set_train_config(value):
 
 def set_info_config(value):
     global info_config_init
-    if info_config_init:
-        raise Exception('Train config set more than once')
+    #if info_config_init:
+        #raise Exception('Train config set more than once')
     info_config_init = True
 
     global info_config
@@ -29,8 +29,8 @@ def set_info_config(value):
 
 def set_rnn_config(value):
     global rnn_config_init
-    if rnn_config_init:
-        raise Exception('Train config set more than once')
+    #if rnn_config_init:
+        #raise Exception('Train config set more than once')
     rnn_config_init = True
 
     global rnn_config

@@ -134,18 +134,18 @@ class Experiment:
                             and current_epoch % info_config['tensorboard']['period'] == 0:
                         if info_config['tensorboard']['weights']:
                             weight_summary = sess.run(self.rnn.weight_summaries,
-                                                      feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                                                      feed_dict={self.rnn.tau: (tau,), self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(weight_summary, current_epoch)
                         if info_config['tensorboard']['gradients']:
                             gradient_summary = sess.run(self.rnn.gradient_summaries,
-                                                        feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                                                        feed_dict={self.rnn.tau: (tau,), self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(gradient_summary, current_epoch)
                         if info_config['tensorboard']['results']:
                             t_result_summaries = sess.run(self.rnn.t_metric_summaries,
-                                                          feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                                                          feed_dict={self.rnn.tau: (tau,), self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(t_result_summaries, current_epoch)
                         if info_config['tensorboard']['acts']:
-                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.rnn.tau: tau, self.l_data.batch_idx: 0, self.rnn.is_training: False})
+                            act_summaries = sess.run(self.rnn.act_summaries, feed_dict={self.rnn.tau: (tau,), self.l_data.batch_idx: 0, self.rnn.is_training: False})
                             writer.add_summary(act_summaries, current_epoch)
 
                     self.timer.restart('Tensorboard')
