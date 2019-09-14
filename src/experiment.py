@@ -37,7 +37,7 @@ class Experiment:
         labeled_data = LabeledData(l_data_config, self.data_dict)
         self.create_rnn(labeled_data, l_data_config)
 
-    def train(self, rnn_config, l_data_config, train_config, pretrain_config, info_config):
+    def train(self, rnn_config, l_data_config, train_config, pretrain_config, info_config, run):
         self.rnn_config = rnn_config
         self.info_config = info_config
         self.train_config = train_config
@@ -71,6 +71,7 @@ class Experiment:
         current_epoch = 0
         tau = self.train_config['tau']
         learning_rate = self.train_config['learning_rate']
+        best_weight_probs_dict = None
         for session_idx in range(n_sessions):
             tf.reset_default_graph()
             if self.train_config['mode']['name'] == 'inc_lengths':
@@ -127,6 +128,15 @@ class Experiment:
                         self.rnn.t_metrics.print(session_idx)
                         if self.rnn.t_metrics.result_dict['tr_b']['vfe'][-1] < min_error:
                             break
+
+                    if current_epoch + 1 % info_config['save_weights']['save_every'] == 0:
+                        self.save_weight_probs(info_config['save_weights']['path'], current_epoch, run,
+                                               sess.run(self.rnn.get_weights_op))
+
+                    if info_config['save_weights']['save_best']:
+                        if self.rnn.t_metrics.best_va['is_current']:
+                            best_weight_probs_dict = sess.run(self.rnn.get_weights_op)
+
                     self.timer.restart('Metrics')
 
                     # Optionally store tensorboard summaries
@@ -181,6 +191,8 @@ class Experiment:
                     np.save(file='../nr/ca_1_'+ str(self.train_config['task_id']), arr=ca_1)
                     np.save(file='../nr/ca_2_'+ str(self.train_config['task_id']), arr=ca_2)
                 model_saver.save(sess, temp_model_path)
+
+        self.save_weight_probs(self.info_config['save_weights']['path'], 'best', run, best_weight_probs_dict)
         writer.close()
         return self.rnn.t_metrics.result_dict
 
@@ -279,3 +291,20 @@ class Experiment:
                     restore_vars.append(curr_var)
         opt_saver = tf.train.Saver(restore_vars)
         opt_saver.restore(sess, file)
+
+    def save_weight_probs(self, path, epoch, run, weight_probs_dict):
+        for layer_key in weight_probs_dict.keys():
+            for var_key in weight_probs_dict[layer_key].keys():
+                layer_weights = weight_probs_dict[layer_key]
+                if len(layer_weights[var_key].keys()) == 2:
+                    # Continuous weight with mean and variance
+                    np.save(path + '_r' + str(run) + '_e' + str(epoch) + '_' + layer_key + '_' + var_key + '_m.npy',
+                            layer_weights[var_key]['m'])
+                    np.save(path + '_r' + str(run) + '_e' + str(epoch) + '_' + layer_key + '_' + var_key + '_v.npy',
+                            layer_weights[var_key]['v'])
+                else:
+                    np.save(path + '_r' + str(run) + '_e' + str(epoch) + '_' + layer_key + '_' + var_key + '_p.npy',
+                            layer_weights[var_key]['probs'])
+
+
+

@@ -49,13 +49,18 @@ def get_init_one_prob(prob_0, weight, w_config):
     prob_1 = tf.clip_by_value(prob_1, w_config['pmin'], w_config['pmax'])
     return prob_1
 
+# Returns the probabilities p(w=-1), p(w=1) for sigmoid parametrization
+def get_binary_probs(sb):
+    prob_1 = tf.nn.sigmoid(sb)
+    prob_n1 = 1. - prob_1
+    return [prob_n1, prob_1]
 
 # Returns the probabilities p(w=-1), p(w=0), p(w=1) for sigmoid parametrization
 def get_ternary_probs(sa, sb):
     prob_0 = tf.nn.sigmoid(sa)
     prob_1 = tf.nn.sigmoid(sb)*(1 - prob_0)
-    prob_m1 = 1. - prob_0 - prob_1
-    return [prob_m1, prob_0, prob_1]
+    prob_n1 = 1. - prob_0 - prob_1
+    return [prob_n1, prob_0, prob_1]
 
 
 class Weights:
@@ -532,4 +537,24 @@ class Weights:
                 return (output + 1.) / 2.
             else:
                 raise Exception('activation function not understood')
+
+    def get_weight_probs(self):
+        prob_dict = {}
+        for var_key in self.var_keys:
+            prob_dict[var_key] = {}
+            if self.w_config[var_key]['type'] == 'continuous':
+                prob_dict[var_key]['m'] = self.var_dict[var_key + '_m']
+                prob_dict[var_key]['v'] = self.var_dict[var_key + '_v']
+            elif self.w_config[var_key]['type'] == 'binary':
+                if self.layer_config['parametrization'] == 'sigmoid':
+                    prob_dict[var_key]['probs'] = get_binary_probs(self.var_dict[var_key + '_sb'])
+                else:
+                    raise Exception('weight probs fetching not implemented for logits')
+            elif self.w_config[var_key]['type'] == 'ternary':
+                if self.layer_config['parametrization'] == 'sigmoid':
+                    prob_dict[var_key]['probs'] = get_ternary_probs(self.var_dict[var_key + '_sa'],
+                                                                    self.var_dict[var_key + '_sb'])
+                else:
+                    raise Exception('weight probs fetching not implemented for logits')
+        return prob_dict
 

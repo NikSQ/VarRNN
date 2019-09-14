@@ -81,6 +81,9 @@ class TMetrics:
         self.s_batchnorm_stats_op = None
         self.b_batchnorm_stats_op = None
         self.op_dict = {}
+        self.best_va = {'is_current': False,
+                        'acc': 0.}
+
 
     # Connects metrics of datasets to TResults. Needs to be called for each dataset (training, validation and or test)
     # while building the graph
@@ -143,6 +146,14 @@ class TMetrics:
             return
         loss = cum_loss / self.l_data.data[data_key]['n_minibatches']
         acc = cum_acc / self.l_data.data[data_key]['n_minibatches']
+
+        if process_key == 'va_s':
+            if self.best_va['acc'] < acc:
+                self.best_va['acc'] = acc
+                self.best_va['is_current'] = True
+            else:
+                self.best_va['is_current'] = False
+
         self.result_dict[process_key]['loss'].append(loss)
         self.result_dict[process_key]['acc'].append(acc)
 

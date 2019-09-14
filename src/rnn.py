@@ -51,6 +51,7 @@ class RNN:
         self.sample_op = tf.group(*sample_ops)
         self.init_op = tf.group(*init_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
+        self.get_weights_op = self.get_weights_op()
 
         if self.train_config['is_pretrain'] is True:
             self.create_s_training_graph('tr')
@@ -298,5 +299,12 @@ class RNN:
     def create_s_evaluation_graph(self, data_key):
         with tf.variable_scope(data_key + '_s'):
             self.create_rnn_graph(data_key, None, bayesian=False)
+
+    def get_weights_op(self):
+        weight_probs = {}
+        for layer in self.layers:
+            weight_probs[layer.layer_config['var_scope']] = layer.weights.get_weight_probs()
+        return weight_probs
+
 
 
