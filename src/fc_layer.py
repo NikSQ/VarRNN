@@ -21,7 +21,7 @@ class FCLayer:
         self.acts = dict()
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
                                             size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
-        if 'fc' in self.train_config['batchnorm']['modes']:
+        if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             self.bn_s_x = get_batchnormalizer()
             self.bn_b_x = get_batchnormalizer()
 
@@ -34,20 +34,27 @@ class FCLayer:
         return a_m, a_v
 
     def create_l_sampling_pass(self, x, mod_layer_config, time_idx):
-        if 'fc' in self.train_config['batchnorm']['modes']:
+        if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_b_x(x, self.is_training)
+        elif self.train_config['batchnorm']['type'] == 'layer':
+            x = tf.contrib.layers.layer_norm(x)
         return self.weights.sample_activation('w', 'b', x, None, time_idx == 0)
 
     def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
         if time_idx == 0:
             self.weights.create_tensor_samples()
-        if 'fc' in self.train_config['batchnorm']['modes']:
+        if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_b_x(x, self.is_training)
+        elif self.train_config['batchnorm']['type'] == 'layer':
+            x = tf.contrib.layers.layer_norm(x)
         return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
 
     def create_var_fp(self, x, time_idx):
-        if 'fc' in self.train_config['batchnorm']['modes']:
+        if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_s_x(x, self.is_training)
+        elif self.train_config['batchnorm']['type'] == 'layer':
+            x = tf.contrib.layers.layer_norm(x)
+
         act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
 
         # Store activations over layer and over single neurons.

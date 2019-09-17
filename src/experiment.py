@@ -192,7 +192,8 @@ class Experiment:
                     np.save(file='../nr/ca_2_'+ str(self.train_config['task_id']), arr=ca_2)
                 model_saver.save(sess, temp_model_path)
 
-        self.save_weight_probs(self.info_config['save_weights']['path'], 'best', run, best_weight_probs_dict)
+        if info_config['save_weights']['save_best']:
+            self.save_weight_probs(self.info_config['save_weights']['path'], 'best', run, best_weight_probs_dict)
         writer.close()
         return self.rnn.t_metrics.result_dict
 

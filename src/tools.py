@@ -24,3 +24,4 @@ def set_momentum(value):
 def get_batchnormalizer():
     gamma_init = tf.constant_initializer(value=.1)
     return tf.keras.layers.BatchNormalization(center=False, gamma_initializer=gamma_init, momentum=momentum)
+

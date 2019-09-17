@@ -22,10 +22,10 @@ class LSTMLayer:
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
                                             size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
 
-        if 'x' in self.train_config['batchnorm']['modes']:
+        if self.train_config['batchnorm']['type'] == 'batch' and 'x' in self.train_config['batchnorm']['modes']:
             self.bn_b_x = []
             self.bn_s_x = []
-        if 'h' in self.train_config['batchnorm']['modes']:
+        if self.train_config['batchnorm']['type'] == 'batch' and 'h' in self.train_config['batchnorm']['modes']:
             self.bn_b_h = []
             self.bn_s_h = []
 
@@ -78,19 +78,21 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
-        if 'x' in self.train_config['batchnorm']['modes']:
-            if len(self.bn_b_x) == bn_idx:
-                self.bn_b_x.append(get_batchnormalizer())
-            x = self.bn_b_x[bn_idx](x, self.is_training)
-        if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
-            if len(self.bn_b_h) == bn_idx - 1:
-                self.bn_b_h.append(get_batchnormalizer())
-            co = self.bn_b_h[bn_idx - 1](self.weights.tensor_dict['co'], self.is_training)
-        else:
-            co = self.weights.tensor_dict['co']
+        co = self.weights.tensor_dict['co']
+        if self.train_config['batchnorm']['type'] == 'batch':
+            bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
+            if 'x' in self.train_config['batchnorm']['modes']:
+                if len(self.bn_b_x) == bn_idx:
+                    self.bn_b_x.append(get_batchnormalizer())
+                x = self.bn_b_x[bn_idx](x, self.is_training)
+            if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
+                if len(self.bn_b_h) == bn_idx - 1:
+                    self.bn_b_h.append(get_batchnormalizer())
+                co = self.bn_b_h[bn_idx - 1](co, self.is_training)
 
         x = tf.concat([x, co], axis=1)
+        if self.train_config['batchnorm']['type'] == 'layer':
+            x = tf.contrib.layers.layer_norm(x)
 
         if 'i' in self.rnn_config['act_disc']:
             i = self.weights.sample_activation('wi', 'bi', x, 'sig', init)
@@ -131,19 +133,22 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
-        if 'x' in self.train_config['batchnorm']['modes']:
-            if len(self.bn_b_x) == bn_idx:
-                self.bn_b_x.append(get_batchnormalizer())
-            x = self.bn_b_x[bn_idx](x, self.is_training)
-        if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
-            if len(self.bn_b_h) == bn_idx - 1:
-                self.bn_b_h.append(get_batchnormalizer())
-            co = self.bn_b_h[bn_idx - 1](self.weights.tensor_dict['co'], self.is_training)
-        else:
-            co = self.weights.tensor_dict['co']
+        co = self.weights.tensor_dict['co']
+        if self.train_config['batchnorm']['type'] == 'batch':
+            bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
+            if 'x' in self.train_config['batchnorm']['modes']:
+                if len(self.bn_b_x) == bn_idx:
+                    self.bn_b_x.append(get_batchnormalizer())
+                x = self.bn_b_x[bn_idx](x, self.is_training)
+            if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
+                if len(self.bn_b_h) == bn_idx - 1:
+                    self.bn_b_h.append(get_batchnormalizer())
+                co = self.bn_b_h[bn_idx - 1](co, self.is_training)
 
         x = tf.concat([x, co], axis=1)
+        if self.train_config['batchnorm']['type'] == 'layer':
+            x = tf.contrib.layers.layer_norm(x)
+
         i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
         f = 1. - i
         c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
@@ -160,19 +165,21 @@ class LSTMLayer:
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
-        bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
-        if 'x' in self.train_config['batchnorm']['modes']:
-            if len(self.bn_s_x) == bn_idx:
-                self.bn_s_x.append(get_batchnormalizer())
-            x = self.bn_s_x[bn_idx](x, self.is_training)
-        if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
-            if len(self.bn_s_h) == bn_idx - 1:
-                self.bn_s_h.append(get_batchnormalizer())
-            co = self.bn_s_h[bn_idx - 1](self.weights.tensor_dict['co'], self.is_training)
-        else:
-            co = self.weights.tensor_dict['co']
+        co = self.weights.tensor_dict['co']
+        if self.train_config['batchnorm']['type'] == 'batch':
+            bn_idx = min(time_idx, self.train_config['batchnorm']['tau'] - 1)
+            if 'x' in self.train_config['batchnorm']['modes']:
+                if len(self.bn_s_x) == bn_idx:
+                    self.bn_s_x.append(get_batchnormalizer())
+                x = self.bn_s_x[bn_idx](x, self.is_training)
+            if 'h' in self.train_config['batchnorm']['modes'] and bn_idx > 0:
+                if len(self.bn_s_h) == bn_idx - 1:
+                    self.bn_s_h.append(get_batchnormalizer())
+                co = self.bn_s_h[bn_idx - 1](co, self.is_training)
 
         x = tf.concat([x, co], axis=1)
+        if self.train_config['batchnorm']['type'] == 'layer':
+            x = tf.contrib.layers.layer_norm(x)
 
         i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
         c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
