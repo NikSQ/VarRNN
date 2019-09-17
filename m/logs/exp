@@ -25,17 +25,17 @@ datam = None
 sampling_op = ['l_reparam']
 tau = .5
 
-discrete_act = ['i', 'c', 'o'] 
+discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'], ['c', 'o'], ['i', 'c', 'o']][task_id]
 #batchnorm = ['fc', 'x+fc', 'h+fc', 'x+h+fc', 'none'][task_id]
 batchnorm = []
-lr = .03
-lr_tau = 8000
-epochs = 20000
-layout = [[30, 30], [35, 35], [40, 40], [45, 45], [50, 50], [55, 55]][task_id]
+lr = .02
+lr_tau = 12000
+epochs = 30000
+layout = [40, 40]
 load_file = 'mnist_s_40_' + str(layout[0]) + '_' + str(layout[1])
 pretrain_mode = ['load', 'disable', 'create'][0]
 
-filename = 'layout_d'
+filename = 'exp'
 parametrization = 'sigmoid'
 lr_adapt = False
 
@@ -140,6 +140,9 @@ pretrain_config['status'] = pretrain_mode
 
 info_config = {'calc_performance_every': 1,
                'cell_access': False,
+               'save_weights': {'save_every': np.inf,
+                                'save_best': False,
+                                'path': '../m/w/' + filename + '_' + str(task_id)},
                'tensorboard': {'enabled': save_results, 'path': '../m/tb/' + filename + '_' + str(task_id), 'period': 200,
                                'weights': True, 'gradients': False, 'results': True, 'acts': True, 'single_acts': 1},
                'profiling': {'enabled': False, 'path': '../profiling/' + filename}, 
@@ -154,7 +157,7 @@ result_config = {'save_results': save_results,
 result_dicts = []
 for run in range(runs):
     experiment = Experiment()
-    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, pretrain_config, info_config))
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, pretrain_config, info_config, run))
 print('----------------------------')
 if result_config['save_results']:
     save_to_file(result_dicts, result_config['path'])
