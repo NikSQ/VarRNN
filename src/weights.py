@@ -183,7 +183,7 @@ class Weights:
             elif self.layer_config['parametrization'] == 'logits':
                 return -1. + tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg'],
                                           self.var_dict[var_key + '_log_zer'],
-                                          self.var_dict[var_key + '_log_pos']]))
+                                          self.var_dict[var_key + '_log_pos']]), tf.float32)
 
     def generate_weight_sample(self, var_key, exact=False):
         shape = self.var_dict[var_key].shape
@@ -221,7 +221,12 @@ class Weights:
                                              - tf.log(-tf.log(self.uniform.sample(shape)))
                                              + tf.log(-tf.log(self.uniform.sample(shape))))
                                             / (self.tau * 2))
-                if 'ste' in self.train_config['algorithm']:
+
+                if 'ste' in self.train_config['algorithm'] and 'rep' in self.train_config['algorithm']:
+                    derivative_weights = tf.multiply(self.var_dict[var_key + '_log_neg'],
+                                                     tf.multiplyl(exact_weights - 1,  exact_weights)) * 0.5 + tf.multiply(self.var_dict[var_key + '_log_zer'], tf.multiplyl(exact_weights - 1,  exact_weights + 1)) * (-1) + tf.multiply(self.var_dict[var_key + '_log_zer'], tf.multiplyl(exact_weights + 1,  exact_weights)) * 0.5
+                    return tf.stop_gradient(exact_weights - derivative_weights) + derivative_weights
+                elif 'ste' in self.train_config['algorithm']:
                     return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
                 else:
                     return gumbel_weights
@@ -555,6 +560,6 @@ class Weights:
                     prob_dict[var_key]['probs'] = get_ternary_probs(self.var_dict[var_key + '_sa'],
                                                                     self.var_dict[var_key + '_sb'])
                 else:
-                    raise Exception('weight probs fetching not implemented for logits')
+                    prob_dict[var_key]['probs'] = 0
         return prob_dict
 
