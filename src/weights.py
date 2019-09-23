@@ -142,6 +142,7 @@ class Weights:
                                                                      initializer=get_xavier_initializer(shape), dtype=tf.float32)
                     self.var_dict[var_key + '_sb'] = tf.get_variable(name=var_key + '_sb', shape=shape,
                                                                      initializer=get_xavier_initializer(shape), dtype=tf.float32)
+
                     weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
                     weight_summaries.append(tf.summary.histogram(var_key + '_sb', self.var_dict[var_key + '_sb']))
                 elif self.layer_config['parametrization'] == 'logits':
@@ -485,7 +486,7 @@ class Weights:
     # Supports continuous, binary and ternary weights
     # If act_func == None: Returns sample of activation
     #                Else: Returns sample of discretized tanh or sig
-    def sample_activation(self, w_var_key, b_var_key, x_m, act_func, init):
+    def sample_activation(self, w_var_key, b_var_key, x_m, act_func, init, layer_norm=False):
         if self.layer_config['lr_adapt'] == False or init == True:
             w_m, w_v = self.get_stats(w_var_key)
             b_m, b_v = self.get_stats(b_var_key)
@@ -496,6 +497,10 @@ class Weights:
         if self.layer_config['lr_adapt'] is False:
             mean = tf.matmul(x_m, w_m) + b_m
             std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
+            if layer_norm:
+                m, v = tf.nn.moments(mean, axes=1)
+                std = tf.divide(std, tf.expand_dims(tf.sqrt(v), axis=1) + .005)
+                mean = tf.contrib.layers.layer_norm(mean)
         else:
             layer_inputs = tf.unstack(tf.expand_dims(x_m, axis=1), axis=0)
             means = []

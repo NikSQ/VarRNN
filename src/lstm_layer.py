@@ -91,26 +91,24 @@ class LSTMLayer:
                 co = self.bn_b_h[bn_idx - 1](co, self.is_training)
 
         x = tf.concat([x, co], axis=1)
-        if self.train_config['batchnorm']['type'] == 'layer':
-            x = tf.contrib.layers.layer_norm(x)
 
         if 'i' in self.rnn_config['act_disc']:
-            i = self.weights.sample_activation('wi', 'bi', x, 'sig', init)
+            i = self.weights.sample_activation('wi', 'bi', x, 'sig', init, self.train_config['batchnorm']['type'] == 'layer')
         else:
-            a_i = self.weights.sample_activation('wi', 'bi', x, None, init)
+            a_i = self.weights.sample_activation('wi', 'bi', x, None, init, self.train_config['batchnorm']['type'] == 'layer')
             i = tf.sigmoid(a_i)
         f = 1. - i
 
         if 'c' in self.rnn_config['act_disc']:
-            c = self.weights.sample_activation('wc', 'bc', x, 'tanh', init)
+            c = self.weights.sample_activation('wc', 'bc', x, 'tanh', init, self.train_config['batchnorm']['type'] == 'layer')
         else:
-            a_c = self.weights.sample_activation('wc', 'bc', x, None, init)
+            a_c = self.weights.sample_activation('wc', 'bc', x, None, init, self.train_config['batchnorm']['type'] == 'layer')
             c = tf.tanh(a_c)
 
         if 'o' in self.rnn_config['act_disc']:
-            o = self.weights.sample_activation('wo', 'bo', x, 'sig', init)
+            o = self.weights.sample_activation('wo', 'bo', x, 'sig', init, self.train_config['batchnorm']['type'] == 'layer')
         else:
-            a_o = self.weights.sample_activation('wo', 'bo', x, None, init)
+            a_o = self.weights.sample_activation('wo', 'bo', x, None, init, self.train_config['batchnorm']['type'] == 'layer')
             o = tf.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
@@ -146,13 +144,20 @@ class LSTMLayer:
                 co = self.bn_b_h[bn_idx - 1](co, self.is_training)
 
         x = tf.concat([x, co], axis=1)
-        if self.train_config['batchnorm']['type'] == 'layer':
-            x = tf.contrib.layers.layer_norm(x)
 
-        i = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi'])
+        i_act = tf.matmul(x, self.weights.tensor_dict['wi']) + self.weights.tensor_dict['bi']
+        c_act = tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc']
+        o_act = tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo']
+
+        if self.train_config['batchnorm']['type'] == 'layer':
+            i_act = tf.contrib.layers.layer_norm(i_act)
+            c_act = tf.contrib.layers.layer_norm(c_act)
+            o_act = tf.contrib.layers.layer_norm(o_act)
+
+        i = tf.sigmoid(i_act)
         f = 1. - i
-        c = tf.tanh(tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc'])
-        o = tf.sigmoid(tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo'])
+        c = tf.tanh(c_act)
+        o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
@@ -178,12 +183,14 @@ class LSTMLayer:
                 co = self.bn_s_h[bn_idx - 1](co, self.is_training)
 
         x = tf.concat([x, co], axis=1)
-        if self.train_config['batchnorm']['type'] == 'layer':
-            x = tf.contrib.layers.layer_norm(x)
-
         i_act = tf.matmul(x, self.weights.var_dict['wi']) + self.weights.var_dict['bi']
         c_act = tf.matmul(x, self.weights.var_dict['wc']) + self.weights.var_dict['bc']
         o_act = tf.matmul(x, self.weights.var_dict['wo']) + self.weights.var_dict['bo']
+
+        if self.train_config['batchnorm']['type'] == 'layer':
+            i_act = tf.contrib.layers.layer_norm(i_act)
+            c_act = tf.contrib.layers.layer_norm(c_act)
+            o_act = tf.contrib.layers.layer_norm(o_act)
 
         if init:
             for act_type, act in zip(['i', 'c', 'o'], [i_act, c_act, o_act]):

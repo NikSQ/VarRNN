@@ -36,26 +36,26 @@ class FCLayer:
     def create_l_sampling_pass(self, x, mod_layer_config, time_idx):
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_b_x(x, self.is_training)
-        elif self.train_config['batchnorm']['type'] == 'layer':
-            x = tf.contrib.layers.layer_norm(x)
-        return self.weights.sample_activation('w', 'b', x, None, time_idx == 0)
+        return self.weights.sample_activation('w', 'b', x, None, time_idx == 0, self.train_config['batchnorm']['type'] == 'layer')
 
     def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
         if time_idx == 0:
             self.weights.create_tensor_samples()
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_b_x(x, self.is_training)
-        elif self.train_config['batchnorm']['type'] == 'layer':
-            x = tf.contrib.layers.layer_norm(x)
-        return tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
+        act =  tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
+        if self.train_config['batchnorm']['type'] == 'layer':
+            return tf.contrib.layers.layer_norm(act)
+        else:
+            return act
 
     def create_var_fp(self, x, time_idx):
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_s_x(x, self.is_training)
-        elif self.train_config['batchnorm']['type'] == 'layer':
-            x = tf.contrib.layers.layer_norm(x)
 
         act = tf.matmul(x, self.weights.var_dict['w']) + self.weights.var_dict['b']
+        if self.train_config['batchnorm']['type'] == 'layer':
+            act = tf.contrib.layers.layer_norm(act)
 
         # Store activations over layer and over single neurons.
         if time_idx == 0:
