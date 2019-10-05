@@ -53,10 +53,6 @@ class RNN:
         self.weight_summaries = tf.summary.merge(weight_summaries)
         self.get_weights_op = self.get_weights_op()
 
-        if self.train_config['is_pretrain'] is True:
-            self.create_s_training_graph('tr')
-            return
-
         self.create_b_training_graph('tr')
         for data_key in l_data.data:
             if data_key not in ['tr', 'te']:

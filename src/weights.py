@@ -226,7 +226,6 @@ class Weights:
                                        self.var_dict[var_key + '_log_pos']])
             else:
                 raise Exception('parametrization not understood')
-
             reparam_args = self.gumbel_reparam_args(probs, shape)
 
             if exact or 'gste' in self.train_config['algorithm'] or 'cste' in self.train_config['algorithm']:
@@ -553,8 +552,12 @@ class Weights:
     # Computes the reparametrization arguments for the Gumbel-reparametrization trick
     def gumbel_reparam_args(self, probs, shape):
         reparam_args = []
-        for prob in probs:
-            reparam_args.append(tf.log(prob) + self.sample_gumbel(shape))
+        if type(probs) is list:
+            for prob in probs:
+                reparam_args.append(tf.log(prob) + self.sample_gumbel(shape))
+        else:
+            for idx in range(probs.shape[0]):
+                reparam_args.append(tf.log(probs[idx]) + self.sample_gumbel(shape))
         return reparam_args
 
 

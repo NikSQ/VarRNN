@@ -1,5 +1,4 @@
 import numpy as np
-from src.logging_tools import get_logger
 
 
 def extract_seqs(x, y, seqlens, data_config, remove_bias=False):
