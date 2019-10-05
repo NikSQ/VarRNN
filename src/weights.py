@@ -87,10 +87,6 @@ class Weights:
         self.create_vars()
         self.create_init_op()
 
-    # Returns unnormalized probabilities of the concrete distribution
-    def get_exp_gumbel(self, probs, shape):
-        return tf.exp((tf.log(probs) - tf.log(-tf.log(self.uniform.sample(shape))))/self.tau)
-
     def create_vars(self):
         sample_ops = list()
         weight_summaries = list()
@@ -193,92 +189,68 @@ class Weights:
             return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.sqrt(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
             if self.layer_config['parametrization'] == 'sigmoid':
-                if exact or 'ste' in self.train_config['algorithm']:
-                    exact_weights = -1. + 2. * tf.cast(tf.argmax([-self.var_dict[var_key + '_sb']
-                                                       - tf.log(-tf.log(self.uniform.sample(shape))),
-                                                       - tf.log(-tf.log(self.uniform.sample(shape)))]), dtype=tf.float32)
-                    if exact:
-                        return exact_weights
-
-                gumbel_weights = tf.nn.tanh((self.var_dict[var_key + '_sb']
-                                             - tf.log(-tf.log(self.uniform.sample(shape)))
-                                             + tf.log(-tf.log(self.uniform.sample(shape))))
-                                            / (self.tau * 2))
-                if 'ste' in self.train_config['algorithm']:
-                    return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
-                else:
-                    return gumbel_weights
+                probs = get_binary_probs(self.var_dict[var_key + '_sb'])
             elif self.layer_config['parametrization'] == 'logits':
-                if exact or 'ste' in self.train_config['algorithm']:
-                    exact_weights = -1. + 2. * tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg']
-                                                                  - tf.log(-tf.log(self.uniform.sample(shape))),
-                                                                  self.var_dict[var_key + '_log_pos']
-                                                                  - tf.log(-tf.log(self.uniform.sample(shape)))]),
-                                                       dtype=tf.float32)
-                    if exact:
-                        return exact_weights
-
-                gumbel_weights = tf.nn.tanh((self.var_dict[var_key + '_log_pos'] - self.var_dict[var_key + ['_log_neg']]
-                                             - tf.log(-tf.log(self.uniform.sample(shape)))
-                                             + tf.log(-tf.log(self.uniform.sample(shape))))
-                                            / (self.tau * 2))
-
-                if 'ste' in self.train_config['algorithm'] and 'rep' in self.train_config['algorithm']:
-                    derivative_weights = tf.multiply(self.var_dict[var_key + '_log_neg'],
-                                                     tf.multiplyl(exact_weights - 1,  exact_weights)) * 0.5 + tf.multiply(self.var_dict[var_key + '_log_zer'], tf.multiplyl(exact_weights - 1,  exact_weights + 1)) * (-1) + tf.multiply(self.var_dict[var_key + '_log_zer'], tf.multiplyl(exact_weights + 1,  exact_weights)) * 0.5
-                    return tf.stop_gradient(exact_weights - derivative_weights) + derivative_weights
-                elif 'ste' in self.train_config['algorithm']:
-                    return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
-                else:
-                    return gumbel_weights
+                probs = tf.nn.softmax([self.var_dict[var_key + '_log_neg'], self.var_dict[var_key + '_log_pos']])
             else:
                 raise Exception('parametrization not understood')
+
+            reparam_args = self.gumbel_reparam_args(probs, shape)
+
+            if exact or 'ste' in self.train_config['algorithm']:
+                exact_weights = -1. + 2. * tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
+                if exact:
+                    return exact_weights
+
+            if 'cste' in self.train_config['algorithm']:
+                if self.layer_config['parametrization'] != 'logits':
+                    raise Exception('Custom STE only possible with logits parametrization')
+                derivative_weights = tf.multiply(self.var_dict[var_key + '_log_neg'],
+                                                 tf.multiply(exact_weights - 1)) * (-.5) + \
+                                     tf.multiply(self.var_dict[var_key + '_log_pos'],
+                                                 tf.multiply(exact_weights + 1)) * .5
+
+            gumbel_weights = self.expectation_tau_softmax(reparam_args)
+            if 'gste' in self.train_config['algorithm']:
+                return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
+            elif 'cste' in self.train_config['algorithm']:
+                return tf.stop_gradient(exact_weights - derivative_weights) + derivative_weights
+            else:
+                return gumbel_weights
 
         elif self.w_config[var_key]['type'] == 'ternary':
             if self.layer_config['parametrization'] == 'sigmoid':
                 probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
-                if exact or 'ste' in self.train_config['algorithm']:
-                    exact_weights = -1. + tf.cast(tf.argmax([tf.divide(probs[0], -tf.log(self.uniform.sample(shape))),
-                                                     tf.divide(probs[1], -tf.log(self.uniform.sample(shape))),
-                                                     tf.divide(probs[2], -tf.log(self.uniform.sample(shape)))]),
-                                                    dtype=tf.float32)
-                    if exact:
-                        return exact_weights
-
-                exp0 = self.get_exp_gumbel(probs[0], self.var_dict[var_key].shape)
-                exp1 = self.get_exp_gumbel(probs[1], self.var_dict[var_key].shape)
-                exp2 = self.get_exp_gumbel(probs[2], self.var_dict[var_key].shape)
-                gumbel_weights = tf.divide(exp2 - exp0, exp0 + exp1 + exp2)
-                if 'ste' in self.train_config['algorithm']:
-                    return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
-                else:
-                    return gumbel_weights
             elif self.layer_config['parametrization'] == 'logits':
                 probs = tf.nn.softmax([self.var_dict[var_key + '_log_neg'], self.var_dict[var_key + '_log_zer'],
                                        self.var_dict[var_key + '_log_pos']])
-
-                if exact or 'ste' in self.train_config['algorithm']:
-                    exact_weights = -1. + tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg'] -
-                                                             tf.log(-tf.log(self.uniform.sample(shape))),
-                                                             self.var_dict[var_key + '_log_zer'] -
-                                                             tf.log(-tf.log(self.uniform.sample(shape))),
-                                                             self.var_dict[var_key + '_log_pos'] -
-                                                             tf.log(-tf.log(self.uniform.sample(shape)))]),
-                                                  dtype=tf.float32)
-                    if exact:
-                        return exact_weights
-
-                exp0 = self.get_exp_gumbel(probs[0], self.var_dict[var_key].shape)
-                exp1 = self.get_exp_gumbel(probs[1], self.var_dict[var_key].shape)
-                exp2 = self.get_exp_gumbel(probs[2], self.var_dict[var_key].shape)
-                gumbel_weights = tf.divide(exp2 - exp0, exp0 + exp1 + exp2)
-                if 'ste' in self.train_config['algorithm']:
-                    return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
-                else:
-                    return gumbel_weights
             else:
                 raise Exception('parametrization not understood')
 
+            reparam_args = self.gumbel_reparam_args(probs, shape)
+
+            if exact or 'gste' in self.train_config['algorithm'] or 'cste' in self.train_config['algorithm']:
+                exact_weights = -1. + tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
+                if exact:
+                    return exact_weights
+
+            if 'cste' in self.train_config['algorithm']:
+                if self.layer_config['parametrization'] != 'logits':
+                    raise Exception('Custom STE only possible with logits parametrization')
+                derivative_weights = tf.multiply(self.var_dict[var_key + '_log_neg'],
+                                                 tf.multiply(exact_weights - 1,  exact_weights)) * 0.5 + \
+                                     tf.multiply(self.var_dict[var_key + '_log_zer'],
+                                                 tf.multiply(exact_weights - 1,  exact_weights + 1)) * (-1) + \
+                                     tf.multiply(self.var_dict[var_key + '_log_zer'],
+                                                 tf.multiply(exact_weights + 1,  exact_weights)) * 0.5
+
+            gumbel_weights = self.expectation_tau_softmax(reparam_args)
+            if 'gste' in self.train_config['algorithm']:
+                return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
+            elif 'cste' in self.train_config['algorithm']:
+                return tf.stop_gradient(exact_weights - derivative_weights) + derivative_weights
+            else:
+                return gumbel_weights
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
@@ -530,13 +502,11 @@ class Weights:
                 raise Exception('not implemented for activation function sampling')
             prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2)))
             prob_1 = 0.0001 + (0.9999 - 0.0001) * prob_1
-            gumbel_output = tf.nn.tanh((tf.log(prob_1) - tf.log(1. - prob_1)
-                                 - tf.log(-tf.log(self.uniform.sample(shape)))
-                                 + tf.log(-tf.log(self.uniform.sample(shape))))
-                                / (self.tau * 2))
+            reparam_args = [tf.log(1-prob_1) + self.sample_gumbel(shape), tf.log(prob_1) + self.sample_gumbel(shape)]
+            gumbel_output = tf.nn.tanh((reparam_args[1] - reparam_args[0]) / self.tau * 2)
 
             if 'ste' in self.train_config['algorithm']:
-                exact_output = -1 + 2*tf.cast(tf.argmax([1-prob_1, prob_1]), dtype=tf.float32)
+                exact_output = -1 + 2 * tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
                 output = tf.stop_gradient(exact_output - gumbel_output) + gumbel_output
             else:
                 output = gumbel_output
@@ -567,4 +537,25 @@ class Weights:
                 else:
                     prob_dict[var_key]['probs'] = 0
         return prob_dict
+
+    def sample_gumbel(self, shape):
+        return -tf.log(-tf.log(self.uniform.sample(shape)))
+
+    # Computes expectation of the tau-softmax relaxation given the reparametrization arguments
+    def expectation_tau_softmax(self, reparam_args):
+        args = []
+        for reparam_arg in reparam_args:
+            args.append(reparam_arg / self.tau)
+
+        softmax = tf.nn.softmax(reparam_args)
+        return softmax[-1] - softmax[0]
+
+    # Computes the reparametrization arguments for the Gumbel-reparametrization trick
+    def gumbel_reparam_args(self, probs, shape):
+        reparam_args = []
+        for prob in probs:
+            reparam_args.append(tf.log(prob) + self.sample_gumbel(shape))
+        return reparam_args
+
+
 

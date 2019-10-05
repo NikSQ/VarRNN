@@ -37,7 +37,7 @@ class Experiment:
         labeled_data = LabeledData(l_data_config, self.data_dict)
         self.create_rnn(labeled_data, l_data_config)
 
-    def train(self, rnn_config, l_data_config, train_config, pretrain_config, info_config, run):
+    def train(self, rnn_config, l_data_config, train_config, info_config, run):
         self.rnn_config = rnn_config
         self.info_config = info_config
         self.train_config = train_config
@@ -47,7 +47,7 @@ class Experiment:
         self.timer = Timer(info_config['timer']['enabled'])
         print_config(rnn_config, train_config, l_data_config)
         temp_model_path = '../models/temp' + str(train_config['task_id'])
-        pretrained_model_path = '../models/' + pretrain_config['path']
+        pretrained_model_path = '../tr_models/' + str(train_config['pretraining']['path'])
 
         if train_config['mode']['name'] == 'inc_lengths':
             n_sessions = len(train_config['mode']['in_seq_len'])
@@ -57,12 +57,7 @@ class Experiment:
             raise Exception('training mode not understood')
 
         self.timer.start()
-        if pretrain_config['status'] == 'create':
-            self.pretrain(l_data_config, pretrain_config, pretrained_model_path)
-            quit()
-
         set_train_config(train_config)
-        self.timer.restart('Pretraining')
         # Sessions refer to training with different architectures. If one RNN is used throughout the training process
         # then only one session is created. Training with incremental sequence lengths for example requires multiple
         # RNNs, one for each sequence lenghts. Evaluation datasets (validation and test) are always evaluated on a fixed
@@ -84,7 +79,6 @@ class Experiment:
                 self.create_rnn(l_data, l_data_config)
                 max_epochs = self.train_config['mode']['max_epochs']
                 min_error = self.train_config['mode']['min_error']
-
             self.timer.restart('Graph creation')
 
             # Saver is used for restoring weights for new session if more than one is used for training
@@ -101,7 +95,7 @@ class Experiment:
                 if session_idx != 0:
                     #self.optimistic_restore(sess, pretrained_model_path)
                     model_saver.restore(sess, temp_model_path)
-                elif pretrain_config['status'] != 'disable':
+                elif self.train_config['pretraining']['enabled'] == True:
                     self.optimistic_restore(sess, pretrained_model_path)
                     sess.run(self.rnn.init_op)
                 #sess = tf_debug.LocalCLIDebugWrapperSession(sess, ui_type="readline")
@@ -192,6 +186,8 @@ class Experiment:
                     np.save(file='../nr/ca_2_'+ str(self.train_config['task_id']), arr=ca_2)
                 model_saver.save(sess, temp_model_path)
 
+
+
         if info_config['save_weights']['save_best']:
             self.save_weight_probs(self.info_config['save_weights']['path'], 'best', run, best_weight_probs_dict)
         writer.close()
@@ -221,62 +217,6 @@ class Experiment:
 
             np.save(file='../numerical_results/g_var_' + str(self.train_config['task_id']) + '_' + str(grad_key) + '_' +
                          str(epoch), arr=variance)
-
-    def pretrain(self, l_data_config, pretrain_config, model_path):
-        set_train_config(pretrain_config)
-        if pretrain_config['mode']['name'] == 'inc_lengths':
-            n_sessions = len(pretrain_config['mode']['in_seq_len'])
-        elif pretrain_config['mode']['name'] == 'classic':
-            n_sessions = 1
-        else:
-            raise Exception('pretraining mode not understood')
-
-        current_epoch = 0
-        for session_idx in range(n_sessions):
-            tf.reset_default_graph()
-            if pretrain_config['mode']['name'] == 'inc_lengths':
-                pretrain_config['mode']['session_idx'] = session_idx
-                max_epochs = pretrain_config['mode']['max_epochs'][session_idx]
-                min_error = pretrain_config['mode']['min_errors'][session_idx]
-                self.create_modificated_model(l_data_config, session_idx)
-            elif pretrain_config['mode']['name'] == 'classic':
-                self.data_dict = load_dataset(l_data_config)
-                l_data = LabeledData(l_data_config, self.data_dict)
-                self.create_rnn(l_data, l_data_config)
-                max_epochs = pretrain_config['mode']['max_epochs']
-                min_error = pretrain_config['mode']['min_error']
-
-            # Saver is used for restoring weights for new session if more than one is used for training
-            model_saver = tf.train.Saver(tf.trainable_variables())
-            with tf.Session() as sess:
-                sess.run(tf.global_variables_initializer())
-                if session_idx != 0:
-                    model_saver.restore(sess, model_path)
-
-                # Loading datasets into GPU (via tf.Variables)
-                for key in self.data_dict.keys():
-                    sess.run(self.l_data.data[key]['load'],
-                             feed_dict={self.l_data.data[key]['x_ph']: self.data_dict[key]['x'],
-                                        self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
-
-                for epoch in range(max_epochs):
-                    # Evaluate performance on the different datasets and print some results on console
-                    # Also check potential stopping critera
-                    self.rnn.t_metrics.retrieve_results(sess, current_epoch, None, is_pretrain=True)
-                    if self.rnn.t_metrics.result_dict['tr_s']['loss'][-1] < min_error:
-                        print(self.rnn.t_metrics.result_dict['tr_s']['acc'][-1])
-                        break
-
-                    # Train for one full epoch. First shuffle to create new minibatches from the given data and
-                    # then do a training step for each minibatch.
-                    sess.run(self.l_data.data['tr']['shuffle'])
-                    for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
-                        sess.run(self.rnn.train_s_op,
-                                 feed_dict={self.rnn.learning_rate: pretrain_config['learning_rate'],
-                                            self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True})
-
-                model_saver.save(sess, model_path)
-                print(self.rnn.t_metrics.result_dict['tr_s']['acc'][-1])
 
     def optimistic_restore(self, sess, file):
         reader = tf.train.NewCheckpointReader(file)
