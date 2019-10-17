@@ -182,8 +182,8 @@ class Weights:
             return self.var_dict[var_key + '_m']
         elif self.w_config[var_key]['type'] == 'binary':
             if self.layer_config['parametrization'] == 'sigmoid':
-                return -1. + 2. * tf.cast(tf.argmax[tf.zeros_like(self.var_dict[var_key + '_sb']),
-                                                  self.var_dict[var_key + '_sb']], tf.float32)
+                return -1. + 2. * tf.cast(tf.argmax([tf.zeros_like(self.var_dict[var_key + '_sb']),
+                                                  self.var_dict[var_key + '_sb']]), tf.float32)
             elif self.layer_config['parametrization'] == 'logits':
                 return -1. + 2 * tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg'],
                                           self.var_dict[var_key + '_log_pos']], tf.float32))
@@ -211,14 +211,14 @@ class Weights:
 
             if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
                 if second_arm_pass is False:
-                    self.arm_weights[0][var_key] = tf.math.greater(self.arm_samples[var_key], probs)
-                    forward_pass = self.arm_weights[0][var_key]
-                    backward_pass = tf.multiply((1 - 2*self.arm_samples[var_key]), self.arm_weights[0][var_key])
+                    arm_weights = 2*tf.cast(tf.math.greater(self.arm_samples[var_key], probs[1]), dtype=tf.float32)-1
+                    forward_pass = arm_weights
+                    backward_pass = tf.multiply((1 - 2*self.arm_samples[var_key]), arm_weights)
                     return tf.stop_gradient(forward_pass - backward_pass) + backward_pass
                 else:
-                    self.arm_weights[0][var_key] = tf.math.greater(probs, self.arm_samples[var_key])
-                    forward_pass = self.arm_weights[0][var_key]
-                    backward_pass = tf.multiply((2*self.arm_samples[var_key] - 1), self.arm_weights[0][var_key])
+                    arm_weights = 2*tf.cast(tf.math.greater(probs[1], self.arm_samples[var_key]), dtype=tf.float32)-1
+                    forward_pass = arm_weights
+                    backward_pass = tf.multiply((2*self.arm_samples[var_key] - 1), arm_weights)
                     return tf.stop_gradient(forward_pass - backward_pass) + backward_pass
 
             reparam_args = self.gumbel_reparam_args(probs, shape)
