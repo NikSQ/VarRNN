@@ -115,7 +115,7 @@ class Experiment:
                 traces = list()
 
                 for epoch in range(max_epochs):
-                    #self.save_gradient_variance(sess, self.train_config, epoch, tau)
+                    #self.save_gradient_variance(sess, epoch, tau)
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     if current_epoch % info_config['calc_performance_every'] == 0:
@@ -162,6 +162,8 @@ class Experiment:
 
                     sess.run(self.l_data.data['tr']['shuffle'])
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
+                        if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+                            sess.run(self.rnn.c_arm_sample_op)
                         sess.run(self.rnn.train_b_op,
                                  feed_dict={self.rnn.learning_rate: learning_rate, self.rnn.tau: (tau,),
                                             self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True},
@@ -187,8 +189,6 @@ class Experiment:
                     np.save(file='../nr/ca_2_'+ str(self.train_config['task_id']), arr=ca_2)
                 model_saver.save(sess, temp_model_path)
 
-
-
         if info_config['save_weights']['save_best']:
             self.save_weight_probs(self.info_config['save_weights']['path'], 'best', run, best_weight_probs_dict)
         writer.close()
@@ -196,7 +196,7 @@ class Experiment:
 
     # Empirically estimates variance of gradient, saves results and quits
     def save_gradient_variance(self, sess, epoch, tau):
-        n_gradients = 20
+        n_gradients = 50
         tf_grads = []
 
         for grad, var in self.rnn.gradients:

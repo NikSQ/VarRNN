@@ -120,13 +120,13 @@ class LSTMLayer:
         return self.weights.tensor_dict['co']
 
     # Global reparametrization trick
-    def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
+    def create_g_sampling_pass(self, x, mod_layer_config, time_idx, second_arm_pass=False):
         if len(self.rnn_config['act_disc']) != 0:
             raise Exception('classic reparametrization does not work with discrete activations')
 
         init = time_idx == 0
         if init:
-            self.weights.create_tensor_samples()
+            self.weights.create_tensor_samples(second_arm_pass=second_arm_pass)
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
             self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)

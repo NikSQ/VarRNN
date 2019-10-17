@@ -73,6 +73,9 @@ class Weights:
         self.b_shape = b_shape
 
         self.var_dict = dict()
+        self.arm_samples = dict()
+        self.arm_weights = [dict(), dict()]
+        self.c_arm_sample_op = tf.no_op()
         self.tensor_dict = dict()
         self.w_config = dict()
         self.layer_config = layer_config
@@ -86,6 +89,8 @@ class Weights:
 
         self.create_vars()
         self.create_init_op()
+        if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+            self.c_arm_sample_op = self.c_arm_create_sample_op()
 
     def create_vars(self):
         sample_ops = list()
@@ -163,6 +168,15 @@ class Weights:
         self.sample_op = tf.group(*sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
 
+    def c_arm_create_sample_op(self):
+        arm_sample_ops = []
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'binary':
+                shape = self.var_dict[var_key].shape
+                self.arm_samples[var_key] = tf.get_variable(name=var_key + '_arm', shape=shape, dtype=tf.float32)
+                arm_sample_ops.append(tf.assign(self.arm_samples[var_key], self.uniform.sample(shape)))
+        return tf.group(arm_sample_ops)
+
     def get_map_estimate(self, var_key):
         if self.w_config[var_key]['type'] == 'continuous':
             return self.var_dict[var_key + '_m']
@@ -182,7 +196,7 @@ class Weights:
                                           self.var_dict[var_key + '_log_zer'],
                                           self.var_dict[var_key + '_log_pos']]), tf.float32)
 
-    def generate_weight_sample(self, var_key, exact=False):
+    def generate_weight_sample(self, var_key, exact=False, second_arm_pass=False):
         shape = self.var_dict[var_key].shape
 
         if self.w_config[var_key]['type'] == 'continuous':
@@ -195,6 +209,18 @@ class Weights:
             else:
                 raise Exception('parametrization not understood')
 
+            if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+                if second_arm_pass is False:
+                    self.arm_weights[0][var_key] = tf.math.greater(self.arm_samples[var_key], probs)
+                    forward_pass = self.arm_weights[0][var_key]
+                    backward_pass = tf.multiply((1 - 2*self.arm_samples[var_key]), self.arm_weights[0][var_key])
+                    return tf.stop_gradient(forward_pass - backward_pass) + backward_pass
+                else:
+                    self.arm_weights[0][var_key] = tf.math.greater(probs, self.arm_samples[var_key])
+                    forward_pass = self.arm_weights[0][var_key]
+                    backward_pass = tf.multiply((2*self.arm_samples[var_key] - 1), self.arm_weights[0][var_key])
+                    return tf.stop_gradient(forward_pass - backward_pass) + backward_pass
+
             reparam_args = self.gumbel_reparam_args(probs, shape)
 
             if exact or 'ste' in self.train_config['algorithm']:
@@ -205,7 +231,7 @@ class Weights:
             if 'cste' in self.train_config['algorithm']:
                 if self.layer_config['parametrization'] != 'logits':
                     raise Exception('Custom STE only possible with logits parametrization')
-                derivative_weights = tf.multiply(self.var_dict[var_key + '_log_neg'],
+                derivative_weights = -tf.multiply(self.var_dict[var_key + '_log_neg'],
                                                  tf.multiply(exact_weights - 1)) * (-.5) + \
                                      tf.multiply(self.var_dict[var_key + '_log_pos'],
                                                  tf.multiply(exact_weights + 1)) * .5
@@ -222,8 +248,8 @@ class Weights:
             if self.layer_config['parametrization'] == 'sigmoid':
                 probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
             elif self.layer_config['parametrization'] == 'logits':
-                probs = tf.nn.softmax([self.var_dict[var_key + '_log_neg'], self.var_dict[var_key + '_log_zer'],
-                                       self.var_dict[var_key + '_log_pos']])
+                probs = tf.nn.softmax(tf.stack([self.var_dict[var_key + '_log_neg'], self.var_dict[var_key + '_log_zer'],
+                                       self.var_dict[var_key + '_log_pos']], axis=0), axis=0)
             else:
                 raise Exception('parametrization not understood')
             reparam_args = self.gumbel_reparam_args(probs, shape)
@@ -236,11 +262,11 @@ class Weights:
             if 'cste' in self.train_config['algorithm']:
                 if self.layer_config['parametrization'] != 'logits':
                     raise Exception('Custom STE only possible with logits parametrization')
-                derivative_weights = tf.multiply(self.var_dict[var_key + '_log_neg'],
+                derivative_weights = -tf.multiply(self.var_dict[var_key + '_log_neg'],
                                                  tf.multiply(exact_weights - 1,  exact_weights)) * 0.5 + \
                                      tf.multiply(self.var_dict[var_key + '_log_zer'],
                                                  tf.multiply(exact_weights - 1,  exact_weights + 1)) * (-1) + \
-                                     tf.multiply(self.var_dict[var_key + '_log_zer'],
+                                     tf.multiply(self.var_dict[var_key + '_log_pos'],
                                                  tf.multiply(exact_weights + 1,  exact_weights)) * 0.5
 
             gumbel_weights = self.expectation_tau_softmax(reparam_args)
@@ -253,9 +279,10 @@ class Weights:
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-    def create_tensor_samples(self, suffix=''):
+    def create_tensor_samples(self, suffix='', second_arm_pass=False):
         for var_key in self.var_keys:
-            self.tensor_dict[var_key+suffix] = self.generate_weight_sample(var_key, False)
+            self.tensor_dict[var_key+suffix] = self.generate_weight_sample(var_key, exact=False,
+                                                                           second_arm_pass=second_arm_pass)
 
     def normalize_weights(self, var_key):
         mean, var = tf.nn.moments(self.var_dict[var_key], axes=[0,1])
@@ -268,8 +295,8 @@ class Weights:
                 init_ops.append(tf.assign(self.var_dict[var_key + '_m'], self.var_dict[var_key]))
             elif self.w_config[var_key]['type'] == 'binary':
                 if var_key.startswith('w'):
-                    self.normalize_weights(var_key)
-                prob_1 = get_init_one_prob(0., self.var_dict[var_key], self.w_config[var_key])
+                    init_weights = self.normalize_weights(var_key)
+                prob_1 = get_init_one_prob(0., init_weights, self.w_config[var_key])
                 if self.layer_config['parametrization'] == 'sigmoid':
                     init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log(tf.divide(1. - prob_1, prob_1))))
                 elif self.layer_config['parametrization'] == 'logits':
@@ -546,7 +573,7 @@ class Weights:
         for reparam_arg in reparam_args:
             args.append(reparam_arg / self.tau)
 
-        softmax = tf.nn.softmax(reparam_args)
+        softmax = tf.nn.softmax(tf.stack(args, axis=0), axis=0)
         return softmax[-1] - softmax[0]
 
     # Computes the reparametrization arguments for the Gumbel-reparametrization trick

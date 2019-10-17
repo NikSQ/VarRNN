@@ -33,6 +33,7 @@ class RNN:
 
         weight_summaries = []
         sample_ops = []
+        c_arm_sample_ops = []
         init_ops = []
         for layer_idx, layer_config in enumerate(self.rnn_config['layer_configs']):
             if layer_config['layer_type'] == 'fc':
@@ -45,10 +46,12 @@ class RNN:
                 raise Exception("{} is not a valid layer type".format(layer_config['layer_type']))
             weight_summaries.append(layer.weights.weight_summaries)
             sample_ops.append(layer.weights.sample_op)
+            c_arm_sample_ops.append(layer.weights.c_arm_sample_op)
             init_ops.append(layer.weights.init_op)
             self.layers.append(layer)
 
         self.sample_op = tf.group(*sample_ops)
+        self.c_arm_sample_op = tf.group(*c_arm_sample_ops)
         self.init_op = tf.group(*init_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
         self.get_weights_op = self.get_weights_op()
@@ -87,6 +90,7 @@ class RNN:
 
         # Elements of the list will be the means and variances of the output sequence
         m_outputs = []
+        m2_outputs = []
         v_outputs = []
 
         # This captures the seq_idx from which the output will be computed
@@ -104,7 +108,8 @@ class RNN:
                     m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx])
                 elif 'l_reparam' in self.train_config['algorithm']:
                     m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
-                elif 'c_reparam' in self.train_config['algorithm']:
+                elif 'c_reparam' in self.train_config['algorithm'] or 'c_ar' in self.train_config['algorithm'] or \
+                        'c_arm' in self.train_config['algorithm']:
                     m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
                 else:
                     raise Exception('Training type not understood')
@@ -112,6 +117,13 @@ class RNN:
             m_outputs.append(m)
             if 'pfp' in self.train_config['algorithm']:
                 v_outputs.append(v)
+
+        for time_idx in range(x_shape[2]):
+            m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
+            if bayesian is True and 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
+                for layer_idx, layer in enumerate(self.layers, 1):
+                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, True)
+                m2_outputs.append(m)
 
         m_outputs = tf.stack(m_outputs, axis=1)
         gather_idcs = tf.stack([tf.range(y_shape[0]), output_idcs], axis=1)
@@ -162,11 +174,34 @@ class RNN:
 
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
-            elif 'l_reparam' in self.train_config['algorithm'] or 'c_reparam' in self.train_config['algorithm']:
+            elif 'l_reparam' in self.train_config['algorithm'] or 'c_reparam' in self.train_config['algorithm'] or \
+                    'c_ar' in self.train_config['algorithm'] or data_key != 'tr':
                 smax = tf.nn.softmax(logits=m_outputs, axis=1)
                 t = tf.argmax(y, axis=1)
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))
 
+                kl = 0
+                if self.rnn_config['data_multiplier'] is not None:
+                    for layer in self.layers:
+                        kl += layer.weights.get_kl_loss()
+                    kl /= (self.rnn_config['data_multiplier'] *
+                           self.l_data.l_data_config[data_key]['minibatch_size'] *
+                           self.l_data.data[data_key]['n_minibatches'])
+                    vfe = kl - elogl
+                else:
+                    kl = tf.zeros(())
+                    vfe = -elogl
+
+                prediction = tf.argmax(smax, axis=1)
+                acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
+            elif 'c_arm' in self.train_config['algorithm']:
+                m2_outputs = tf.stack(m2_outputs, axis=1)
+                m2_outputs = tf.gather_nd(m2_outputs, gather_idcs)
+
+                elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) * .5 - \
+                        tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m2_outputs, labels=y, dim=1)) * .5
+                t = tf.argmax(y, axis=1)
+                smax = tf.nn.softmax(logits=m2_outputs, axis=1)
                 kl = 0
                 if self.rnn_config['data_multiplier'] is not None:
                     for layer in self.layers:

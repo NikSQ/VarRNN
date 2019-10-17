@@ -38,9 +38,9 @@ class FCLayer:
             x = self.bn_b_x(x, self.is_training)
         return self.weights.sample_activation('w', 'b', x, None, time_idx == 0, self.train_config['batchnorm']['type'] == 'layer')
 
-    def create_g_sampling_pass(self, x, mod_layer_config, time_idx):
+    def create_g_sampling_pass(self, x, mod_layer_config, time_idx, second_arm_pass=False):
         if time_idx == 0:
-            self.weights.create_tensor_samples()
+            self.weights.create_tensor_samples(second_arm_pass=second_arm_pass)
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_b_x(x, self.is_training)
         act =  tf.matmul(x, self.weights.tensor_dict['w']) + self.weights.tensor_dict['b']
