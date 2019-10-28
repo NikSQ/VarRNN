@@ -173,7 +173,7 @@ class Weights:
         for var_key in self.var_keys:
             if self.w_config[var_key]['type'] == 'binary':
                 shape = self.var_dict[var_key].shape
-                self.arm_samples[var_key] = tf.get_variable(name=var_key + '_arm', shape=shape, dtype=tf.float32)
+                self.arm_samples[var_key] = tf.get_variable(name=var_key + '_arm', shape=shape, dtype=tf.float32, trainable=False)
                 arm_sample_ops.append(tf.assign(self.arm_samples[var_key], self.uniform.sample(shape)))
         return tf.group(arm_sample_ops)
 
@@ -186,7 +186,7 @@ class Weights:
                                                   self.var_dict[var_key + '_sb']]), tf.float32)
             elif self.layer_config['parametrization'] == 'logits':
                 return -1. + 2 * tf.cast(tf.argmax([self.var_dict[var_key + '_log_neg'],
-                                          self.var_dict[var_key + '_log_pos']], tf.float32))
+                                          self.var_dict[var_key + '_log_pos']]), tf.float32)
         elif self.w_config[var_key]['type'] == 'ternary':
             if self.layer_config['parametrization'] == 'sigmoid':
                 probs = get_ternary_probs(self.var_dict[var_key + '_sa'], self.var_dict[var_key + '_sb'])
@@ -196,7 +196,19 @@ class Weights:
                                           self.var_dict[var_key + '_log_zer'],
                                           self.var_dict[var_key + '_log_pos']]), tf.float32)
 
-    def generate_weight_sample(self, var_key, exact=False, second_arm_pass=False):
+    def update_arm(self, loss, lr):
+        update_ops = []
+        if 'c_arm' in self.train_config['algorithm']:
+            for var_key in self.var_keys:
+                if self.w_config[var_key]['type'] == 'binary':
+                    update_ops.append(tf.assign(self.var_dict[var_key + '_sb'], self.var_dict[var_key + '_sb'] + lr * tf.multiply(loss, self.arm_samples[var_key] - .5)))
+        elif 'c_ar' in self.train_config['algorithm']:
+            for var_key in self.var_keys:
+                if self.w_config[var_key]['type'] == 'binary':
+                    update_ops.append(tf.assign(self.var_dict[var_key + '_sb'], self.var_dict[var_key + '_sb'] + lr * tf.multiply(loss, 1 - 2 * self.arm_samples[var_key])))
+        return tf.group(*update_ops)
+
+    def generate_weight_sample(self, var_key, exact=False, second_arm_pass=False, data_key=None):
         shape = self.var_dict[var_key].shape
 
         if self.w_config[var_key]['type'] == 'continuous':
@@ -210,20 +222,18 @@ class Weights:
                 raise Exception('parametrization not understood')
 
             if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
-                if second_arm_pass is False:
-                    arm_weights = 2*tf.cast(tf.math.greater(self.arm_samples[var_key], probs[1]), dtype=tf.float32)-1
-                    forward_pass = arm_weights
-                    backward_pass = tf.multiply((1 - 2*self.arm_samples[var_key]), arm_weights)
-                    return tf.stop_gradient(forward_pass - backward_pass) + backward_pass
+                if data_key == 'tr':
+                    if second_arm_pass is False:
+                        return 2*tf.cast(tf.math.greater(probs[1], self.arm_samples[var_key]), dtype=tf.float32)-1
+                    else:
+                        return 2*tf.cast(tf.math.greater(self.arm_samples[var_key], probs[1]), dtype=tf.float32)-1
                 else:
-                    arm_weights = 2*tf.cast(tf.math.greater(probs[1], self.arm_samples[var_key]), dtype=tf.float32)-1
-                    forward_pass = arm_weights
-                    backward_pass = tf.multiply((2*self.arm_samples[var_key] - 1), arm_weights)
-                    return tf.stop_gradient(forward_pass - backward_pass) + backward_pass
+                    exact=True
+
 
             reparam_args = self.gumbel_reparam_args(probs, shape)
 
-            if exact or 'ste' in self.train_config['algorithm']:
+            if exact or 'gste' in self.train_config['algorithm'] or 'cste' in self.train_config['algorithm']:
                 exact_weights = -1. + 2. * tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
                 if exact:
                     return exact_weights
@@ -279,10 +289,11 @@ class Weights:
         else:
             raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
 
-    def create_tensor_samples(self, suffix='', second_arm_pass=False):
+    def create_tensor_samples(self, suffix='', second_arm_pass=False, data_key=None):
         for var_key in self.var_keys:
             self.tensor_dict[var_key+suffix] = self.generate_weight_sample(var_key, exact=False,
-                                                                           second_arm_pass=second_arm_pass)
+                                                                           second_arm_pass=second_arm_pass,
+                                                                           data_key=data_key)
 
     def normalize_weights(self, var_key):
         mean, var = tf.nn.moments(self.var_dict[var_key], axes=[0,1])
@@ -555,7 +566,7 @@ class Weights:
                 if self.layer_config['parametrization'] == 'sigmoid':
                     prob_dict[var_key]['probs'] = get_binary_probs(self.var_dict[var_key + '_sb'])
                 else:
-                    raise Exception('weight probs fetching not implemented for logits')
+                    prob_dict[var_key]['probs'] = 0
             elif self.w_config[var_key]['type'] == 'ternary':
                 if self.layer_config['parametrization'] == 'sigmoid':
                     prob_dict[var_key]['probs'] = get_ternary_probs(self.var_dict[var_key + '_sa'],

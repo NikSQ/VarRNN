@@ -121,8 +121,8 @@ class Experiment:
                     if current_epoch % info_config['calc_performance_every'] == 0:
                         self.rnn.t_metrics.retrieve_results(sess, current_epoch, tau)
                         self.rnn.t_metrics.print(session_idx)
-                        if self.rnn.t_metrics.result_dict['tr_b']['vfe'][-1] < min_error:
-                            break
+                        #if self.rnn.t_metrics.result_dict['tr_b']['vfe'][-1] < min_error:
+                            #break
 
                     if current_epoch + 1 % info_config['save_weights']['save_every'] == 0:
                         self.save_weight_probs(info_config['save_weights']['path'], current_epoch, run,
@@ -198,10 +198,9 @@ class Experiment:
     def save_gradient_variance(self, sess, epoch, tau):
         n_gradients = 50
         tf_grads = []
-
-        for grad, var in self.rnn.gradients:
-            if grad is not None:
-                tf_grads.append(grad)
+        for tuple in self.rnn.gradients:
+            if tuple is not None:
+                tf_grads.append(tuple[0])
 
         gradients = {}
         for idx in range(len(tf_grads)):

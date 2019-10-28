@@ -161,10 +161,19 @@ class TMetrics:
     def print(self, session_idx):
         #print('{:3} | TrAcc: {:6.4f}, TrLoss: {:8.5f}'.format(self.result_dict['epoch'][-1], self.result_dict['tr_b']['acc'][-1],
                       #self.result_dict['tr_b']['vfe'][-1]))
-        print('{:3}, {:2} | TrAcc: {:6.4f}, TrLoss: {:8.5f}, VaAcc: {:6.4f}, VaLoss: {:8.5f}'
-              .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
-                      self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],
-                      self.result_dict['va_b']['vfe'][-1]) +
-              '\t MAP NN | Acc: {:6.4f} | Loss: {:6.4f}'
-              .format(self.result_dict['va_s']['acc'][-1],
-                      self.result_dict['va_s']['loss'][-1]))
+        if 'tr_b' in self.result_dict.keys():
+            print('{:3}, {:2} | TrAcc: {:6.4f}, TrLoss: {:8.5f}, VaAcc: {:6.4f}, VaLoss: {:8.5f}'
+                  .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
+                          self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],
+                          self.result_dict['va_b']['vfe'][-1]) +
+                  '\t MAP NN | Acc: {:6.4f} | Loss: {:6.4f}'
+                  .format(self.result_dict['va_s']['acc'][-1],
+                          self.result_dict['va_s']['loss'][-1]))
+        else:
+            print('{:3}, {:2} | VaAcc: {:6.4f}, VaLoss: {:8.5f}'
+                  .format(self.result_dict['epoch'][-1], session_idx,
+                          self.result_dict['va_b']['acc'][-1],
+                          self.result_dict['va_b']['vfe'][-1]) +
+                  '\t MAP NN | Acc: {:6.4f} | Loss: {:6.4f}'
+                  .format(self.result_dict['va_s']['acc'][-1],
+                          self.result_dict['va_s']['loss'][-1]))

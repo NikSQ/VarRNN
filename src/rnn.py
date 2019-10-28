@@ -110,7 +110,7 @@ class RNN:
                     m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
                 elif 'c_reparam' in self.train_config['algorithm'] or 'c_ar' in self.train_config['algorithm'] or \
                         'c_arm' in self.train_config['algorithm']:
-                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
+                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, data_key=data_key)
                 else:
                     raise Exception('Training type not understood')
 
@@ -122,7 +122,8 @@ class RNN:
             m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
             if bayesian is True and 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
                 for layer_idx, layer in enumerate(self.layers, 1):
-                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, True)
+                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx,
+                                                     second_arm_pass=True, data_key=data_key)
                 m2_outputs.append(m)
 
         m_outputs = tf.stack(m_outputs, axis=1)
@@ -174,8 +175,7 @@ class RNN:
 
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
-            elif 'l_reparam' in self.train_config['algorithm'] or 'c_reparam' in self.train_config['algorithm'] or \
-                    'c_ar' in self.train_config['algorithm'] or data_key != 'tr':
+            elif 'l_reparam' in self.train_config['algorithm'] or 'c_reparam' in self.train_config['algorithm'] or data_key != 'tr':
                 smax = tf.nn.softmax(logits=m_outputs, axis=1)
                 t = tf.argmax(y, axis=1)
                 elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))
@@ -194,28 +194,14 @@ class RNN:
 
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
-            elif 'c_arm' in self.train_config['algorithm']:
+            elif 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
                 m2_outputs = tf.stack(m2_outputs, axis=1)
                 m2_outputs = tf.gather_nd(m2_outputs, gather_idcs)
 
-                elogl = -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) * .5 - \
+                return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) * .5 + \
                         tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m2_outputs, labels=y, dim=1)) * .5
-                t = tf.argmax(y, axis=1)
-                smax = tf.nn.softmax(logits=m2_outputs, axis=1)
-                kl = 0
-                if self.rnn_config['data_multiplier'] is not None:
-                    for layer in self.layers:
-                        kl += layer.weights.get_kl_loss()
-                    kl /= (self.rnn_config['data_multiplier'] *
-                           self.l_data.l_data_config[data_key]['minibatch_size'] *
-                           self.l_data.data[data_key]['n_minibatches'])
-                    vfe = kl - elogl
-                else:
-                    kl = tf.zeros(())
-                    vfe = -elogl
-
-                prediction = tf.argmax(smax, axis=1)
-                acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
+            elif 'c_ar' in self.train_config['algorithm'] and data_key == 'tr':
+                return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) * .5
 
             self.t_metrics.add_b_vars(data_key + '_b', vfe, kl, elogl, acc)
 
@@ -235,6 +221,14 @@ class RNN:
     # Creates Bayesian graph for training and the operations used for training.
     def create_b_training_graph(self, key):
         with tf.variable_scope(key + '_b'):
+            if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+                loss = self.create_rnn_graph(key, self.rnn_config)
+                ops = []
+                for layer in self.layers:
+                    ops.append(layer.weights.update_arm(loss, self.learning_rate))
+                self.train_b_op = tf.group(*ops)
+                return
+
             vfe, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
 
             dir_reg = 0
@@ -259,7 +253,6 @@ class RNN:
                 opt1 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
                 opt2 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
                 opt3 = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-
 
             vars1 = []
             vars2 = []
