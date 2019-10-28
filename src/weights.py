@@ -198,14 +198,9 @@ class Weights:
 
     def update_arm(self, loss, lr):
         update_ops = []
-        if 'c_arm' in self.train_config['algorithm']:
-            for var_key in self.var_keys:
-                if self.w_config[var_key]['type'] == 'binary':
-                    update_ops.append(tf.assign(self.var_dict[var_key + '_sb'], self.var_dict[var_key + '_sb'] + lr * tf.multiply(loss, self.arm_samples[var_key] - .5)))
-        elif 'c_ar' in self.train_config['algorithm']:
-            for var_key in self.var_keys:
-                if self.w_config[var_key]['type'] == 'binary':
-                    update_ops.append(tf.assign(self.var_dict[var_key + '_sb'], self.var_dict[var_key + '_sb'] + lr * tf.multiply(loss, 1 - 2 * self.arm_samples[var_key])))
+        for var_key in self.var_keys:
+            if self.w_config[var_key]['type'] == 'binary':
+                update_ops.append(tf.assign(self.var_dict[var_key + '_sb'], self.var_dict[var_key + '_sb'] - lr * tf.multiply(loss, self.arm_samples[var_key] - .5)))
         return tf.group(*update_ops)
 
     def generate_weight_sample(self, var_key, exact=False, second_arm_pass=False, data_key=None):
@@ -226,10 +221,9 @@ class Weights:
                     if second_arm_pass is False:
                         return 2*tf.cast(tf.math.greater(probs[1], self.arm_samples[var_key]), dtype=tf.float32)-1
                     else:
-                        return 2*tf.cast(tf.math.greater(self.arm_samples[var_key], probs[1]), dtype=tf.float32)-1
+                        return 2*tf.cast(tf.math.greater(self.arm_samples[var_key], probs[0]), dtype=tf.float32)-1
                 else:
                     exact=True
-
 
             reparam_args = self.gumbel_reparam_args(probs, shape)
 
