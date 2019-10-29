@@ -223,10 +223,28 @@ class RNN:
         with tf.variable_scope(key + '_b'):
             if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
                 loss = self.create_rnn_graph(key, self.rnn_config)
-                ops = []
+                layer_arm_samples = dict()
+                variables = []
+                for var in tf.trainable_variables():
+                    if 'sb' in var.name:
+                        variables.append(var)
+
                 for layer in self.layers:
-                    ops.append(layer.weights.update_arm(loss, self.learning_rate))
-                self.train_b_op = tf.group(*ops)
+                    var_scope = layer.layer_config['var_scope']
+                    layer_arm_samples[var_scope] = layer.weights.arm_samples
+
+                grads = []
+                grad_vars = []
+                for var in variables:
+                    for var_scope in layer_arm_samples.keys():
+                        if var_scope in var.name:
+                            for var_key in layer_arm_samples[var_scope].keys():
+                                if var_key + '_sb' == var.name[var.name.index('/')+1:-2]:
+                                    grads.append(-loss * (layer_arm_samples[var_scope][var_key] - .5))
+                                    grad_vars.append(var)
+
+                gradients = list(zip(grads, grad_vars))
+                self.train_b_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate).apply_gradients(gradients)
                 return
 
             vfe, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
@@ -266,6 +284,8 @@ class RNN:
                     vars3.append(var)
 
             self.gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
+            print(self.gradients)
+            quit()
 
             gradient_summaries = []
             for gradient, var in zip(self.gradients, vars1+vars2+vars3):

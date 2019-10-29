@@ -223,7 +223,7 @@ class Weights:
                     else:
                         return 2*tf.cast(tf.math.greater(self.arm_samples[var_key], probs[0]), dtype=tf.float32)-1
                 else:
-                    exact=True
+                    exact = True
 
             reparam_args = self.gumbel_reparam_args(probs, shape)
 

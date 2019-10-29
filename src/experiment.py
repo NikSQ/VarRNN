@@ -116,6 +116,7 @@ class Experiment:
 
                 for epoch in range(max_epochs):
                     #self.save_gradient_variance(sess, epoch, tau)
+                    #quit()
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     if current_epoch % info_config['calc_performance_every'] == 0:
@@ -211,12 +212,17 @@ class Experiment:
             for idx, grad in enumerate(gradient):
                 gradients[idx].append(np.expand_dims(grad, axis=0))
 
-        for grad_key in gradients.keys():
-            grad_distribution = np.concatenate(gradients[grad_key], axis=0)
-            variance = np.var(grad_distribution, axis=0, ddof=1)
+        variances = []
+        normed_vars = []
+        for idx in range(len(gradients)):
+            gradients[idx] = np.concatenate(gradients[idx], axis=0)
+            variances.append(np.var(gradients[idx], axis=0, ddof=1))
+            normed_vars.append(np.var(gradients[idx] / np.linalg.norm(gradients[idx]), axis=0, ddof=1))
+        variances = np.concatenate(variances, axis=0)
+        normed_vars = np.concatenate(normed_vars, axis=0)
+        np.save(file='../numerical_results/var_' + str(self.train_config['task_id']), arr=variances)
+        np.save(file='../numerical_results/normed_var_' + str(self.train_config['task_id']), arr=normed_vars)
 
-            np.save(file='../numerical_results/g_var_' + str(self.train_config['task_id']) + '_' + str(grad_key) + '_' +
-                         str(epoch), arr=variance)
 
     def optimistic_restore(self, sess, file):
         reader = tf.train.NewCheckpointReader(file)
