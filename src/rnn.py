@@ -198,10 +198,10 @@ class RNN:
                 m2_outputs = tf.stack(m2_outputs, axis=1)
                 m2_outputs = tf.gather_nd(m2_outputs, gather_idcs)
 
-                return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) * .5 + \
-                        tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m2_outputs, labels=y, dim=1)) * .5
+                return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) + \
+                        tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m2_outputs, labels=y, dim=1))
             elif 'c_ar' in self.train_config['algorithm'] and data_key == 'tr':
-                return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) * .5
+                return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))*2
 
             self.t_metrics.add_b_vars(data_key + '_b', vfe, kl, elogl, acc)
 
