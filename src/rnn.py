@@ -240,11 +240,23 @@ class RNN:
                         if var_scope in var.name:
                             for var_key in layer_arm_samples[var_scope].keys():
                                 if var_key + '_sb' == var.name[var.name.index('/')+1:-2]:
-                                    grads.append(-loss * (layer_arm_samples[var_scope][var_key] - .5))
+                                    grads.append(loss * (layer_arm_samples[var_scope][var_key] - .5))
                                     grad_vars.append(var)
 
-                gradients = list(zip(grads, grad_vars))
-                self.train_b_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate).apply_gradients(gradients)
+                self.gradients = grads
+                self.gradient_ph = []
+                self.vars = grad_vars
+                gradient_summaries = []
+                for grad, var in zip(grads, grad_vars):
+                    if grad is not None:
+                        gradient_summaries.append(tf.summary.histogram('g_' + var.name[var.name.index('/')+1:-2], grad))
+                        self.gradient_ph.append(tf.placeholder(shape=grad.shape, dtype=tf.float32, name='gradient_ph_' + var.name[var.name.index('/')+1:-2]))
+                    else:
+                        self.gradient_ph.append(tf.placeholder(shape=None, dtype=tf.float32, name='gradient_ph_'  + var.name[var.name.index('/')+1:-2]))
+                learning_rate = tf.get_variable(name='lr', shape=(), dtype=tf.float32)
+                self.assign_learning_rate = tf.assign(learning_rate, self.learning_rate)
+                self.train_b_op = tf.train.AdamOptimizer(learning_rate=learning_rate).apply_gradients(zip(self.gradient_ph, self.vars))
+                self.gradient_summaries = tf.summary.merge(gradient_summaries)
                 return
 
             vfe, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
@@ -284,8 +296,6 @@ class RNN:
                     vars3.append(var)
 
             self.gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
-            print(self.gradients)
-            quit()
 
             gradient_summaries = []
             for gradient, var in zip(self.gradients, vars1+vars2+vars3):

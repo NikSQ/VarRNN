@@ -164,11 +164,25 @@ class Experiment:
                     sess.run(self.l_data.data['tr']['shuffle'])
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
-                            sess.run(self.rnn.c_arm_sample_op)
-                        sess.run(self.rnn.train_b_op,
-                                 feed_dict={self.rnn.learning_rate: learning_rate, self.rnn.tau: (tau,),
-                                            self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True},
-                                 options=options, run_metadata=run_metadata)
+                            sess.run([self.rnn.c_arm_sample_op, self.rnn.assign_learning_rate], feed_dict={self.rnn.learning_rate: learning_rate})
+                            grads = None
+                            for i in range(self.train_config['carm_iterations']):
+                                gradients = sess.run(self.rnn.gradients, feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training:True})
+                                if grads is None:
+                                    grads = gradients
+                                else:
+                                    for j in range(len(grads)):
+                                        if grads[j] is not None:
+                                            grads[j] += gradients[j]
+                            for j in range(len(grads)):
+                                grads[j] /= self.train_config['carm_iterations']
+                            sess.run(self.rnn.train_b_op, feed_dict={gradient_ph: grad for gradient_ph, grad in zip(self.rnn.gradient_ph, grads)})
+
+                        else:
+                            sess.run(self.rnn.train_b_op,
+                                     feed_dict={self.rnn.learning_rate: learning_rate, self.rnn.tau: (tau,),
+                                                self.l_data.batch_idx: minibatch_idx, self.rnn.is_training: True},
+                                     options=options, run_metadata=run_metadata)
 
                     if info_config['profiling']['enabled']:
                         traces.append(timeline.Timeline(run_metadata.step_stats).generate_chrome_trace_format())
@@ -197,7 +211,7 @@ class Experiment:
 
     # Empirically estimates variance of gradient, saves results and quits
     def save_gradient_variance(self, sess, epoch, tau):
-        n_gradients = 50
+        n_gradients = 23
         tf_grads = []
         for tuple in self.rnn.gradients:
             if tuple is not None:
@@ -216,6 +230,7 @@ class Experiment:
         normed_vars = []
         for idx in range(len(gradients)):
             gradients[idx] = np.concatenate(gradients[idx], axis=0)
+            print(gradients[idx].shape)
             variances.append(np.var(gradients[idx], axis=0, ddof=1))
             normed_vars.append(np.var(gradients[idx] / np.linalg.norm(gradients[idx]), axis=0, ddof=1))
         variances = np.concatenate(variances, axis=0)
