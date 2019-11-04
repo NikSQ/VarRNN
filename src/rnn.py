@@ -109,7 +109,7 @@ class RNN:
                 elif 'l_reparam' in self.train_config['algorithm']:
                     m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
                 elif 'c_reparam' in self.train_config['algorithm'] or 'c_ar' in self.train_config['algorithm'] or \
-                        'c_arm' in self.train_config['algorithm']:
+                        'c_arm' in self.train_config['algorithm'] or 'log_der' in self.train_config['algorithm']:
                     m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, data_key=data_key)
                 else:
                     raise Exception('Training type not understood')
@@ -200,7 +200,7 @@ class RNN:
 
                 return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) + \
                         tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m2_outputs, labels=y, dim=1))
-            elif 'c_ar' in self.train_config['algorithm'] and data_key == 'tr':
+            elif ('c_ar' in self.train_config['algorithm'] or 'log_der' in self.train_config['algorithm']) and data_key == 'tr':
                 return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1))*2
 
             self.t_metrics.add_b_vars(data_key + '_b', vfe, kl, elogl, acc)
@@ -221,9 +221,9 @@ class RNN:
     # Creates Bayesian graph for training and the operations used for training.
     def create_b_training_graph(self, key):
         with tf.variable_scope(key + '_b'):
-            if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+            if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm'] or 'log_der' in self.train_config['algorithm']:
                 loss = self.create_rnn_graph(key, self.rnn_config)
-                layer_arm_samples = dict()
+                layer_samples = dict()
                 variables = []
                 for var in tf.trainable_variables():
                     if 'sb' in var.name:
@@ -231,16 +231,22 @@ class RNN:
 
                 for layer in self.layers:
                     var_scope = layer.layer_config['var_scope']
-                    layer_arm_samples[var_scope] = layer.weights.arm_samples
+                    if 'log_der' in self.train_config['algorithm']:
+                        layer_samples[var_scope] = layer.weights.logder_derivs
+                    else:
+                        layer_samples[var_scope] = layer.weights.arm_samples
 
                 grads = []
                 grad_vars = []
                 for var in variables:
-                    for var_scope in layer_arm_samples.keys():
+                    for var_scope in layer_samples.keys():
                         if var_scope in var.name:
-                            for var_key in layer_arm_samples[var_scope].keys():
+                            for var_key in layer_samples[var_scope].keys():
                                 if var_key + '_sb' == var.name[var.name.index('/')+1:-2]:
-                                    grads.append(loss * (layer_arm_samples[var_scope][var_key] - .5))
+                                    if 'log_der' in self.train_config['algorithm']:
+                                        grads.append(loss * layer_samples[var_scope][var_key])
+                                    else:
+                                        grads.append(loss * (layer_samples[var_scope][var_key] - .5))
                                     grad_vars.append(var)
 
                 self.gradients = grads

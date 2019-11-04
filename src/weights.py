@@ -73,6 +73,7 @@ class Weights:
         self.b_shape = b_shape
 
         self.var_dict = dict()
+        self.logder_derivs = dict()
         self.arm_samples = dict()
         self.arm_weights = [dict(), dict()]
         self.c_arm_sample_op = tf.no_op()
@@ -227,9 +228,14 @@ class Weights:
 
             reparam_args = self.gumbel_reparam_args(probs, shape)
 
-            if exact or 'gste' in self.train_config['algorithm'] or 'cste' in self.train_config['algorithm']:
+            if exact or 'gste' in self.train_config['algorithm'] or 'cste' in self.train_config['algorithm'] \
+                    or 'log_der' in self.train_config['algorithm']:
                 exact_weights = -1. + 2. * tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
                 if exact:
+                    return exact_weights
+                if 'log_der' in self.train_config['algorithm']:
+                    sig = tf.sigmoid(self.var_dict[var_key + '_sb'])
+                    self.logder_derivs[var_key] = tf.multiply(exact_weights, tf.multiply(sig, 1 - sig))
                     return exact_weights
 
             if 'cste' in self.train_config['algorithm']:

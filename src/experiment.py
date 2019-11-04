@@ -165,7 +165,8 @@ class Experiment:
                     if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
                         sess.run(self.rnn.assign_learning_rate, feed_dict={self.rnn.learning_rate: learning_rate})
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
-                        if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+                        if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']\
+                                or 'log_der' in self.train_config['algorithm']:
                             grads = None
                             for i in range(self.train_config['carm_iterations']):
                                 sess.run(self.rnn.c_arm_sample_op)
