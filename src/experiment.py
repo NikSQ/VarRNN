@@ -162,11 +162,13 @@ class Experiment:
                         learning_rate /= 2
 
                     sess.run(self.l_data.data['tr']['shuffle'])
+                    if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
+                        sess.run(self.rnn.assign_learning_rate, feed_dict={self.rnn.learning_rate: learning_rate})
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']:
-                            sess.run([self.rnn.c_arm_sample_op, self.rnn.assign_learning_rate], feed_dict={self.rnn.learning_rate: learning_rate})
                             grads = None
                             for i in range(self.train_config['carm_iterations']):
+                                sess.run(self.rnn.c_arm_sample_op)
                                 gradients = sess.run(self.rnn.gradients, feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training:True})
                                 if grads is None:
                                     grads = gradients
