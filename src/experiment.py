@@ -115,7 +115,7 @@ class Experiment:
                 traces = list()
 
                 for epoch in range(max_epochs):
-                    #self.save_gradient_variance(sess, epoch, tau)
+                    self.save_gradient_variance(sess, epoch, tau)
                     #quit()
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
@@ -216,9 +216,11 @@ class Experiment:
     def save_gradient_variance(self, sess, epoch, tau):
         n_gradients = 23
         tf_grads = []
+        tf_vars = []
         for tuple in self.rnn.gradients:
             if tuple is not None:
                 tf_grads.append(tuple[0])
+                tf_vars.append(tuple[1])
 
         gradients = {}
         for idx in range(len(tf_grads)):
@@ -230,16 +232,23 @@ class Experiment:
                 gradients[idx].append(np.expand_dims(grad, axis=0))
 
         variances = []
-        normed_vars = []
+        expectations = []
+        squared_expectations = []
         for idx in range(len(gradients)):
             gradients[idx] = np.concatenate(gradients[idx], axis=0)
-            print(gradients[idx].shape)
             variances.append(np.var(gradients[idx], axis=0, ddof=1))
-            normed_vars.append(np.var(gradients[idx] / np.linalg.norm(gradients[idx]), axis=0, ddof=1))
-        variances = np.concatenate(variances, axis=0)
-        normed_vars = np.concatenate(normed_vars, axis=0)
+            expectations.append(np.mean(gradients[idx], axis=0))
+            squared_expectations.append(np.mean(np.square(gradients[idx]), axis=0))
+            var = tf_vars[idx]
+            suffix = '_' + var.name[:var.name.index('/')] + '_' +  var.name[var.name.index('/')+1:-2] + '_' + str(self.train_config['task_id']) + '.npy'
+            np.save(file='../numerical_results/gvar' + suffix, arr=variances[-1])
+            np.save(file='../numerical_results/ge' + suffix, arr=expectations[-1])
+            np.save(file='../numerical_results/gsqe' + suffix, arr=squared_expectations[-1])
+        quit()
+        #variances = np.concatenate(variances, axis=0)
+        #normed_vars = np.concatenate(normed_vars, axis=0)
         np.save(file='../numerical_results/var_' + str(self.train_config['task_id']), arr=variances)
-        np.save(file='../numerical_results/normed_var_' + str(self.train_config['task_id']), arr=normed_vars)
+        #np.save(file='../numerical_results/normed_var_' + str(self.train_config['task_id']), arr=normed_vars)
 
 
     def optimistic_restore(self, sess, file):
