@@ -249,7 +249,7 @@ class RNN:
                                         grads.append(loss * (layer_samples[var_scope][var_key] - .5))
                                     grad_vars.append(var)
 
-                self.gradients = zip(grads, grad_vars)
+                self.gradients = list(zip(grads, grad_vars))
                 self.gradient_ph = []
                 self.vars = grad_vars
                 gradient_summaries = []

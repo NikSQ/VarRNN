@@ -116,7 +116,7 @@ class Experiment:
 
                 for epoch in range(max_epochs):
                     self.save_gradient_variance(sess, epoch, tau)
-                    #quit()
+                    quit()
                     # Evaluate performance on the different datasets and print some results on console
                     # Also check potential stopping critera
                     if current_epoch % info_config['calc_performance_every'] == 0:
@@ -167,16 +167,17 @@ class Experiment:
                     for minibatch_idx in range(self.l_data.data['tr']['n_minibatches']):
                         if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm']\
                                 or 'log_der' in self.train_config['algorithm']:
-                            grads = None
+                            grads = []
                             for i in range(self.train_config['carm_iterations']):
                                 sess.run(self.rnn.c_arm_sample_op)
                                 gradients = sess.run(self.rnn.gradients, feed_dict={self.l_data.batch_idx: minibatch_idx, self.rnn.is_training:True})
-                                if grads is None:
-                                    grads = gradients
+                                if len(grads) == 0:
+                                    for j in range(len(gradients)):
+                                        grads.append(gradients[j][0])
                                 else:
                                     for j in range(len(grads)):
                                         if grads[j] is not None:
-                                            grads[j] += gradients[j]
+                                            grads[j] += gradients[j][0]
                             for j in range(len(grads)):
                                 grads[j] /= self.train_config['carm_iterations']
                             sess.run(self.rnn.train_b_op, feed_dict={gradient_ph: grad for gradient_ph, grad in zip(self.rnn.gradient_ph, grads)})
@@ -244,11 +245,6 @@ class Experiment:
             np.save(file='../numerical_results/gvar' + suffix, arr=variances[-1])
             np.save(file='../numerical_results/ge' + suffix, arr=expectations[-1])
             np.save(file='../numerical_results/gsqe' + suffix, arr=squared_expectations[-1])
-        quit()
-        #variances = np.concatenate(variances, axis=0)
-        #normed_vars = np.concatenate(normed_vars, axis=0)
-        np.save(file='../numerical_results/var_' + str(self.train_config['task_id']), arr=variances)
-        #np.save(file='../numerical_results/normed_var_' + str(self.train_config['task_id']), arr=normed_vars)
 
 
     def optimistic_restore(self, sess, file):
