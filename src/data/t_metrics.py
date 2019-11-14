@@ -172,7 +172,7 @@ class TMetrics:
         else:
             print('{:3}, {:2} | VaAcc: {:6.4f}, VaLoss: {:8.5f}'
                   .format(self.result_dict['epoch'][-1], session_idx,
-                          self.result_dict['va_b']['acc'][-1],
+                         self.result_dict['va_b']['acc'][-1],
                           self.result_dict['va_b']['vfe'][-1]) +
                   '\t MAP NN | Acc: {:6.4f} | Loss: {:6.4f}'
                   .format(self.result_dict['va_s']['acc'][-1],

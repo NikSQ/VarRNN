@@ -215,8 +215,8 @@ class Experiment:
 
     # Empirically estimates variance of gradient, saves results and quits
     def save_gradient_variance(self, sess, epoch, tau):
-        n_gradients = 1000000
-        records = np.logspace(1, 6, 100).astype(np.int32) - 1
+        n_gradients = 100
+        record_times = np.logspace(2, 6, 100).astype(np.int32) - 1
         tf_grads = []
         tf_vars = []
         for tuple in self.rnn.gradients:
@@ -224,43 +224,48 @@ class Experiment:
                 tf_grads.append(tuple[0])
                 tf_vars.append(tuple[1])
 
-        gradients = {}
-        for idx in range(len(tf_grads)):
-            gradients[idx] = []
-
+        e = []
+        se = []
+        record_idx = 0
         for gradient_idx in range(n_gradients):
-            print(gradient_idx)
             gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0, self.rnn.tau: (tau,)})
             for idx, grad in enumerate(gradient):
-                gradients[idx].append(np.expand_dims(grad, axis=0))
+                grad = grad.astype(np.float64)
+                if gradient_idx == 0:
+                    e.append(grad)
+                    se.append(np.square(grad))
+                else:
+                    e[idx] += grad
+                    se[idx] += np.square(grad)
+            print('Gradient IDX: {}'.format(gradient_idx))
 
-        snr1 = np.zeros((len(records),), dtype=np.float64)
-        snr2 = np.zeros((len(records),), dtype=np.float64)
-        size = 0
-        for idx in range(len(gradients)):
-            grads = np.concatenate(gradients[idx], axis=0).astype(np.float64)
-            variances = np.var(grads, axis=0, ddof=1)
-            expectations = np.mean(grads, axis=0)
-            squared_expectations = np.mean(np.square(grads), axis=0)
+            if gradient_idx == record_times[record_idx]:
+                size = 0
+                snr1 = 0
+                snr2 = 0
+                for idx in range(len(e)):
+                    size += np.size(e[idx])
+                    e_record = e[idx] / gradient_idx
+                    se_record = se[idx] / gradient_idx
+                    v_record = se_record / np.square(e_record)
+                    snr1 += np.sum(se_record / v_record)
+                    snr2 += np.sum(np.abs(e_record) / np.sqrt(v_record))
+                snr1 /= size
+                snr2 /= size
+
+                np.save(file='../numerical_results/snr1_' + str(record_idx) + '_' + str(self.train_config['task_id']) + '.npy', arr=snr1)
+                np.save(file='../numerical_results/snr2_' + str(record_idx) + '_' + str(self.train_config['task_id']) + '.npy', arr=snr2)
+                record_idx += 1
+
+        for idx in range(len(e)):
+            e_final = e[idx] / n_gradients
+            se_final = se[idx] / n_gradients
+            v_final = se_final / np.square(e_final)
             var = tf_vars[idx]
-            suffix = '_' + var.name[:var.name.index('/')] + '_' +  var.name[var.name.index('/')+1:-2] + '_' + str(self.train_config['task_id']) + '.npy'
-            np.save(file='../numerical_results/gvar' + suffix, arr=variances)
-            np.save(file='../numerical_results/ge' + suffix, arr=expectations)
-            np.save(file='../numerical_results/gsqe' + suffix, arr=squared_expectations)
-            size += np.size(variances)
-            for record in records:
-                sqe = np.mean(np.square(grads[:record]), axis=0)
-                v = np.var(grads[:record], axis=0, ddof=1)
-                e = np.mean(grads[:record], axis=0)
-
-                snr1[record] += np.sum(sqe / v)
-                snr2[record] += np.sum(np.abs(e) / np.sqrt(v))
-
-        for idx, record in enumerate(records):
-            snr1[record] = snr1[record] / size
-            snr2[record] = snr2[record] / size
-            np.save(file='../numerical_results/snr1_' + str(idx) + '_' + str(self.train_config['task_id']) + '.npy', arr=snr1[record])
-            np.save(file='../numerical_results/snr2_' + str(idx) + '_' + str(self.train_config['task_id']) + '.npy', arr=snr2[record])
+            suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.train_config['task_id']) + '.npy'
+            np.save(file='../numerical_results/gvar' + suffix, arr=v_final)
+            np.save(file='../numerical_results/ge' + suffix, arr=e_final)
+            np.save(file='../numerical_results/gsqe' + suffix, arr=se_final)
 
 
     def optimistic_restore(self, sess, file):
