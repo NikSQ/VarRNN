@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "../exps/sy_test.py", line 149, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config, run))
+  File "../src/experiment.py", line 80, in train
+    self.create_rnn(l_data, l_data_config)
+  File "../src/experiment.py", line 27, in create_rnn
+    self.rnn = RNN(l_data)
+  File "../src/rnn.py", line 56, in __init__
+    self.create_b_training_graph('tr')
+  File "../src/rnn.py", line 203, in create_b_training_graph
+    vfe, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
+  File "../src/rnn.py", line 108, in create_rnn_graph
+    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
+  File "../src/lstm_layer.py", line 129, in create_g_sampling_pass
+    self.weights.create_tensor_samples()
+  File "../src/weights.py", line 258, in create_tensor_samples
+    self.tensor_dict[var_key+suffix] = self.generate_weight_sample(var_key, False)
+  File "../src/weights.py", line 238, in generate_weight_sample
+    raise Exception('Custom STE only possible with logits parametrization')
+Exception: Custom STE only possible with logits parametrization
