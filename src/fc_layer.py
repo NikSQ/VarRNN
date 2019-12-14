@@ -33,12 +33,12 @@ class FCLayer:
         a_m, a_v = approx_activation(self.weights.var_dict['w_m'], self.weights.var_dict['w_v'], self.weights.var_dict['b_m'], self.weights.var_dict['b_v'], x_m, x_v)
         return a_m, a_v
 
-    def create_l_sampling_pass(self, x, mod_layer_config, time_idx):
+    def create_l_sampling_pass(self, x, mod_layer_config, time_idx, init):
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_b_x(x, self.is_training)
         return self.weights.sample_activation('w', 'b', x, None, time_idx == 0, self.train_config['batchnorm']['type'] == 'layer')
 
-    def create_g_sampling_pass(self, x, mod_layer_config, time_idx, second_arm_pass=False, data_key=None):
+    def create_g_sampling_pass(self, x, mod_layer_config, time_idx, init, second_arm_pass=False, data_key=None):
         if time_idx == 0:
             self.weights.create_tensor_samples(second_arm_pass=second_arm_pass, data_key=data_key)
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
@@ -49,7 +49,7 @@ class FCLayer:
         else:
             return act
 
-    def create_var_fp(self, x, time_idx):
+    def create_var_fp(self, x, time_idx, init):
         if self.train_config['batchnorm']['type'] == 'batch' and 'fc' in self.train_config['batchnorm']['modes']:
             x = self.bn_s_x(x, self.is_training)
 

@@ -35,11 +35,14 @@ class RNN:
         sample_ops = []
         c_arm_sample_ops = []
         init_ops = []
+        bilstm = False # used to indicate to layer that previous layer is bidirectional
         for layer_idx, layer_config in enumerate(self.rnn_config['layer_configs']):
             if layer_config['layer_type'] == 'fc':
                 layer = FCLayer(layer_idx, self.is_training, self.tau)
-            elif layer_config['layer_type'] == 'lstm':
-                layer = LSTMLayer(layer_idx, self.is_training, self.tau)
+            elif layer_config['layer_type'] == 'lstm' or layer_config['layer_type'] == 'blstm':
+                layer = LSTMLayer(layer_idx, self.is_training, self.tau, bilstm)
+                if layer_config['layer_type'] == 'blstm':
+                    bilstm = True
             elif layer_config['layer_type'] == 'input':
                 continue
             else:
@@ -80,6 +83,48 @@ class RNN:
                             self.act_summaries = tf.summary.merge([self.act_summaries,
                                                                    tf.summary.histogram(act_key, tf.clip_by_value(layer.acts[act_key], -7, 7))])
 
+    def unfold_rnn_layer(self, bayesian, data_key, layer, layer_idx, layer_input, x_shape, mod_rnn_config, reverse=False, second_arm_pass=False):
+        if reverse:
+            loop_range = np.arange(x_shape[2])[::-1]
+        else:
+            loop_range = np.arange(x_shape[2])
+        layer_output = []
+        for time_idx in loop_range:
+            m = layer_input[time_idx]
+            v = tf.fill(tf.shape(m), 0.)  # Variance of input to network at time seq_idx
+            init = time_idx == list(loop_range)[0]
+            if bayesian is False:
+                m = layer.create_var_fp(m, time_idx, init)
+            elif 'pfp' in self.train_config['algorithm']:
+                m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx])
+            elif 'l_reparam' in self.train_config['algorithm']:
+                m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, init)
+            elif 'c_reparam' in self.train_config['algorithm'] or 'c_ar' in self.train_config['algorithm'] or \
+                    'c_arm' in self.train_config['algorithm'] or 'log_der' in self.train_config['algorithm']:
+                m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, init,
+                                                 data_key=data_key, second_arm_pass=second_arm_pass)
+            else:
+                raise Exception('Training type not understood')
+            layer_output.append(m)
+        return layer_output
+
+    def unfold_rnn(self, bayesian, data_key, x, x_shape, mod_rnn_config, second_arm_pass=False):
+        for layer_idx, layer in enumerate(self.layers, 1):
+            if layer_idx == 1:
+                layer_input = tf.transpose(x, perm=[2,0,1])
+            if layer.layer_config['layer_type'] == 'blstm':
+                layer_input1 = self.unfold_rnn_layer(bayesian, data_key, layer, layer_idx, layer_input, x_shape,
+                                                     mod_rnn_config, reverse=False, second_arm_pass=second_arm_pass)
+                layer_input2 = self.unfold_rnn_layer(bayesian, data_key, layer, layer_idx, layer_input, x_shape,
+                                                     mod_rnn_config, reverse=True, second_arm_pass=second_arm_pass)
+                layer_input = []
+                for input1, input2 in zip(layer_input1, layer_input2):
+                    layer_input.append(tf.concat([input1, input2], axis=1))
+            else:
+                layer_input = self.unfold_rnn_layer(bayesian, data_key, layer, layer_idx, layer_input, x_shape,
+                                                    mod_rnn_config, reverse=False, second_arm_pass=second_arm_pass)
+        return layer_input
+
     # TODO: Make predictions based on predictive distribution rather than on mode
     def create_rnn_graph(self, data_key, mod_rnn_config, bayesian=True):
         x = self.l_data.data[data_key]['x']
@@ -88,47 +133,48 @@ class RNN:
         x_shape = self.l_data.data[data_key]['x_shape']
         y_shape = self.l_data.data[data_key]['y_shape']
 
-        # Elements of the list will be the means and variances of the output sequence
-        m_outputs = []
-        m2_outputs = []
-        v_outputs = []
-
         # This captures the seq_idx from which the output will be computed
-        output_idcs = self.l_data.data[data_key]['end']
+        #output_idcs = self.l_data.data[data_key]['end']
+
+        m_outputs = self.unfold_rnn(bayesian, data_key, x, x_shape, mod_rnn_config, False)
+        if bayesian is True and 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
+            m2_outputs = self.unfold_rnn(bayesian, data_key, x, x_shape, mod_rnn_config, True)
 
         # Create graph by connecting the appropriate layers unrolled in time
-        for time_idx in range(x_shape[2]):
-            m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
-            v = tf.fill(tf.shape(m), 0.)  # Variance of input to network at time seq_idx
+        #for time_idx in range(x_shape[2]):
+            #m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
+            #v = tf.fill(tf.shape(m), 0.)  # Variance of input to network at time seq_idx
+#
+            #for layer_idx, layer in enumerate(self.layers, 1):
+                #if bayesian is False:
+                    #m = layer.create_var_fp(m, time_idx)
+                #elif 'pfp' in self.train_config['algorithm']:
+                    #m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx])
+                #elif 'l_reparam' in self.train_config['algorithm']:
+                    #m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
+                #elif 'c_reparam' in self.train_config['algorithm'] or 'c_ar' in self.train_config['algorithm'] or \
+                        #'c_arm' in self.train_config['algorithm'] or 'log_der' in self.train_config['algorithm']:
+                    #m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, data_key=data_key)
+                #else:
+                    #raise Exception('Training type not understood')
+#
+            #m_outputs.append(m)
+            #if 'pfp' in self.train_config['algorithm']:
+                #v_outputs.append(v)
+##
+        #for time_idx in range(x_shape[2]):
+            #m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
+            #if bayesian is True and 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
+                #for layer_idx, layer in enumerate(self.layers, 1):
+                    #m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx,
+                                                     #second_arm_pass=True, data_key=data_key)
+                #m2_outputs.append(m)
 
-            for layer_idx, layer in enumerate(self.layers, 1):
-                if bayesian is False:
-                    m = layer.create_var_fp(m, time_idx)
-                elif 'pfp' in self.train_config['algorithm']:
-                    m, v = layer.create_pfp(m, v, mod_rnn_config['layer_configs'][layer_idx])
-                elif 'l_reparam' in self.train_config['algorithm']:
-                    m = layer.create_l_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx)
-                elif 'c_reparam' in self.train_config['algorithm'] or 'c_ar' in self.train_config['algorithm'] or \
-                        'c_arm' in self.train_config['algorithm'] or 'log_der' in self.train_config['algorithm']:
-                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx, data_key=data_key)
-                else:
-                    raise Exception('Training type not understood')
-
-            m_outputs.append(m)
-            if 'pfp' in self.train_config['algorithm']:
-                v_outputs.append(v)
-
-        for time_idx in range(x_shape[2]):
-            m = x[:, :, time_idx]  # Mean of input to network at time seq_idx
-            if bayesian is True and 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
-                for layer_idx, layer in enumerate(self.layers, 1):
-                    m = layer.create_g_sampling_pass(m, mod_rnn_config['layer_configs'][layer_idx], time_idx,
-                                                     second_arm_pass=True, data_key=data_key)
-                m2_outputs.append(m)
-
-        m_outputs = tf.stack(m_outputs, axis=1)
-        gather_idcs = tf.stack([tf.range(y_shape[0]), output_idcs], axis=1)
-        m_outputs = tf.gather_nd(m_outputs, gather_idcs)
+        #m_outputs = tf.stack(m_outputs, axis=1)
+        #gather_idcs = tf.stack([tf.range(y_shape[0]), output_idcs], axis=1)
+        #m_outputs = tf.gather_nd(m_outputs, gather_idcs)
+        m_outputs = m_outputs[-1]
+        v_outputs = None
 
         # Process output of non bayesian network
         if bayesian is False:
@@ -195,8 +241,9 @@ class RNN:
                 prediction = tf.argmax(smax, axis=1)
                 acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
             elif 'c_arm' in self.train_config['algorithm'] and data_key == 'tr':
-                m2_outputs = tf.stack(m2_outputs, axis=1)
-                m2_outputs = tf.gather_nd(m2_outputs, gather_idcs)
+                #m2_outputs = tf.stack(m2_outputs, axis=1)
+                #m2_outputs = tf.gather_nd(m2_outputs, gather_idcs)
+                m2_outputs = m2_outputs[-1]
 
                 return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m_outputs, labels=y, dim=1)) + \
                         tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=m2_outputs, labels=y, dim=1))

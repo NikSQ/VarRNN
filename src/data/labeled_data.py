@@ -37,7 +37,8 @@ class LabeledData:
 
                     # A shuffled list of sample indices. Iterating over the complete list will be one epoch
                     sample_list = tf.get_variable(name=data_key + '_sample_list', shape=n_samples, dtype=tf.int32,
-                                                  trainable=False)
+                                                  trainable=False, initializer=tf.constant_initializer(np.arange(n_samples).astype(np.int32), dtype=np.int32))
+                    l_data['list'] = sample_list
                     samples = tf.tile(tf.random_shuffle(tf.range(l_data['x_shape'][0])),
                                       multiples=[int(np.ceil(n_samples / l_data['x_shape'][0]))])
                     l_data['shuffle'] = tf.assign(sample_list, samples[:n_samples])

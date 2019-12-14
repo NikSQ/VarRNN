@@ -38,7 +38,6 @@ class Experiment:
         self.create_rnn(labeled_data, l_data_config)
 
     def train(self, rnn_config, l_data_config, train_config, info_config, run):
-        print('what')
         self.rnn_config = rnn_config
         self.info_config = info_config
         self.train_config = train_config
@@ -108,7 +107,6 @@ class Experiment:
                     sess.run(self.l_data.data[key]['load'],
                              feed_dict={self.l_data.data[key]['x_ph']: self.data_dict[key]['x'],
                                         self.l_data.data[key]['y_ph']: self.data_dict[key]['y']})
-                    sess.run(self.l_data.data[key]['shuffle'])
 
                 self.timer.restart('Loading data')
 
