@@ -43,6 +43,8 @@ class RNN:
                 layer = LSTMLayer(layer_idx, self.is_training, self.tau, bilstm)
                 if layer_config['layer_type'] == 'blstm':
                     bilstm = True
+                else:
+                    bilstm = False
             elif layer_config['layer_type'] == 'input':
                 continue
             else:

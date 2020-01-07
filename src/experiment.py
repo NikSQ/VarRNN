@@ -233,6 +233,7 @@ class Experiment:
                 gradients.append(np.zeros(grad.shape))
 
             for sample_idx in range(n_grads_per_sample):
+                sess.run(self.rnn.c_arm_sample_op)
                 gradient = sess.run(tf_grads, feed_dict={self.l_data.batch_idx: 0, self.rnn.tau: (tau,)})
                 for idx, val in enumerate(gradient):
                     gradients[idx] += val
@@ -245,14 +246,15 @@ class Experiment:
             for idx in range(len(gradients)):
                 e[idx] += gradients[idx]
                 se[idx] += np.square(gradients[idx])
+            print(gradient_idx)
 
         for idx in range(len(e)):
             e[idx] /= n_gradients
-            se[idx] / n_gradients
+            se[idx] /= n_gradients
             var = tf_vars[idx]
             suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.train_config['task_id']) + '.npy'
-            np.save(file='../numerical_results/ge' + suffix, arr=e[idx])
-            np.save(file='../numerical_results/gsqe' + suffix, arr=se[idx])
+            np.save(file='../nr/ge' + suffix, arr=e[idx])
+            np.save(file='../nr/gsqe' + suffix, arr=se[idx])
 
 
     def optimistic_restore(self, sess, file):

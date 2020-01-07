@@ -208,6 +208,9 @@ class Weights:
         shape = self.var_dict[var_key].shape
 
         if self.w_config[var_key]['type'] == 'continuous':
+            if 'c_ar' in self.train_config['algorithm'] or 'c_arm' in self.train_config['algorithm'] or \
+                    'log_der' in self.train_config['algorithm']:
+                return self.var_dict[var_key + '_m']
             return self.var_dict[var_key + '_m'] + self.gauss.sample(shape) * tf.sqrt(self.var_dict[var_key + '_v'])
         elif self.w_config[var_key]['type'] == 'binary':
             if self.layer_config['parametrization'] == 'sigmoid':
