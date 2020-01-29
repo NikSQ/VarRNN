@@ -1,0 +1,66 @@
+2020-01-28 18:56:17.661360: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
+2020-01-28 18:56:17.667060: E tensorflow/stream_executor/cuda/cuda_driver.cc:397] failed call to cuInit: CUDA_ERROR_NO_DEVICE
+2020-01-28 18:56:17.667171: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:163] retrieving CUDA diagnostic information for host: sanderling
+2020-01-28 18:56:17.667231: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:170] hostname: sanderling
+2020-01-28 18:56:17.667324: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:194] libcuda reported version is: 430.64.0
+2020-01-28 18:56:17.667381: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:198] kernel reported version is: 430.64.0
+2020-01-28 18:56:17.667424: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:305] kernel version seems to match DSO: 430.64.0
+Traceback (most recent call last):
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1278, in _do_call
+    return fn(*args)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1263, in _run_fn
+    options, feed_dict, fetch_list, target_list, run_metadata)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1350, in _call_tf_sessionrun
+    run_metadata)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Nan in summary histogram for: lstm_0/wi_sa_1
+	 [[Node: lstm_0/wi_sa_1 = HistogramSummary[T=DT_FLOAT, _device="/job:localhost/replica:0/task:0/device:CPU:0"](lstm_0/wi_sa_1/tag, lstm_0/wi_sa/read)]]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "../exps/si_test.py", line 160, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config, run))
+  File "../src/experiment.py", line 142, in train
+    feed_dict={self.rnn.tau: (tau,), self.l_data.batch_idx: 0, self.rnn.is_training: False})
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 877, in run
+    run_metadata_ptr)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1100, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1272, in _do_run
+    run_metadata)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/client/session.py", line 1291, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Nan in summary histogram for: lstm_0/wi_sa_1
+	 [[Node: lstm_0/wi_sa_1 = HistogramSummary[T=DT_FLOAT, _device="/job:localhost/replica:0/task:0/device:CPU:0"](lstm_0/wi_sa_1/tag, lstm_0/wi_sa/read)]]
+
+Caused by op 'lstm_0/wi_sa_1', defined at:
+  File "../exps/si_test.py", line 160, in <module>
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config, run))
+  File "../src/experiment.py", line 79, in train
+    self.create_rnn(l_data, l_data_config)
+  File "../src/experiment.py", line 27, in create_rnn
+    self.rnn = RNN(l_data)
+  File "../src/rnn.py", line 43, in __init__
+    layer = LSTMLayer(layer_idx, self.is_training, self.tau, bilstm)
+  File "../src/lstm_layer.py", line 38, in __init__
+    self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape, tau)
+  File "../src/weights.py", line 91, in __init__
+    self.create_vars()
+  File "../src/weights.py", line 148, in create_vars
+    weight_summaries.append(tf.summary.histogram(var_key + '_sa', self.var_dict[var_key + '_sa']))
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/summary/summary.py", line 187, in histogram
+    tag=tag, values=values, name=scope)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/ops/gen_logging_ops.py", line 283, in histogram_summary
+    "HistogramSummary", tag=tag, values=values, name=name)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/op_def_library.py", line 787, in _apply_op_helper
+    op_def=op_def)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/util/deprecation.py", line 454, in new_func
+    return func(*args, **kwargs)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 3155, in create_op
+    op_def=op_def)
+  File "/clusterFS/home/student/kopp13/miniconda3/envs/tensorflow/lib/python3.5/site-packages/tensorflow/python/framework/ops.py", line 1717, in __init__
+    self._traceback = tf_stack.extract_stack()
+
+InvalidArgumentError (see above for traceback): Nan in summary histogram for: lstm_0/wi_sa_1
+	 [[Node: lstm_0/wi_sa_1 = HistogramSummary[T=DT_FLOAT, _device="/job:localhost/replica:0/task:0/device:CPU:0"](lstm_0/wi_sa_1/tag, lstm_0/wi_sa/read)]]
+
