@@ -19,7 +19,7 @@ except KeyError:
 id1 = int(task_id / 2)
 id2 = task_id % 2
 
-runs = 4
+runs = 2
 eval_grad = False
 incremental_learning = False
 save_results=True
@@ -29,22 +29,23 @@ datam = None
 #sampling_op = [['c_reparam', 'gste'], ['c_reparam'], ['l_reparam'], ['l_reparam'], ['l_reparam', 'ste']][task_id % 5]
 #taus = [2., .05, .05, .05, .05, 2.] * 2
 #tau = taus[task_id]
-sampling_op = ['l_reparam', 'gste']
+sampling_op = ['l_reparam', 'ste']
 #tau = np.logspace(-1, 1, 7)[task_id % 7]
-tau = 2.
+tau = 1.5
 
-discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'], ['c', 'o'], ['i', 'c', 'o']][task_id]
+discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'], ['c', 'o'], ['i', 'c', 'o']][task_id % 8]
 #batchnorm = ['fc', 'x+fc', 'h+fc', 'x+h+fc', 'none'][task_id]
 #discrete_act = [[], [], [], ['c', 'o'], ['c', 'o']]
 discrete_act = []
 batchnorm = []
 norm_type = 'none'
-lr = .05
+lr = [.03, .003][int(task_id / 8)]
 #lr_tau = [2000, 2000, 2000, 4000, 4000][task_id % 5] * 4
 #epochs = [2500, 2500, 2500, 5000, 5000][task_id % 5] * 4
-lr_tau = 25000
-epochs = 28000
+lr_tau = 7000
+epochs = 8000
 layout = [30, 30]
+weight_type='ternary'
 
 filename = 'exp'
 parametrization = 'sigmoid'
@@ -73,8 +74,8 @@ priors = [[0.2, 0.6, 0.2],[0.1, 0.8, 0.1]]
 input_config = {'layer_type': 'input'}
 b_config = {'init_m': 'zeros', 'prior_m': 0., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
 bf_config = {'init_m': 'ones', 'prior_m': 1., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
-w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
-w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
+#w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
+w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': weight_type, 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
 
 hidden_2_config = {'layer_type': 'lstm',
                    'var_scope': 'lstm_1',
