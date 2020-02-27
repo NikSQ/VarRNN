@@ -1,0 +1,168 @@
+import sys
+import os
+import tensorflow as tf
+import numpy as np
+import copy
+
+sys.path.append('../')
+
+from src.experiment import Experiment
+from src.data.t_metrics import save_to_file, print_results
+
+
+try:
+    task_id = int(os.environ['SLURM_ARRAY_TASK_ID'])
+except KeyError:
+    print('NO SLURM TASK ID FOUND')
+    print('Using ID 0 instead')
+    task_id = 0
+id1 = int(task_id / 2)
+id2 = task_id % 2
+
+runs = 1
+eval_grad = False
+incremental_learning = False
+save_results=True
+datam = None
+
+#samplingop = ['l_sampling', 'g_sampling', 'l_sampling', 'l_sampling'] * 2
+#sampling_op = [['c_reparam', 'gste'], ['c_reparam'], ['l_reparam'], ['l_reparam'], ['l_reparam', 'ste']][task_id % 5]
+#taus = [2., .05, .05, .05, .05, 2.] * 2
+#tau = taus[task_id]
+sampling_op = ['l_reparam', 'ste']
+#tau = np.logspace(-1, 1, 7)[task_id % 7]
+tau = 1.5
+
+#discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'], ['c', 'o'], ['i', 'c', 'o']][task_id % 8]
+discrete_act = [['i'], ['c', 'o'], ['i', 'c', 'o']][int(task_id / 4)]
+
+batchnorm = []
+norm_type = 'none'
+lr = [.3, .1, .03, .01][int(task_id % 4)]
+#lr_tau = [2000, 2000, 2000, 4000, 4000][task_id % 5] * 4
+#epochs = [2500, 2500, 2500, 5000, 5000][task_id % 5] * 4
+lr_tau = 9000
+epochs = 10000
+layout = [70, 70]
+#weight_type=['ternary', 'binary'][int(task_id / 8)]
+weight_type = 'ternary'
+
+filename = 'exp'
+parametrization = 'sigmoid'
+lr_adapt = False
+
+n_samples_per_grad = 100
+n_grads = 100000
+
+labelled_data_config = {'dataset': 'sign',
+                        'remove_bias': False,
+                        'tr': {'in_seq_len': 70,
+                               'minibatch_enabled': False,
+                               'minibatch_size': 1000,
+                               'max_truncation': 10},
+                        'va': {'in_seq_len': 70,
+                               'minibatch_enabled': False,
+                               'minibatch_size': 1000,
+                               'max_truncation': 10},
+                        'te': {'in_seq_len': 70,
+                               'minibatch_enabled': False,
+                               'minibatch_size': 1000,
+                               'max_truncation': 10}}
+
+
+priors = [[0.2, 0.6, 0.2],[0.1, 0.8, 0.1]]
+input_config = {'layer_type': 'input'}
+b_config = {'init_m': 'zeros', 'prior_m': 0., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
+bf_config = {'init_m': 'ones', 'prior_m': 1., 'init_v': -4.5, 'prior_v': 0., 'type': 'continuous'}
+#w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': 'ternary', 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
+w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': weight_type, 'pmin': .01, 'pmax':.99, 'p0min': .05, 'p0max': .95}
+
+hidden_2_config = {'layer_type': 'lstm',
+                   'var_scope': 'lstm_1',
+                   'parametrization': parametrization,
+                   'tau': tau,
+                   'discrete_act': discrete_act,
+                   'lr_adapt': lr_adapt,
+                   'wf': w_config,
+                   'bf': bf_config,
+                   'wi': w_config,
+                   'bi': b_config,
+                   'wc': w_config,
+                   'bc': b_config,
+                   'wo': w_config,
+                   'bo': b_config}
+
+hidden_1_config = copy.deepcopy(hidden_2_config)
+hidden_1_config['var_scope'] = 'lstm_0'
+
+output_config = {'layer_type': 'fc',
+                 'var_scope': 'output_layer',
+                 'parametrization': parametrization,
+                 'tau': tau,
+                 'lr_adapt': lr_adapt,
+                 'regularization': {'mode': None,
+                                    'strength': 0.02},
+                 'w': w_config,
+                 'b': b_config}
+# 22 - 96
+rnn_config = {'layout': [22, layout[0], layout[1], 96],
+              'act_disc': discrete_act,
+              'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
+              'gradient_clip_value': .5,
+              'output_type': 'classification',
+              'data_multiplier': datam} 
+
+
+training_config = {'learning_rate': lr, 
+                   'learning_rate_tau': lr_tau,
+                   'tau': tau,
+                   'algorithm': sampling_op,
+                   'pretraining': {'enabled': True, 'path': 'si_model', 'sec_path': 'si_ter'},
+                   'batchnorm': {'modes': batchnorm,
+                                 'type': norm_type,
+                                 'momentum': .98,
+                                 'tau': 1},
+                   'var_reg': 0.,
+                   'ent_reg': 0.,
+                   'dir_reg': 0., 
+                   'mode': {'name': 'inc_lengths',
+                            'in_seq_len': [70, 70],
+                            'max_truncation': [10, 10],
+                            'min_errors': [0., 0.],
+                            'max_epochs': [5, 5]},
+                   'task_id': task_id}
+
+if incremental_learning is False:
+    training_config['mode'] = {'name': 'classic', 'min_error': 0., 'max_epochs': epochs} 
+
+
+info_config = {'calc_performance_every': 1,
+               'cell_access': False,
+               'gradient': {'evaluate': eval_grad,
+                            'samples': n_grads,
+                            'grad_per_sample': n_samples_per_grad},
+               'save_weights': {'save_every': np.inf,
+                                'save_best': False,
+                                'path': '../m/w/' + filename + '_' + str(task_id)},
+               'tensorboard': {'enabled': save_results, 'path': '../si/tb/' + filename + '_' + str(task_id), 'period': 200,
+                               'weights': True, 'gradients': False, 'results': True, 'acts': True, 'single_acts': 1},
+               'profiling': {'enabled': False, 'path': '../profiling/' + filename}, 
+               'timer': {'enabled': False}}
+               
+
+result_config = {'save_results': save_results,
+                 'path': '../si/nr/' + filename + '_' + str(task_id),
+                 'plot_results': False,
+                 'print_final_stats': True}
+
+result_dicts = []
+for run in range(runs):
+    training_config['pretraining']['path'] = 'prob_si_ter' + str(run) 
+    experiment = Experiment()
+    result_dicts.append(experiment.train(rnn_config, labelled_data_config, training_config, info_config, run))
+print('----------------------------')
+if result_config['save_results']:
+    save_to_file(result_dicts, result_config['path'])
+print_results(result_dicts)
+
+
