@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def extract_seqs(x, y, seqlens, data_config, remove_bias=False):
+def extract_seqs(x, y, seqlens, data_config, remove_bias=False, y_seqlen=None):
     in_seq_len = data_config['in_seq_len']
     seqlens = seqlens.astype(np.int32)
 
@@ -32,7 +32,11 @@ def extract_seqs(x, y, seqlens, data_config, remove_bias=False):
     n_sequences = sum(len(extraction_range) != 0 for extraction_range in seq_extraction_ranges)
     n_discarded_samples = sum([len(extraction_range) == 0 for extraction_range in seq_extraction_ranges])
     x_shape = (n_sequences, x.shape[1], in_seq_len)
-    y_shape = (n_sequences, y.shape[1])
+    if y_seqlen is not None:
+        y_shape = (n_sequences, y.shape[1], y.shape[2])
+        y_T = np.zeros((n_sequences,))
+    else:
+        y_shape = (n_sequences, y.shape[1])
 
     x_seqs = np.zeros(x_shape)
     y_seqs = np.zeros(y_shape)
@@ -44,22 +48,20 @@ def extract_seqs(x, y, seqlens, data_config, remove_bias=False):
         seq_len = len(extraction_range)
         if len(extraction_range) is not 0:
             x_seqs[seq_idx, :, -seq_len:] = np.transpose(x[sample_idx, :, extraction_range])
-            y_seqs[seq_idx] = y[sample_idx, :, -1]
+            if y_seqlen is None:
+                y_seqs[seq_idx] = y[sample_idx, :, -1]
+            else:
+                y_seqs[seq_idx, :, :y_seqlen[sample_idx]] = y[sample_idx, :, -y_seqlen[sample_idx]:]
             end_time[seq_idx] = seq_len - 1
-            #repeats = int(np.ceil(float(in_seq_len) / float(seq_len)))
-            #for repeat in range(1, repeats):
-                #if repeat != repeats - 1:
-                    #x_seqs[seq_idx, :, repeat * seq_len:(repeat + 1) * seq_len] = x_seqs[seq_idx, :, :seq_len]
-                #else:
-                    #if in_seq_len % seq_len == 0:
-                        #x_seqs[seq_idx, :, repeat * seq_len:] = x_seqs[seq_idx, :, :(seq_len)]
-                    #else:
-                        #x_seqs[seq_idx, :, repeat * seq_len:] = x_seqs[seq_idx, :, :(in_seq_len % seq_len)]
             seq_idx += 1
     unique, counts = np.unique(np.argmax(y_seqs, axis=1), return_counts=True)
 
     if remove_bias is False:
-        return x_seqs, y_seqs, end_time
+        if y_seqlen is None:
+            return x_seqs, y_seqs, end_time
+        else:
+            return x_seqs, y_seqs, y_seqlen
+
     n_samples_per_label = np.min(counts)
     n_tot_samples = n_samples_per_label * len(counts)
     x_shape = (n_tot_samples, x.shape[1], in_seq_len)

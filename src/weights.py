@@ -84,6 +84,7 @@ class Weights:
         self.sample_op = None
         self.init_op = None
         self.tau = tau
+        self.epsilon = .00001
 
         for var_key in var_keys:
             self.w_config[var_key] = copy.deepcopy(layer_config[var_key])
@@ -400,7 +401,7 @@ class Weights:
                 m = tf.nn.tanh(self.var_dict[var_key + '_sb'] / 2)
             elif self.layer_config['parametrization'] == 'logits':
                 m = tf.nn.tanh((self.var_dict[var_key + '_log_pos'] - self.var_dict[var_key + '_log_neg'])/2)
-            v = 1 - tf.square(m)
+            v = 1 - tf.square(m) + .0001
         elif self.w_config[var_key]['type'] == 'ternary':
             if self.layer_config['parametrization'] == 'sigmoid':
                 prob_not_zero = 1. - tf.nn.sigmoid(self.var_dict[var_key + '_sa'])
@@ -410,7 +411,7 @@ class Weights:
                                        self.var_dict[var_key + '_log_pos']])
                 prob_not_zero = probs[0] + probs[2]
                 m = (probs[2] - probs[0]) * prob_not_zero
-            v = prob_not_zero - tf.square(m)
+            v = prob_not_zero - tf.square(m) + .0001
         else:
             raise Exception()
         return m, v
@@ -507,8 +508,12 @@ class Weights:
             b_m, b_v = self.get_adapted_stats(w_var_key)
 
         if self.layer_config['lr_adapt'] is False:
-            mean = tf.matmul(x_m, w_m) + b_m
-            std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v)
+            if self.layer_config['bias_enabled']:
+                mean = tf.matmul(x_m, w_m) + b_m
+                std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v + self.epsilon)
+            else:
+                mean = tf.matmul(x_m, w_m)
+                std = tf.sqrt(tf.matmul(tf.square(x_m,), w_v) + self.epsilon)
             if layer_norm:
                 m, v = tf.nn.moments(mean, axes=1)
                 std = tf.divide(std, tf.expand_dims(tf.sqrt(v), axis=1) + .005)
@@ -540,7 +545,7 @@ class Weights:
         else:
             if self.layer_config['lr_adapt']:
                 raise Exception('not implemented for activation function sampling')
-            prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2)))
+            prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2) + .000001))
             prob_1 = 0.0001 + (0.9999 - 0.0001) * prob_1
             reparam_args = [tf.log(1-prob_1) + self.sample_gumbel(shape), tf.log(prob_1) + self.sample_gumbel(shape)]
             gumbel_output = tf.nn.tanh((reparam_args[1] - reparam_args[0]) / self.tau * 2)
@@ -595,10 +600,10 @@ class Weights:
         reparam_args = []
         if type(probs) is list:
             for prob in probs:
-                reparam_args.append(tf.log(prob) + self.sample_gumbel(shape))
+                reparam_args.append(tf.log(prob + .00001) + self.sample_gumbel(shape))
         else:
             for idx in range(probs.shape[0]):
-                reparam_args.append(tf.log(probs[idx]) + self.sample_gumbel(shape))
+                reparam_args.append(tf.log(probs[idx] + .00001) + self.sample_gumbel(shape))
         return reparam_args
 
 

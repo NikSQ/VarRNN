@@ -7,16 +7,19 @@ from src.global_variable import get_train_config, get_info_config, get_rnn_confi
 
 
 class LSTMLayer:
-    def __init__(self, layer_idx, is_training, tau, bidirectional_inp=False):
+    def __init__(self, layer_idx, is_training, tau, bidirectional_inp=False, prev_neurons=None):
         self.rnn_config = get_rnn_config()
         self.train_config = get_train_config()
         self.layer_config = self.rnn_config['layer_configs'][layer_idx]
-        if bidirectional_inp:
-            self.w_shape = (self.rnn_config['layout'][layer_idx-1]*2 + self.rnn_config['layout'][layer_idx],
-                            self.rnn_config['layout'][layer_idx])
+        if prev_neurons is None:
+            if bidirectional_inp:
+                self.w_shape = (self.rnn_config['layout'][layer_idx-1]*2 + self.rnn_config['layout'][layer_idx],
+                                self.rnn_config['layout'][layer_idx])
+            else:
+                self.w_shape = (self.rnn_config['layout'][layer_idx-1] + self.rnn_config['layout'][layer_idx],
+                                self.rnn_config['layout'][layer_idx])
         else:
-            self.w_shape = (self.rnn_config['layout'][layer_idx-1] + self.rnn_config['layout'][layer_idx],
-                            self.rnn_config['layout'][layer_idx])
+            self.w_shape = (prev_neurons + self.rnn_config['layout'][layer_idx], self.rnn_config['layout'][layer_idx])
         self.b_shape = (1, self.w_shape[1])
         self.cell_access_mat = []
         self.is_training = is_training
@@ -37,7 +40,8 @@ class LSTMLayer:
             var_keys = ['wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape, tau)
 
-    def create_pfp(self, x_m, x_v, mod_layer_config, init):
+    # TODO: Update PFP (currently does not work)
+    def create_pfp(self, x_m, x_v, mod_layer_config, init, init_cell=None):
         if init:
             cell_shape = (tf.shape(x_m)[0], self.b_shape[1])
             self.weights.tensor_dict['cs_m'] = tf.zeros(cell_shape)
@@ -75,10 +79,13 @@ class LSTMLayer:
         return self.weights.tensor_dict['co_m'], self.weights.tensor_dict['co_v']
 
     # Local reparametrization trick
-    def create_l_sampling_pass(self, x, mod_layer_config, time_idx, init):
+    def create_l_sampling_pass(self, x, mod_layer_config, time_idx, init, init_cell=None):
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
-            self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
+            if init_cell is not None:
+                self.weights.tensor_dict['cs'] = init_cell
+            else:
+                self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
         co = self.weights.tensor_dict['co']
@@ -120,17 +127,20 @@ class LSTMLayer:
         else:
             self.weights.tensor_dict['co'] = tf.multiply(tf.tanh(self.weights.tensor_dict['cs']), o)
 
-        return self.weights.tensor_dict['co']
+        return self.weights.tensor_dict['co'], self.weights.tensor_dict['cs']
 
     # Global reparametrization trick
-    def create_g_sampling_pass(self, x, mod_layer_config, time_idx, init, second_arm_pass=False, data_key=None):
+    def create_g_sampling_pass(self, x, mod_layer_config, time_idx, init, second_arm_pass=False, data_key=None, init_cell=None):
         if len(self.rnn_config['act_disc']) != 0:
             raise Exception('classic reparametrization does not work with discrete activations')
 
         if init:
             self.weights.create_tensor_samples(second_arm_pass=second_arm_pass, data_key=data_key)
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
-            self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
+            if init_cell is not None:
+                self.weights.tensor_dict['cs'] = init_cell
+            else:
+                self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
         co = self.weights.tensor_dict['co']
@@ -163,12 +173,15 @@ class LSTMLayer:
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
         self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
-        return self.weights.tensor_dict['co']
+        return self.weights.tensor_dict['co'], self.weights.tensor_dict['cs']
 
-    def create_var_fp(self, x, time_idx, init):
+    def create_var_fp(self, x, time_idx, init, init_cell=None):
         if init:
             cell_shape = (tf.shape(x)[0], self.b_shape[1])
-            self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
+            if init_cell is not None:
+                self.weights.tensor_dict['cs'] = init_cell
+            else:
+                self.weights.tensor_dict['cs'] = tf.zeros(cell_shape)
             self.weights.tensor_dict['co'] = tf.zeros(cell_shape)
 
         co = self.weights.tensor_dict['co']
@@ -231,5 +244,5 @@ class LSTMLayer:
             self.weights.tensor_dict['co'] = tf.multiply(o, self.weights.tensor_dict['cs'])
         else:
             self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
-        return self.weights.tensor_dict['co']
+        return self.weights.tensor_dict['co'], self.weights.tensor_dict['cs']
 

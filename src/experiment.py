@@ -46,7 +46,7 @@ class Experiment:
 
         self.timer = Timer(info_config['timer']['enabled'])
         print_config(rnn_config, train_config, l_data_config)
-        temp_model_path = '../models/temp' + str(train_config['task_id'])
+        temp_model_path = '../models/temp' + info_config['filename'] + '_' + str(train_config['task_id'])
         pretrained_model_path = '../tr_models/' + str(train_config['pretraining']['path'])
 
         if train_config['mode']['name'] == 'inc_lengths':
