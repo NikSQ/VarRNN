@@ -548,7 +548,7 @@ class Weights:
             prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2) + .000001))
             prob_1 = 0.0001 + (0.9999 - 0.0001) * prob_1
             reparam_args = [tf.log(1-prob_1) + self.sample_gumbel(shape), tf.log(prob_1) + self.sample_gumbel(shape)]
-            gumbel_output = tf.nn.tanh((reparam_args[1] - reparam_args[0]) / self.tau * 2)
+            gumbel_output = tf.nn.tanh((reparam_args[1] - reparam_args[0]) / (self.tau * 2))
 
             if 'ste' in self.train_config['algorithm']:
                 exact_output = -1 + 2 * tf.cast(tf.argmax(reparam_args), dtype=tf.float32)

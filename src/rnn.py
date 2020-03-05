@@ -211,12 +211,11 @@ class RNN:
             layer_input = tf.concat([a_context, previous_decoder_output], axis=1)
             for layer_idx, layer in enumerate(self.layers[4:], 5):
                 if bayesian is False:
-                    layer_input, s = layer.create_var_fp(layer_input, None, layer_idx==5 and time_idx==0)
+                    layer_input, s = layer.create_var_fp(layer_input, None, time_idx==0)
                 elif 'l_reparam' in self.train_config['algorithm']:
-                    layer_input, s = layer.create_l_sampling_pass(layer_input, None, None, layer_idx==5 and time_idx==0)
+                    layer_input, s = layer.create_l_sampling_pass(layer_input, None, None, time_idx==0)
                 elif 'c_reparam' in self.train_config['algorithm']:
-                    layer_input, s = layer.create_g_sampling_pass(layer_input, None, None, layer_idx==5 and time_idx==0)
-
+                    layer_input, s = layer.create_g_sampling_pass(layer_input, None, None, time_idx==0)
             previous_decoder_output = tf.nn.softmax(layer_input, axis=1)
             dec_output.append(layer_input)
         return dec_output
