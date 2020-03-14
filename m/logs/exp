@@ -24,13 +24,15 @@ save_results=True
 datam = None
 #sampling_op = [['c_reparam', 'gste'], ['c_reparam'], ['l_reparam'], ['l_reparam'], ['l_reparam', 'ste']][task_id % 5]
 #sampling_op = [['c_reparam', 'gste'], ['l_reparam', 'ste']][task_id]
-sampling_op = ['l_reparam', 'ste']
+sampling_op = ['c_reparam', 'ste']
 
-weight_type=['ternary', 'binary'][int(task_id / 8)]
+#weight_type=['ternary', 'binary'][int(task_id / 8)]
+weight_type = 'ternary'
 forward_passes = 10
 
 #batchnorm = ['fc', 'x+fc', 'h+fc', 'x+h+fc', 'none'][task_id]
 discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'], ['c', 'o'], ['i', 'c','o']][int(task_id % 8)]
+act_bins = [2.,3.,4.,8.][int(task_id / 8)]
 #discrete_act = [['i'], ['c', 'o'], ['i', 'c', 'o']][int(task_id / 4)]
 
 tau = 1.5
@@ -42,9 +44,9 @@ batchnorm_type = 'none'
 #epochs = epochs[task_id]
 layout = [40, 40]
 
-lr = .002
-lr_tau = [9000, 14000][int(task_id / 8)]
-epochs = [10000, 15000][int(task_id / 8)]
+lr_tau = 9000
+lr = .01
+epochs = 10000
 
 n_samples_per_grad = 1
 n_grads = 30
@@ -85,6 +87,7 @@ w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': weight_ty
 
 hidden_2_config = {'layer_type': 'lstm',
                    'var_scope': 'lstm_1',
+                   'bias_enabled': True,
                    'parametrization': parametrization,
                    'tau': tau,
                    'discrete_act': discrete_act,
@@ -103,6 +106,7 @@ hidden_1_config['var_scope'] = 'lstm_0'
 hidden_1_config['layer_type'] = 'lstm'
 
 output_config = {'layer_type': 'fc',
+                 'bias_enabled': True,
                  'var_scope': 'output_layer',
                  'parametrization': parametrization,
                  'tau': tau,
@@ -113,7 +117,9 @@ output_config = {'layer_type': 'fc',
                  'b': b_config}
 
 rnn_config = {'layout': [4, layout[0], layout[1], 10],
+              'architecture': 'casual',
               'act_disc': discrete_act,
+              'act_bins': act_bins,
               'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
