@@ -16,12 +16,10 @@ except KeyError:
     print('NO SLURM TASK ID FOUND')
     print('Using ID 0 instead')
     task_id = 0
-id1 = int(task_id / 2)
-id2 = task_id % 2
 
 runs = 6
 eval_grad = False
-incremental_learning = True
+incremental_learning = False
 save_results=True
 datam = None
 
@@ -34,9 +32,8 @@ tau = 1.5
 
 #tau = np.logspace(-1, 1, 7)[task_id % 7]
 
-#discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'], ['c', 'o'], ['i', 'c', 'o']][task_id % 8]
-#discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'],['c', 'o'], ['i', 'c', 'o']][int(task_id % 8)]
-discrete_act = []
+discrete_act = [[], ['i'], ['c'], ['o'], ['i', 'c'], ['i', 'o'],['c', 'o'], ['i', 'c', 'o']][int(task_id % 8)]
+act_bins = [2.,3., 4., 8.][int(task_id / 8) % 4]
 
 batchnorm = []
 norm_type = 'none'
@@ -45,11 +42,12 @@ lr = .01
 
 #lr_tau = [2000, 2000, 2000, 4000, 4000][task_id % 5] * 4
 #epochs = [2500, 2500, 2500, 5000, 5000][task_id % 5] * 4
-lr_tau = 9800
-epochs = 10000
+lr_tau = 18000
+epochs = 20000
 layout = [70, 70]
 #weight_type=['ternary', 'binary'][int(task_id / 8)]
-weight_type = ['ternary', 'binary'][int(task_id / 8)]
+#weight_type = ['ternary', 'binary'][int(task_id / 32)]
+weight_type = 'ternary'
 
 filename = 'exp'
 parametrization = 'sigmoid'
@@ -83,6 +81,7 @@ w_config = {'parametrization': 'sigmoid', 'priors': priors[1], 'type': weight_ty
 
 hidden_2_config = {'layer_type': 'lstm',
                    'var_scope': 'lstm_1',
+                   'bias_enabled': True,
                    'parametrization': parametrization,
                    'tau': tau,
                    'discrete_act': discrete_act,
@@ -101,6 +100,7 @@ hidden_1_config['var_scope'] = 'lstm_0'
 
 output_config = {'layer_type': 'fc',
                  'var_scope': 'output_layer',
+                 'bias_enabled': True,
                  'parametrization': parametrization,
                  'tau': tau,
                  'lr_adapt': lr_adapt,
@@ -110,16 +110,18 @@ output_config = {'layer_type': 'fc',
                  'b': b_config}
 # 22 - 96
 rnn_config = {'layout': [22, layout[0], layout[1], 96],
+              'architecture': 'casual',
               'act_disc': discrete_act,
+              'act_bins': act_bins,
               'layer_configs': [input_config, hidden_1_config, hidden_2_config, output_config],
               'gradient_clip_value': .5,
               'output_type': 'classification',
               'data_multiplier': datam} 
 
-epochs = [[20, 80, 400, 3000],
-         [20, 80, 700, 2700],
-         [50, 150, 700, 2600],
-         [50, 150, 1000, 2300]]
+#epochs = [[20, 80, 400, 3000],
+         #[20, 80, 700, 2700],
+         #[50, 150, 700, 2600],
+         #[50, 150, 1000, 2300]]
 
 training_config = {'learning_rate': lr, 
                    'learning_rate_tau': lr_tau,
@@ -137,7 +139,7 @@ training_config = {'learning_rate': lr,
                             'in_seq_len': [5, 10, 30, 70],
                             'max_truncation': [75, 70, 50, 10],
                             'min_errors': [0., 0., 0., 0.],
-                            'max_epochs': epochs[task_id]},
+                            'max_epochs': 1},
                    'task_id': task_id}
 
 if incremental_learning is False:
