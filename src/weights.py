@@ -35,19 +35,17 @@ def get_xavier_initializer(shape):
     init_vals = np.random.randn(shape[0], shape[1]) * np.sqrt(2/sum(shape))
     return tf.constant_initializer(init_vals)
 
+def get_init_bin_prob(weight, w_config):
+    return tf.clip_by_value(.5 * (1. + weight), w_config['pmin'], w_config['pmax'])
 
-# Return p(w=0) for initializing ternary weights, given a continuous weight
-def get_init_zero_prob(weight, w_config):
-    prob_0 = w_config['pmax'] - (w_config['pmax'] - w_config['pmin']) * tf.abs(weight)
-    prob_0 = tf.clip_by_value(prob_0, w_config['pmin'], w_config['pmax'])
-    return prob_0
-
-
-# Return p(w=1) for initializing ternary weights, given a continuous weight
-def get_init_one_prob(prob_0, weight, w_config):
-    prob_1 = 0.5 * (1. + tf.divide(weight, 1. - prob_0))
-    prob_1 = tf.clip_by_value(prob_1, w_config['pmin'], w_config['pmax'])
-    return prob_1
+def get_init_ter_probs(weight, w_config):
+    prob_0 = tf.clip_by_value(1 - tf.abs(weight), w_config['pmin'], w_config['pmax'])
+    prob_p = tf.clip_by_value(.5 * (1 - prob_0 + weight), w_config['pmin'], w_config['pmax'])
+    prob_n = tf.clip_by_value(1 - prob_0 - prob_p, w_config['pmin'], w_config['pmax'])
+    quotient = prob_0 + prob_p + prob_n
+    prob_0 = tf.divide(prob_0, quotient)
+    prob_p = tf.divide(prob_p, quotient)
+    return prob_0, prob_p 
 
 # Returns the probabilities p(w=-1), p(w=1) for sigmoid parametrization
 def get_binary_probs(sb):
@@ -311,7 +309,7 @@ class Weights:
             elif self.w_config[var_key]['type'] == 'binary':
                 if var_key.startswith('w'):
                     init_weights = self.normalize_weights(var_key)
-                prob_1 = get_init_one_prob(0., init_weights, self.w_config[var_key])
+                prob_1 = get_init_bin_prob(init_weights, self.w_config[var_key])
                 if self.layer_config['parametrization'] == 'sigmoid':
                     init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log(tf.divide(1. - prob_1, prob_1))))
                 elif self.layer_config['parametrization'] == 'logits':
@@ -320,15 +318,15 @@ class Weights:
             elif self.w_config[var_key]['type'] == 'ternary':
                 if var_key.startswith('w'):
                     init_weights = self.normalize_weights(var_key)
-                prob_0 = get_init_zero_prob(init_weights, self.w_config[var_key])
-                prob_1 = get_init_one_prob(prob_0, init_weights, self.w_config[var_key])
+                prob_0, prob_1 = get_init_ter_probs(init_weights, self.w_config[var_key])
                 if self.layer_config['parametrization'] == 'sigmoid':
                     init_ops.append(tf.assign(self.var_dict[var_key + '_sa'], -tf.log(tf.divide(1. - prob_0, prob_0))))
-                    init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log(tf.divide(1. - prob_1, prob_1))))
+                    cond_prob = tf.divide(prob_1, 1 - prob_0)
+                    init_ops.append(tf.assign(self.var_dict[var_key + '_sb'], -tf.log(tf.divide(1. - cond_prob, cond_prob))))
                 elif self.layer_config['parametrization'] == 'logits':
                     init_ops.append(tf.assign(self.var_dict[var_key + '_log_zer'], tf.zeros_like(self.var_dict[var_key])))
                     init_ops.append(tf.assign(self.var_dict[var_key + '_log_pos'], tf.log(tf.divide(prob_1, prob_0))))
-                    init_ops.append(tf.assign(self.var_dict[var_key + '_log_neg'], tf.log(tf.divide((1 - prob_1), prob_0))))
+                    init_ops.append(tf.assign(self.var_dict[var_key + '_log_neg'], tf.log(tf.divide((1 - prob_1 - prob_0), prob_0))))
             else:
                 raise Exception('weight type {} not understood'.format(self.w_config[var_key]['type']))
         self.init_op = tf.group(*init_ops)

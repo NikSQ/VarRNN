@@ -220,12 +220,12 @@ class Experiment:
         tf_vars = []
         e = []
         se = []
-        for tuple in self.rnn.gradients:
-            if tuple is not None:
-                tf_grads.append(tuple[0])
-                tf_vars.append(tuple[1])
-                e.append(np.zeros(tuple[0].shape))
-                se.append(np.zeros(tuple[0].shape))
+        for grad_tuple in self.rnn.gradients:
+            if grad_tuple is not None and grad_tuple[0] is not None:
+                tf_grads.append(grad_tuple[0])
+                tf_vars.append(grad_tuple[1])
+                e.append(np.zeros(grad_tuple[0].shape))
+                se.append(np.zeros(grad_tuple[0].shape))
 
         for gradient_idx in range(n_gradients):
             gradients = []
