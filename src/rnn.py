@@ -478,10 +478,11 @@ class RNN:
                 if var.name[:var.name.index('/')] == 'output_layer':
                     vars3.append(var)
 
-            self.gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
+            gradients = tf.gradients(vfe + dir_reg + var_reg + ent_reg, vars1 + vars2 + vars3)
+            self.gradients = zip(gradients, vars1 + vars2 + vars3)
 
             gradient_summaries = []
-            for gradient, var in zip(self.gradients, vars1+vars2+vars3):
+            for gradient, var in zip(gradients, vars1+vars2+vars3):
                 if gradient is not None:
                     gradient_summaries.append(tf.summary.histogram('g_' + var.name, gradient))
             self.gradient_summaries = tf.summary.merge(gradient_summaries)
@@ -489,7 +490,7 @@ class RNN:
             clipped_gradients = [grad if grad is None else
                                  tf.clip_by_value(grad, -self.rnn_config['gradient_clip_value'],
                                                   self.rnn_config['gradient_clip_value'])
-                                 for grad in self.gradients]
+                                 for grad in gradients]
 
             grads1 = clipped_gradients[:len(vars1)]
             grads2 = clipped_gradients[len(vars1):len(vars1)+len(vars2)]
@@ -547,7 +548,7 @@ class RNN:
     def create_s_evaluation_graph(self, data_key):
         with tf.variable_scope(data_key + '_s'):
             if self.rnn_config['architecture'] == 'encoder':
-                self.create_encoder_decoder_graph(data_key, None, bayesian=False)
+                self.create_encoder_decoder_graph(data_key, None, bayesian=True)
             elif self.rnn_config['architecture'] == 'casual':
                 self.create_rnn_graph(data_key, None, bayesian=False)
             else:

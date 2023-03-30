@@ -184,7 +184,6 @@ class LSTMLayer:
             o_act = tf.contrib.layers.layer_norm(o_act)
 
         if 'i' in self.rnn_config['act_disc']:
-            print(self.rnn_config['act_bins'])
             i = disc_sigmoid(i_act, self.rnn_config['act_bins'])
         else:
             i = tf.sigmoid(i_act)
