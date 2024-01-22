@@ -72,11 +72,11 @@ def convert_to_array(result_dicts, process_key, metric_keys):
 
 
 class TMetrics:
-    def __init__(self, data_config, gpu_dataset, is_training, tau):
+    def __init__(self, l_data_config, l_data, is_training, tau):
         self.is_training = is_training
         self.tau = tau
-        self.data_config = data_config
-        self.gpu_dataset = gpu_dataset
+        self.l_data_config = l_data_config
+        self.l_data = l_data
         self.result_dict = {'epoch': list()}
         self.s_batchnorm_stats_op = None
         self.b_batchnorm_stats_op = None
@@ -97,8 +97,8 @@ class TMetrics:
     # Retrieves metrics of the performance of the processes which were added using add_vars()
     # A process is a method of operating a RNN (bayesian or sampled weights) combined with a dataset
     def retrieve_results(self, sess, epoch, tau, is_pretrain=False):
-        #if get_train_config()['batchnorm']:
-            #self.retrieve_s_results(sess, 'tr_s', is_pretrain, True)
+        if get_train_config()['batchnorm']:
+            self.retrieve_s_results(sess, 'tr_s', is_pretrain, True)
 
         for process_key in self.op_dict.keys():
             if process_key.endswith('_s') and process_key is not 'tr_s':
@@ -114,15 +114,15 @@ class TMetrics:
         cum_vfe = 0
         cum_acc = 0
         elogl = 0
-        for minibatch_idx in range(self.gpu_dataset.data[data_key]['n_minibatches']):
+        for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
             vfe, kl, elogl, acc = sess.run(self.op_dict[process_key],
-                                             feed_dict={self.tau: tau, self.gpu_dataset.batch_idx: minibatch_idx,
+                                             feed_dict={self.tau: (tau,), self.l_data.batch_idx: minibatch_idx,
                                                         self.is_training: is_training})
             cum_vfe += vfe
             cum_acc += acc
             elogl += elogl
-        acc = cum_acc / self.gpu_dataset.data[data_key]['n_minibatches']
-        vfe = cum_vfe / self.gpu_dataset.data[data_key]['n_minibatches']
+        acc = cum_acc / self.l_data.data[data_key]['n_minibatches']
+        vfe = cum_vfe / self.l_data.data[data_key]['n_minibatches']
 
         self.result_dict[process_key]['vfe'].append(vfe)
         self.result_dict[process_key]['kl'].append(kl)
@@ -136,15 +136,15 @@ class TMetrics:
         cum_acc = 0
         if is_pretrain is False:
             sess.run(self.op_dict[process_key]['sample'])
-        for minibatch_idx in range(self.gpu_dataset.data[data_key]['n_minibatches']):
+        for minibatch_idx in range(self.l_data.data[data_key]['n_minibatches']):
             loss, acc = sess.run(self.op_dict[process_key]['metrics'],
-                                 feed_dict={self.gpu_dataset.batch_idx: minibatch_idx, self.is_training: is_training})
+                                 feed_dict={self.l_data.batch_idx: minibatch_idx, self.is_training: is_training})
             cum_loss += loss
             cum_acc += acc
         if is_training:
             return
-        loss = cum_loss / self.gpu_dataset.data[data_key]['n_minibatches']
-        acc = cum_acc / self.gpu_dataset.data[data_key]['n_minibatches']
+        loss = cum_loss / self.l_data.data[data_key]['n_minibatches']
+        acc = cum_acc / self.l_data.data[data_key]['n_minibatches']
 
         if process_key == 'va_s':
             if self.best_va['acc'] < acc:

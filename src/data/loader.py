@@ -1,7 +1,59 @@
 from scipy.io import loadmat
 import numpy as np
-from src.data.preprocessing import extract_seqs
+import tensorflow as tf
 import itertools
+
+from src.data.preprocessing import extract_seqs, extract_sequences
+from src.configuration.data_config import DataConfig
+from src.configuration.constants import DatasetKeys
+
+
+class Dataset:
+    def __init__(self, batches, ds_name):
+        self.batches = batches
+        self.ds_name = ds_name
+
+
+class BatchMap:
+    x = 0
+    Y = 1
+    SEQLEN = 2
+
+
+def load_api_datasets(data_config):
+    datasets = {}
+    for data_key in data_config.ds_configs.keys():
+        dataset_config = data_config.ds_configs[data_key]
+        unprocessed_data = loadmat(dataset_config.filename)
+        x, y, seqlens = extract_sequences(unprocessed_data, dataset_config)
+
+        ds = tf.data.Dataset.from_tensor_slices((x, y, seqlens))
+
+        ds = ds.cache()
+        if dataset_config.do_shuffle:
+            ds = ds.shuffle(buffer_size=dataset_config.shuffle_buffer)
+        if dataset_config.minibatch_enabled:
+            ds = ds.batch(dataset_config.minibatch_size)
+
+        ds.prefetch(1)
+        dataset = Dataset(ds, data_key)
+        datasets[data_key] = dataset
+    return datasets
+
+# Loads Dataset into GPU
+def load_gpu_datasets(data_config):
+    datasets = {}
+    for data_key in data_config.ds_configs.keys():
+        dataset_config = data_config.ds_configs[data_key]
+        unprocessed_data = loadmat(dataset_config.filename)
+
+        dataset = {}
+        dataset[DatasetKeys.X], dataset[DatasetKeys.Y], dataset[DatasetKeys.SEQLEN] = \
+            extract_sequences(unprocessed_data, dataset_config)
+        datasets[data_key] = dataset
+        print(dataset[DatasetKeys.X].shape)
+    return datasets
+
 
 
 filenames = {'penstroke_tr': '../datasets/mnist_pen_strokes/mps_full1_tr.mat',
@@ -204,7 +256,12 @@ def get_datadict(l_data_config, name):
     data_dict = dict()
     for data_key in keys:
         if data_key in l_data_config.keys():
-            dataset = loadmat(filenames[name + '_' + data_key])
+            if data_key == "tr":
+               used_data_key = "te"
+            else:
+                used_data_key = data_key
+
+            dataset = loadmat(filenames[name + '_' + used_data_key])
             data_dict[data_key] = dict()
             data_dict[data_key]['x'], data_dict[data_key]['y'], data_dict[data_key]['end'] = \
                 extract_seqs(dataset['x'], dataset['y'], np.squeeze(dataset['seqlen']).astype(np.int32),
@@ -212,5 +269,18 @@ def get_datadict(l_data_config, name):
             print(data_key)
             print(data_dict[data_key]['x'].shape)
     return data_dict
+
+if __name__ == '__main__':
+    #filenames = {'penstroke_tr': '../datasets/mnist_pen_strokes/mps_full1_tr.mat',
+    data_config = DataConfig()
+    data_config.add_mnist_small()
+    load_api_datasets(data_config)
+    #for key in ["tr", "va", "te"]:
+        #print(key)
+        #dataset_dict = loadmat(f"../../datasets/mnist_pen_strokes/mps_all_{key}.mat")
+        #dataset_config = DatasetConfig("penstroke", key, 45, True, 500)
+        #extract_sequences(dataset_dict, dataset_config)
+
+
 
 

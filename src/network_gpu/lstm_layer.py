@@ -4,7 +4,7 @@ import numpy as np
 from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
 from src.tools import get_batchnormalizer
-from src.global_variable import get_train_config, get_info_config, get_rnn_config
+from src.global_variable import get_train_config, get_info_config, get_nn_config
 from src.configuration.constants import ActivationFunctionsC, GraphCreationKeys
 
 
@@ -31,12 +31,12 @@ def disc_tanh(act, n_bins):
 
 class LSTMLayer:
     def __init__(self, layer_idx, is_training, tau, bidirectional_inp=False, prev_neurons=None):
-        self.nn_config = get_rnn_config()
+        self.nn_config = get_nn_config()
         self.train_config = get_train_config()
         self.layer_config = self.nn_config.layer_configs[layer_idx]
 
-        p_layout = self.nn_config.layout[layer_idx]
-        c_layout = self.nn_config.layout[layer_idx + 1]
+        p_layout = self.nn_config.layout[layer_idx - 1]
+        c_layout = self.nn_config.layout[layer_idx]
         if prev_neurons is None:
             if bidirectional_inp:
                 self.w_shape = (p_layout * 2 + c_layout, c_layout)
@@ -52,7 +52,8 @@ class LSTMLayer:
         # Activation summaries and specific neurons to gather individual histograms
         self.acts = dict()
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
-                                            size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
+                                            size=(get_info_config().tensorboard_config.record_n_neurons,),
+                                            replace=False)
 
         """
         if self.train_config['batchnorm']['type'] == 'batch' and 'x' in self.train_config['batchnorm']['modes']:
@@ -63,7 +64,7 @@ class LSTMLayer:
             self.bn_s_h = []
         """
 
-        with tf.variable_scope(self.layer_config['var_scope']):
+        with tf.variable_scope(self.layer_config.var_scope):
             var_keys = ['wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape, tau)
 
@@ -106,8 +107,8 @@ class LSTMLayer:
         return self.weights.tensor_dict['co_m'], self.weights.tensor_dict['co_v']
 
     # Local reparametrization trick
-    def create_l_sampling_pass(self, x, initialize, time_index, **kwargs):
-        if initialize:
+    def create_l_sampling_pass(self, x, do_initialize, timestep, **kwargs):
+        if do_initialize:
             self.init_cell_tensors(x, **kwargs)
 
         co = self.weights.tensor_dict['co']
@@ -126,24 +127,23 @@ class LSTMLayer:
         """
 
         x = tf.concat([x, co], axis=1)
-
         if self.layer_config.i_gate_config.is_act_func_discrete:
-            i = self.weights.sample_activation('wi', 'bi', x, ActivationFunctionsC.SIGMOID, initialize, layer_norm=False)
+            i = self.weights.sample_activation('wi', 'bi', x, ActivationFunctionsC.SIGMOID, do_initialize, layer_norm=False)
         else:
-            a_i = self.weights.sample_activation('wi', 'bi', x, None, initialize, layer_norm=False)
+            a_i = self.weights.sample_activation('wi', 'bi', x, None, do_initialize, layer_norm=False)
             i = tf.sigmoid(a_i)
         f = 1. - i
 
         if self.layer_config.c_gate_config.is_act_func_discrete:
-            c = self.weights.sample_activation('wc', 'bc', x, ActivationFunctionsC.TANH, initialize, layer_norm=False)
+            c = self.weights.sample_activation('wc', 'bc', x, ActivationFunctionsC.TANH, do_initialize, layer_norm=False)
         else:
-            a_c = self.weights.sample_activation('wc', 'bc', x, None, initialize, layer_norm=False)
+            a_c = self.weights.sample_activation('wc', 'bc', x, None, do_initialize, layer_norm=False)
             c = tf.tanh(a_c)
 
         if self.layer_config.o_gate_config.is_act_func_discrete:
-            o = self.weights.sample_activation('wo', 'bo', x, ActivationFunctionsC.SIGMOID, initialize, layer_norm=False)
+            o = self.weights.sample_activation('wo', 'bo', x, ActivationFunctionsC.SIGMOID, do_initialize, layer_norm=False)
         else:
-            a_o = self.weights.sample_activation('wo', 'bo', x, None, initialize, layer_norm=False)
+            a_o = self.weights.sample_activation('wo', 'bo', x, None, do_initialize, layer_norm=False)
             o = tf.sigmoid(a_o)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
@@ -156,8 +156,8 @@ class LSTMLayer:
         return self.weights.tensor_dict['co'], self.weights.tensor_dict['cs']
 
     # Samples weights before computing activation
-    def create_sampling_pass(self, x, initialize, time_index, **kwargs):
-        if initialize:
+    def create_sampling_pass(self, x, do_initialize, timestep, **kwargs):
+        if do_initialize:
             self.weights.create_tensor_samples(second_arm_pass=kwargs[GraphCreationKeys.SECOND_ARM_PASS],
                                                data_key=kwargs[GraphCreationKeys.DATA_KEY])
             self.init_cell_tensors(x, **kwargs)
@@ -183,7 +183,7 @@ class LSTMLayer:
         c_act = tf.matmul(x, self.weights.tensor_dict['wc']) + self.weights.tensor_dict['bc']
         o_act = tf.matmul(x, self.weights.tensor_dict['wo']) + self.weights.tensor_dict['bo']
 
-        if self.train_config['batchnorm']['type'] == 'layer':
+        if self.train_config.layer_train_configs[self.layer_config.var_scope].layer_norm_enabled:
             i_act = tf.contrib.layers.layer_norm(i_act)
             c_act = tf.contrib.layers.layer_norm(c_act)
             o_act = tf.contrib.layers.layer_norm(o_act)
@@ -208,8 +208,8 @@ class LSTMLayer:
         self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co'], self.weights.tensor_dict['cs']
 
-    def create_var_fp(self, x, initialize, time_index, **kwargs):
-        if initialize:
+    def create_var_fp(self, x, do_initialize, timestep, **kwargs):
+        if do_initialize:
             self.init_cell_tensors(x, **kwargs)
 
         co = self.weights.tensor_dict['co']
@@ -237,7 +237,7 @@ class LSTMLayer:
             o_act = tf.contrib.layers.layer_norm(o_act)
         """
 
-        if initialize:
+        if do_initialize:
             for act_type, act in zip(['i', 'c', 'o'], [i_act, c_act, o_act]):
                 self.acts[act_type] = act
                 for neuron_idc in range(len(self.act_neurons)):

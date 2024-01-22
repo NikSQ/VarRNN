@@ -4,7 +4,7 @@ import numpy as np
 from src.fp_tools import approx_activation, transform_tanh_activation, transform_sig_activation
 from src.weights import Weights
 from src.tools import get_batchnormalizer
-from src.global_variable import get_train_config, get_info_config, get_rnn_config
+from src.global_variable import get_train_config, get_info_config, get_nn_config
 from src.configuration.constants import ActivationFunctionsC, GraphCreationKeys
 
 
@@ -31,7 +31,7 @@ def disc_tanh(act, n_bins):
 
 class LSTMLayer:
     def __init__(self, layer_idx, is_training, tau, bidirectional_inp=False, prev_neurons=None):
-        self.nn_config = get_rnn_config()
+        self.nn_config = get_nn_config()
         self.train_config = get_train_config()
         self.layer_config = self.nn_config.layer_configs[layer_idx]
 
@@ -52,7 +52,7 @@ class LSTMLayer:
         # Activation summaries and specific neurons to gather individual histograms
         self.acts = dict()
         self.act_neurons = np.random.choice(range(self.b_shape[1]),
-                                            size=(get_info_config()['tensorboard']['single_acts'],), replace=False)
+                                            size=(get_info_config().tensorboard_config.record_n_neurons,), replace=False)
 
         """
         if self.train_config['batchnorm']['type'] == 'batch' and 'x' in self.train_config['batchnorm']['modes']:
@@ -63,7 +63,7 @@ class LSTMLayer:
             self.bn_s_h = []
         """
 
-        with tf.variable_scope(self.layer_config['var_scope']):
+        with tf.variable_scope(self.layer_config.var_scope):
             var_keys = ['wi', 'bi', 'wc', 'bc', 'wo', 'bo']
             self.weights = Weights(var_keys, self.layer_config, self.w_shape, self.b_shape, tau)
 

@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.python.client import timeline
 from src.data.loader import load_dataset
-from src.data.labeled_data import LabeledData
+from src.data.labeled_data import GPUDatasets
 from src.rnn import RNN
 from src.tools import print_config, set_momentum
 from src.timer import Timer
@@ -34,7 +34,7 @@ class Experiment:
         l_data_config['tr']['in_seq_len'] = self.train_config['mode']['in_seq_len'][session_idx]
         l_data_config['tr']['max_truncation'] = self.train_config['mode']['max_truncation'][session_idx]
         self.data_dict = load_dataset(l_data_config)
-        labeled_data = LabeledData(l_data_config, self.data_dict)
+        labeled_data = GPUDatasets(l_data_config, self.data_dict)
         self.create_rnn(labeled_data, l_data_config)
 
     def train(self, rnn_config, l_data_config, train_config, info_config, run):
@@ -75,7 +75,7 @@ class Experiment:
                 self.create_modificated_model(l_data_config, session_idx)
             elif self.train_config['mode']['name'] == 'classic':
                 self.data_dict = load_dataset(l_data_config)
-                l_data = LabeledData(l_data_config, self.data_dict)
+                l_data = GPUDatasets(l_data_config, self.data_dict)
                 self.create_rnn(l_data, l_data_config)
                 max_epochs = self.train_config['mode']['max_epochs']
                 min_error = self.train_config['mode']['min_error']
@@ -255,7 +255,6 @@ class Experiment:
             suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.train_config['task_id']) + '.npy'
             np.save(file='../nr/ge' + suffix, arr=e[idx])
             np.save(file='../nr/gsqe' + suffix, arr=se[idx])
-
 
     def optimistic_restore(self, sess, file):
         reader = tf.train.NewCheckpointReader(file)

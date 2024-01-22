@@ -7,8 +7,6 @@ from src.global_variable import get_rnn_config, get_train_config
 import copy
 
 
-
-
 class RNN:
     def __init__(self, l_data):
         self.c = None
@@ -28,7 +26,7 @@ class RNN:
 
         self.rnn_config = get_rnn_config()
         self.train_config = get_train_config()
-        self.t_metrics = TMetrics(l_data.l_data_config, l_data, self.is_training, self.tau)
+        self.t_metrics = TMetrics(l_data.data_config, l_data, self.is_training, self.tau)
         self.t_metric_summaries = None
 
         weight_summaries = []
@@ -104,7 +102,7 @@ class RNN:
         for time_idx in loop_range:
             print(time_idx)
             m = layer_input[time_idx]
-            v = tf.fill(tf.shape(m), 0.)  # Variance of input to network at time seq_idx
+            v = tf.fill(tf.shape(m), 0.)  # Variance of input to network_api at time seq_idx
             init = time_idx == list(loop_range)[0]
             if bayesian is False:
                 m, s = layer.create_var_fp(m, time_idx, init)
@@ -155,13 +153,7 @@ class RNN:
                                             mod_rnn_config, reverse=True, second_arm_pass=False,
                                             annotations=True)
 
-        print('encoder structure finished')
-        print(f_outs[0].shape)
-        print(f_states[0].shape)
-        annotations = []
-        for f_out, b_out in zip(f_outs, b_outs):
-            annotations.append(tf.concat([f_out, b_out], axis=1))
-        hidden_state = (f_states[-1] + b_states[-1]) * .5
+
 
         # Alignment model for annotations
         layer = self.layers[1]
@@ -245,7 +237,7 @@ class RNN:
                                                             tf.summary.scalar(data_key + '_s_acc', acc)])
             return loss, acc
 
-        # Process output of bayesian network
+        # Process output of bayesian network_api
         else:
             if 'l_reparam' in self.train_config['algorithm'] or 'c_reparam' in self.train_config['algorithm'] or data_key != 'tr':
                 smax = tf.nn.softmax(logits=output, axis=1)
@@ -257,7 +249,7 @@ class RNN:
                     for layer in self.layers:
                         kl += layer.weights.get_kl_loss()
                     kl /= (self.rnn_config['data_multiplier'] *
-                           self.l_data.l_data_config[data_key]['minibatch_size'] *
+                           self.l_data.data_config[data_key]['minibatch_size'] *
                            self.l_data.data[data_key]['n_minibatches'])
                     vfe = kl - elogl
                 else:
@@ -296,7 +288,7 @@ class RNN:
         m_outputs = m_outputs[-1]
         v_outputs = None
 
-        # Process output of non bayesian network
+        # Process output of non bayesian network_api
         if bayesian is False:
             output = tf.cast(m_outputs, dtype=tf.float64)
             loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=y, dim=1))
@@ -313,7 +305,7 @@ class RNN:
                                                             tf.summary.scalar(data_key + '_s_acc', acc)])
             return loss, acc
 
-        # Process output of bayesian network
+        # Process output of bayesian network_api
         else:
             if 'pfp' in self.train_config['algorithm']:
                 m_output = tf.cast(dtype=tf.float64)
@@ -351,7 +343,7 @@ class RNN:
                     for layer in self.layers:
                         kl += layer.weights.get_kl_loss()
                     kl /= (self.rnn_config['data_multiplier'] *
-                           self.l_data.l_data_config[data_key]['minibatch_size'] *
+                           self.l_data.data_config[data_key]['minibatch_size'] *
                            self.l_data.data[data_key]['n_minibatches'])
                     vfe = kl - elogl
                 else:

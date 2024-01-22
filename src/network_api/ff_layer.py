@@ -10,14 +10,14 @@ from src.configuration.constants import GraphCreationKeys
 
 # FC LAYER..
 # Can only be used as output
-class FCLayer:
+class FFLayer:
     def __init__(self, layer_idx, is_training, tau, prev_neurons=None):
-        nn_config = get_nn_config()
+        self.nn_config = get_nn_config()
         self.train_config = get_train_config()
-        self.layer_config = nn_config.layer_configs[layer_idx]
+        self.layer_config = self.nn_config.layer_configs[layer_idx]
 
-        p_layout = self.nn_config.layout[layer_idx]
-        c_layout = self.nn_config.layout[layer_idx + 1]
+        p_layout = self.nn_config.layout[layer_idx - 1]
+        c_layout = self.nn_config.layout[layer_idx]
         if prev_neurons is None:
             self.w_shape = (p_layout, c_layout)
         else:
