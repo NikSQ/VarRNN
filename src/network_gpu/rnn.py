@@ -42,7 +42,7 @@ class RNN:
             elif layer_config.layer_type == NetworkC.INPUT_LAYER:
                 continue
             else:
-                raise Exception(f"Layer type {layer_config.layer_type} not understood")
+                raise Exception("Layer type " + layer_config.layer_type + " not understood")
 
             weight_summaries.append(layer.weights.weight_summaries)
             sample_ops.append(layer.weights.sample_op)
@@ -102,7 +102,7 @@ class RNN:
                                                             mod_layer_config=mod_nn_config.layer_configs[layer_idx],
                                                             second_arm_pass=second_arm_pass)
             else:
-                raise Exception(f"Training algorithm {self.train_config.algorithm} not implemented")
+                raise Exception("Training algorithm " + self.train_config.algorithm + " not implemented")
 
             layer_outputs.append(input_m)
             layer_states.append(state)
@@ -221,7 +221,7 @@ class RNN:
                         if acceptable_var in var.name:
                             variables.append(var)
                             print("DEBUG")
-                            print(f"Added var: {var.name}")
+                            print("Added var: " + var.name)
                             break
 
                 for layer in self.layers:
