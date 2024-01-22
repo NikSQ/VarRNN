@@ -189,11 +189,15 @@ class RNN:
             acc = tf.reduce_mean(tf.cast(tf.equal(prediction, t), dtype=tf.float32))
 
         elif self.train_config.algorithm == AlgorithmC.ARM:
-            return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m, labels=y, dim=1)) + \
-                tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m_2, labels=y, dim=1))
+            # 0.5 * [f(1_u<sig(phi)) - f(1_u>sig(-phi))
+            # 0.5 * [f(1_u<p1) - f(1_u>pn1)
+            return .5 * (tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m, labels=y, dim=1)) - \
+                    tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m_2, labels=y, dim=1)))
 
         elif self.train_config.algorithm in [AlgorithmC.AR, AlgorithmC.LOG_DERIVATIVE]:
-            return -tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m, labels=y, dim=1)) * 2
+            # In AR case:
+            # f(1_u<sig(phi))
+            return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m, labels=y, dim=1))
 
         self.t_metrics.add_b_vars(process_key=data_key + "_b", vfe_op=vfe, kl_op=kl, elogl_op=elogl, accs_op=acc)
         return vfe, kl, elogl, acc
@@ -235,9 +239,9 @@ class RNN:
                             for var_key in layer_samples[var_scope].keys():
                                 if var_key + '_sb' == var.name[var.name.index('/') + 1:-2]:
                                     if AlgorithmC.LOG_DERIVATIVE in self.train_config.algorithm:
-                                        grads.append(- .5 * loss * layer_samples[var_scope][var_key])
+                                        grads.append(loss * layer_samples[var_scope][var_key])
                                     else:
-                                        grads.append(loss * (layer_samples[var_scope][var_key] - .5))
+                                        grads.append(loss * (1 - 2 * layer_samples[var_scope][var_key]))
                                     grad_vars.append(var)
 
                 self.gradients = list(zip(grads, grad_vars))

@@ -106,14 +106,14 @@ class TrainConfig:
         print("====================================")
         print("Training configuration")
         print("")
-        print(f"Learning rate: {self.learning_rate}, \tLearning rate anneal: {self.learning_rate_anneal_period}, \tTau: {self.gumbel_tau}")
-        print(f"Algorithm: {self.algorithm}, \tSTE: {self.ste_type}, \tn forward passes: {self.n_forward_passes}")
-        print(f"Var reg: {self.variance_regularization}, \tDir reg: {self.dirichlet_regularization}, \tEnt reg: {self.entropy_regularization}")
-        print(f"Data multiplier: {self.data_multiplier}")
-        print(f"Gradient clipping: {self.gradient_clipping_enabled}, \tGradient clip value: {self.gradient_clip_value}")
+        print("Learning rate: " + self.learning_rate + ", \tLearning rate anneal: " + self.learning_rate_anneal_period + ", \tTau: " + self.gumbel_tau)
+        print("Algorithm: " + self.algorithm + ", \tSTE: " + self.ste_type + ", \tn forward passes: " + self.n_forward_passes)
+        print("Var reg: " + self.variance_regularization + ", \tDir reg: " + self.dirichlet_regularization + ", \tEnt reg: " + self.entropy_regularization)
+        print("Data multiplier: " + self.data_multiplier)
+        print("Gradient clipping: " + self.gradient_clipping_enabled + ", \tGradient clip value: " + self.gradient_clip_value)
         for idx, key in enumerate(self.layer_train_configs.keys()):
             print("")
-            print(f"Layer #{idx}")
+            print("Layer #" + idx)
             print(key)
             self.layer_train_configs[key].print_config()
 
@@ -136,8 +136,8 @@ class LayerTrainConfig:
         return self
 
     def print_config(self):
-        print(f"Layer norm: {self.layer_norm_enabled}, \tLR Adapt: {self.lr_adapt}")
-        print(f"Dropout: {self.dropout_enabled}, \tp_dropout: {self.p_dropout}")
+        print("Layer norm: " + self.layer_norm_enabled + ", \tLR Adapt: " + self.lr_adapt)
+        print("Dropout: " + self.dropout_enabled + ", \tp_dropout: " + self.p_dropout)
 
 
 # TODO these configs to NN

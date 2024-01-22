@@ -14,18 +14,18 @@ def present_seqinfo(seq_lens, y, in_seq_len=45):
         digit_seq_lens = seq_lens[np.where(y[:, category] == 1)]
         plt.hist(digit_seq_lens, bins=20, histtype='step')
         plt.axvline(x=in_seq_len, color="r")
-        plt.title(f"Digit {category}")
+        plt.title("Digit " + category)
         plt.xlim((0, 120))
-        n_all_samples_string += f"Digit: {category}, #Samples: {digit_seq_lens.shape[0]}\n"
+        n_all_samples_string += "Digit: " + category + ", #Samples: " + digit_seq_lens.shape[0] + "\n"
         n_samples.append(np.searchsorted(digit_seq_lens, in_seq_len))
-        n_samples_string += f"Digit: {category}, #Samples: {n_samples[-1]}\n"
+        n_samples_string += "Digit: " + category + "," #Samples: {n_samples[-1]}\n"
     ratios = [n / np.sum(n_samples) for n in n_samples]
     print("All samples")
     print(n_all_samples_string)
     print("Samples meeting length criterion")
     print(n_samples_string)
-    print(f"Ratios")
-    [print(f"Digit {idx}, Percentage {int(ratio * 100)}%") for idx, ratio in enumerate(ratios)]
+    print("Ratios")
+    [print("Digit  " + idx + ", Percentage " + int(ratio * 100) + "%") for idx, ratio in enumerate(ratios)]
     fig.tight_layout()
     plt.show()
     plt.close(fig)

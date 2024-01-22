@@ -45,9 +45,9 @@ class DatasetConfig:
         self.shuffle_buffer = shuffle_buffer
 
     def print_config(self):
-        print(f"Filename: {self.filename}")
-        print(f"Key: {self.data_key}, \tIn seq len:  {self.in_seq_len}")
-        print(f"Minibatch: {self.minibatch_enabled}, \tSize  {self.minibatch_size}")
-        print(f"Target bias removed: {self.remove_bias}, \tShuffle: {self.do_shuffle}")
+        print("Filename: " + self.filename)
+        print("Key: + " + self.data_key + ", \tIn seq len:  " + self.in_seq_len)
+        print("Minibatch:  " + self.minibatch_enabled + ", \tSize  " + self.minibatch_size)
+        print("Target bias removed: " + self.remove_bias + ", \tShuffle: " + self.do_shuffle)
 
 

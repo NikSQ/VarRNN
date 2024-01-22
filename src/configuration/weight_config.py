@@ -46,8 +46,8 @@ class GaussianWeightConfig(WeightConfig):
         return self
 
     def print_config(self):
-        print(f"Type: {self.dist}, \tM init: {self.mean_initializer}, \tLog V init: {self.logvar_initializer}")
-        print(f"M prior: {self.mean_prior}, \t Log V prior: {self.logvar_prior}")
+        print("Type: " + self.dist + ", \tM init: " + self.mean_initializer + ", \tLog V init: " + self.logvar_initializer)
+        print("M prior: " + self.mean_prior + ", \t Log V prior: " + self.logvar_prior)
 
 
 class DiscreteWeightConfig(WeightConfig):
@@ -61,7 +61,7 @@ class DiscreteWeightConfig(WeightConfig):
         elif dist == WeightC.TERNARY:
             self.priors = DEFAULT_TERNARY_PRIORS
         else:
-            raise Exception(f"DiscreteWeightConfig does not support weight distribution {dist}")
+            raise Exception("DiscreteWeightConfig does not support weight distribution " + dist)
 
         self.parametrization = parametrization
         self.from_pretrained_init_p_min = DEFAULT_FROM_PRETRAINED_INIT_P_MIN
@@ -74,12 +74,12 @@ class DiscreteWeightConfig(WeightConfig):
         self.log_pos_initializer = DEFAULT_DISCRETE_INITIALIZER
 
     def print_config(self):
-        print(f"Type: {self.dist}, \tParametetrization: {self.parametrization}, \tPriors: {self.priors}")
-        print(f"p_init_min: {self.from_pretrained_init_p_min}, \tp_init_max: {self.from_pretrained_init_p_max}")
+        print("Type: " + self.dist + ", \tParametetrization: " + self.parametrization + ", \tPriors: " + self.priors)
+        print("p_init_min: " + self.from_pretrained_init_p_min + ", \tp_init_max: " + self.from_pretrained_init_p_max)
         if self.parametrization == WeightC.SIGMOID:
-            print(f"SB init: {self.sb_initializer}, \tSA init: {self.sa_initializer}")
+            print("SB init: " + self.sb_initializer + ", \tSA init: " + self.sa_initializer)
         else:
-            print(f"Neg init: {self.log_neg_initializer}, \tZer init: {self.log_zer_initializer}, \tPos init: {self.log_pos_initializer}")
+            print("Neg init: " + self.log_neg_initializer + ", \tZer init: " + self.log_zer_initializer + ", \tPos init: " + self.log_pos_initializer)
 
     # Sets a list of priors for the possible weight values.
     # The argument can also be a positive scalar, which defines how much larger the prior
@@ -89,16 +89,16 @@ class DiscreteWeightConfig(WeightConfig):
         if type(priors) == list:
             if (self.dist == WeightC.BINARY and len(priors) != 2) or \
                     (self.dist == WeightC.TERNARY and len(priors) != 3):
-                raise Exception(f"Weight type was set to {self.dist}, "
-                                f"which is incompatible with given priors {priors}")
+                raise Exception("Weight type was set to " + self.dist +
+                                "which is incompatible with given priors " + priors)
             if True in [p < 0 for p in priors]:
-                raise Exception(f"Priors need to be positive, but were {priors}")
+                raise Exception("Priors need to be positive, but were " + priors)
 
             self.priors = [p / sum(priors) for p in priors]
         elif type(priors) in [int, float]:
             priors = float(priors)
             if priors < 0:
-                raise Exception(f"Priors can be set with either a list or positive scalar. Got {priors} instead.")
+                raise Exception("Priors can be set with either a list or positive scalar. Got " + priors + " instead.")
 
             if self.dist == WeightC.BINARY:
                 unscaled_priors = [priors, 1]
@@ -107,7 +107,7 @@ class DiscreteWeightConfig(WeightConfig):
 
             self.priors = [p / sum(unscaled_priors) for p in unscaled_priors]
         else:
-            raise Exception(f"Argument priors has invalid type {type(priors)}")
+            raise Exception("Argument priors has invalid type " + type(priors))
         return self
 
     def set_logit_initializers(self, log_neg_initializer=None, log_zer_initializer=None, log_pos_initializer=None):

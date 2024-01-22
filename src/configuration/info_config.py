@@ -37,19 +37,19 @@ class InfoConfig:
         print("====================================")
         print("Info configuration")
         print("")
-        print(f"Filename: {self.filename}")
-        print(f"Timer: {self.timer_enabled}, \tProfiling: {self.profiling_enabled}, \tProfiling path: {self.profiling_path}")
-        print(f"Save weights: {self.save_weights}, \tEvery: {self.save_weights_every}, \tSave best weights: {self.save_best_weights}")
-        print(f"Compute T Metrics every: {self.compute_tmetrics_every}")
+        print("Filename:  " + self.filename)
+        print("Timer: " + self.timer_enabled + ", \tProfiling: " + self.profiling_enabled + ", \tProfiling path: " + self.profiling_path)
+        print("Save weights: " + self.save_weights + ", \tEvery: " + self.save_weights_every + ", \tSave best weights: " + self.save_best_weights)
+        print("Compute T Metrics every: " + self.compute_tmetrics_every)
         print("")
         if self.model_loader_config is not None:
-            print(f"Load model from {self.model_loader_config.filename}, \t Force it: {self.force_loading}")
+            print("Load model from  " + self.model_loader_config.filename + ", \t Force it: " + self.force_loading)
         else:
-            print(f"No model loading")
+            print("No model loading")
         if self.model_saver_config is not None:
-            print(f"Store model to {self.model_saver_config.filename}")
+            print("Store model to " + self.model_saver_config.filename)
         else:
-            print(f"No model saving")
+            print("No model saving")
         print("")
 
 
@@ -60,9 +60,9 @@ class ModelStorageConfig:
 
     def create_path(self):
         if self.task_id is None:
-            return f'../tr_models/{self.filename}'
+            return '../tr_models/' + self.filename
         else:
-            return f'../models/{self.filename}_{self.task_id}'
+            return '../models/' + self.filename + '_' + {self.task_id}
 
 
 
