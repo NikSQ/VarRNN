@@ -115,8 +115,8 @@ class Experiment:
                                     accumulated_gradients[gradient_idx] += gradients[gradient_idx][0]
 
                         # Compute mean over gradients and update the weights with those gradients
-                        print(f"M: {np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1)))}")
-                        print(f"S: {np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1))}")
+                        print("M: " + np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1))))
+                        print("S: " + np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1)))
                         for gradient_idx in range(len(accumulated_gradients)):
                             accumulated_gradients[gradient_idx] /= self.train_config.n_forward_passes
                         sess.run(self.rnn.train_b_op, feed_dict={gradient_ph: grad for gradient_ph, grad in zip(self.rnn.gradient_ph, accumulated_gradients)})

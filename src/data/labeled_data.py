@@ -24,15 +24,15 @@ class GPUDatasets:
                 l_data[DatasetKeys.X_PLACEHOLDER] = tf.placeholder(dtype=tf.float32, shape=x_shape)
                 l_data[DatasetKeys.Y_PLACEHOLDER] = tf.placeholder(dtype=tf.float32, shape=y_shape)
 
-                l_data[DatasetKeys.X] = tf.get_variable(name=f"{DatasetKeys.X}_" + data_key,
+                l_data[DatasetKeys.X] = tf.get_variable(name=DatasetKeys.X + "_" + data_key,
                                                         shape=x_shape,
                                                         dtype=tf.float32,
                                                         trainable=False)
-                l_data[DatasetKeys.Y] = tf.get_variable(name=f"{DatasetKeys.Y}_" + data_key,
+                l_data[DatasetKeys.Y] = tf.get_variable(name=DatasetKeys.Y + "_" + data_key,
                                                         shape=y_shape,
                                                         dtype=tf.float32,
                                                         trainable=False)
-                l_data[DatasetKeys.SEQLEN] = tf.get_variable(name=f"{DatasetKeys.SEQLEN}_" + data_key,
+                l_data[DatasetKeys.SEQLEN] = tf.get_variable(name=DatasetKeys.SEQLEN + "_" + data_key,
                                                              shape=datasets[data_key][DatasetKeys.SEQLEN].shape,
                                                              dtype=tf.int32,
                                                              trainable=False)
@@ -51,7 +51,7 @@ class GPUDatasets:
                     n_samples = batch_size * l_data[DatasetKeys.N_MINIBATCHES]
 
                     # A shuffled list of sample indices. Iterating over the complete list will be one epoch
-                    sample_list = tf.get_variable(name=data_key + f"_{DatasetKeys.SAMPLE_LIST}",
+                    sample_list = tf.get_variable(name=data_key + "_" + DatasetKeys.SAMPLE_LIST,
                                                   shape=n_samples,
                                                   dtype=tf.int32,
                                                   trainable=False,
