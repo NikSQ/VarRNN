@@ -45,12 +45,12 @@ def get_ter_prob_from_pretrained(weight, w_config):
 def get_var_names(var_key, *var_descriptions):
     var_names = []
     for var_desc in var_descriptions:
-        var_names.append(f"{var_key}{var_desc}")
+        var_names.append(var_key + var_desc)
     return var_names
 
 
 def get_var_name(var_key, var_description):
-    return f"{var_key}{var_description}"
+    return var_key + var_description
 
 
 class Weights:
@@ -154,8 +154,8 @@ class Weights:
                     weight_summaries.append(tf.summary.histogram(sa_var_name, self.var_dict[sa_var_name]))
                     weight_summaries.append(tf.summary.histogram(sb_var_name, self.var_dict[sb_var_name]))
                 else:
-                    raise Exception(f"Sigmoid parametrization does not support the given weight type: "
-                                    f"{self.w_config[var_key].type}")
+                    raise Exception("Sigmoid parametrization does not support the given weight type: " +
+                                    self.w_config[var_key].type)
 
             elif self.w_config[var_key].parametrization == WeightC.LOGIT:
                 log_neg_var_name, log_zer_var_name, log_pos_var_name = get_var_names(var_key,
@@ -206,11 +206,11 @@ class Weights:
                     weight_summaries.append(tf.summary.histogram(log_zer_var_name, self.var_dict[log_zer_var_name]))
                     weight_summaries.append(tf.summary.histogram(log_pos_var_name, self.var_dict[log_pos_var_name]))
                 else:
-                    raise Exception(f"Logits parametrization does not support the given weight type: "
-                                    f"{self.w_config[var_key].type}")
+                    raise Exception("Logits parametrization does not support the given weight type: " +
+                                    self.w_config[var_key].type)
             else:
-                raise Exception(f"Incompatible weight type ({self.w_config[var_key].type}) and "
-                                f"parametrization ({self.w_config[var_key].parametrization})")
+                raise Exception("Incompatible weight type ({self.w_config[var_key].type}) and " +
+                                "parametrization (" + self.w_config[var_key].parametrization + ")")
 
             sample_ops.append(tf.assign(self.var_dict[var_key], self.get_map_estimate(var_key)))
 
