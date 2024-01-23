@@ -53,7 +53,6 @@ def get_var_name(var_key, var_description):
     return var_key + var_description
 
 
-# TODO: exponentiation of log var
 class Weights:
     def __init__(self, var_keys, layer_config, w_shape, b_shape, tau):
         self.var_keys = var_keys
@@ -107,19 +106,19 @@ class Weights:
                 raise Exception('var_key {} does not start with w or b'.format(var_key))
 
             # Adds two variables for parametrizing a continuous Gaussian distribution: mean and variance
-            if self.w_config[var_key].dist == WeightC.GAUSSIAN:
+            if self.w_config[var_key].type == WeightC.GAUSSIAN:
                 mean_var_name, variance_var_name = get_var_names(var_key, VarNames.GAUSSIAN_MEAN, VarNames.GAUSSIAN_VAR)
                 self.var_dict[mean_var_name] = tf.get_variable(name=mean_var_name,
                                                                shape=shape,
                                                                initializer=get_initializer(
-                                                                   self.w_config[var_key].mean_initializer, shape),
+                                                                   self.w_config[var_key].initializer, shape),
                                                                dtype=tf.float32)
                 self.var_dict[variance_var_name] = tf.exp(tf.get_variable(name=variance_var_name,
-                                                                   shape=shape,
-                                                                   initializer=get_initializer(
-                                                                              self.w_config[var_key].logvar_initializer,
+                                                                          shape=shape,
+                                                                          initializer=get_initializer(
+                                                                              self.w_config[var_key].initializer,
                                                                               shape),
-                                                                   dtype=tf.float32))
+                                                                          dtype=tf.float32))
 
                 weight_summaries.append(tf.summary.histogram(mean_var_name, self.var_dict[mean_var_name]))
                 weight_summaries.append(tf.summary.histogram(variance_var_name, self.var_dict[variance_var_name]))
@@ -129,7 +128,7 @@ class Weights:
             elif self.w_config[var_key].parametrization == WeightC.SIGMOID:
                 sa_var_name, sb_var_name = get_var_names(var_key, VarNames.SIGMOID_A, VarNames.SIGMOID_B)
 
-                if self.w_config[var_key].dist == WeightC.BINARY:
+                if self.w_config[var_key].type == WeightC.BINARY:
                     #  p(w=1) = sigmoid(sb) -> from paper 1710.07739
                     self.var_dict[sb_var_name] = tf.get_variable(name=sb_var_name,
                                                                  shape=shape,
@@ -138,7 +137,7 @@ class Weights:
                                                                  dtype=tf.float32)
 
                     weight_summaries.append(tf.summary.histogram(sb_var_name, self.var_dict[sb_var_name]))
-                elif self.w_config[var_key].dist == WeightC.TERNARY:
+                elif self.w_config[var_key].type == WeightC.TERNARY:
                     # p(w=0) = sigmoid(sa), p(w=1 | w !=0) = sigmoid(sb) -> from paper 1710.07739
                     self.var_dict[sa_var_name] = tf.get_variable(name=sa_var_name,
                                                                  shape=shape,
@@ -163,7 +162,7 @@ class Weights:
                                                                                      VarNames.LOGITS_ZER,
                                                                                      VarNames.LOGITS_POS)
 
-                if self.w_config[var_key].dist == WeightC.BINARY:
+                if self.w_config[var_key].type == WeightC.BINARY:
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for possible weight values
                     self.var_dict[log_neg_var_name] = tf.get_variable(name=log_neg_var_name,
                                                                       shape=shape,
@@ -181,7 +180,7 @@ class Weights:
                     weight_summaries.append(tf.summary.histogram(log_neg_var_name, self.var_dict[log_neg_var_name]))
                     weight_summaries.append(tf.summary.histogram(log_pos_var_name, self.var_dict[log_pos_var_name]))
 
-                elif self.w_config[var_key].dist == WeightC.TERNARY:
+                elif self.w_config[var_key].type == WeightC.TERNARY:
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for possible weight values
                     self.var_dict[log_neg_var_name] = tf.get_variable(name=log_neg_var_name,
                                                                       shape=shape,
@@ -209,7 +208,7 @@ class Weights:
                     raise Exception("Logits parametrization does not support the given weight type: " +
                                     self.w_config[var_key].type)
             else:
-                raise Exception("Incompatible weight type (" + self.w_config[var_key].type + ") and " +
+                raise Exception("Incompatible weight type ({self.w_config[var_key].type}) and " +
                                 "parametrization (" + self.w_config[var_key].parametrization + ")")
 
             sample_ops.append(tf.assign(self.var_dict[var_key], self.get_map_estimate(var_key)))
@@ -220,7 +219,7 @@ class Weights:
     def c_arm_create_sample_op(self):
         arm_sample_ops = []
         for var_key in self.var_keys:
-            if self.w_config[var_key].dist == WeightC.BINARY:
+            if self.w_config[var_key].type == WeightC.BINARY:
                 arm_var_name = get_var_name(var_key, VarNames.ARM)
                 shape = self.var_dict[var_key].shape
                 self.arm_samples[var_key] = tf.get_variable(name=arm_var_name, shape=shape, dtype=tf.float32,
@@ -307,6 +306,7 @@ class Weights:
                 sb_var_name = get_var_name(var_key, VarNames.SIGMOID_B)
                 sig = tf.sigmoid(self.var_dict[sb_var_name])
                 #self.logder_derivs[var_key] = tf.multiply(exact_weights, tf.multiply(sig, 1 - sig))
+                #self.logder_derivs[var_key] = tf.multiply(exact_weights, 1 - sig)
 
                 # This derivative of log probability function with respect to the sigmoid_b parameter
                 # and evaluated at exact weights.
@@ -442,7 +442,7 @@ class Weights:
             if self.check_w_dist(var_key, dist=WeightC.BINARY) or self.check_w_dist(var_key, dist=WeightC.TERNARY):
                 probs = self.get_discrete_probs(var_key, stacked=True)
                 dir_reg += tf.reduce_mean(tf.reduce_prod(probs, axis=0))
-                count += 100.
+                count += 1.
 
         if count == 0.:
             return 0.
@@ -648,49 +648,51 @@ class Weights:
     # If act_func == None: Returns sample of activation
     #                Else: Returns sample of discretized tanh or sig
     def sample_activation(self, w_var_key, b_var_key, x_m, act_func, init, layer_norm=False):
-        #if not self.layer_config.lr_adapt or init:
-        w_m, w_v = self.get_stats(w_var_key)
-        b_m, b_v = self.get_stats(b_var_key)
-        #else:
-            #w_m, w_v = self.get_adapted_stats(w_var_key)
-            #b_m, b_v = self.get_adapted_stats(w_var_key)
-
-        #if self.layer_config.lr_adapt is False:
-        if self.layer_config.get_gate_config(b_var_key).bias_enabled:
-            mean = tf.matmul(x_m, w_m) + b_m
-            std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v + self.epsilon)
+        if not self.layer_config['lr_adapt'] or init:
+            w_m, w_v = self.get_stats(w_var_key)
+            b_m, b_v = self.get_stats(b_var_key)
         else:
-            mean = tf.matmul(x_m, w_m)
-            std = tf.sqrt(tf.matmul(tf.square(x_m,), w_v) + self.epsilon)
-        if layer_norm:
-            m, v = tf.nn.moments(mean, axes=1)
-            std = tf.divide(std, tf.expand_dims(tf.sqrt(v), axis=1) + .005)
-            mean = tf.contrib.layers.layer_norm(mean)
-        #else:
-            #layer_inputs = tf.unstack(tf.expand_dims(x_m, axis=1), axis=0)
-            #means = []
-            #stds = []
-            #if init:
-                #w_m = [w_m] * len(layer_inputs)
-                #w_v = [w_v] * len(layer_inputs)
-                #b_m = [b_m] * len(layer_inputs)
-                #b_v = [b_v] * len(layer_inputs)
-                #self.create_adapted_weights(w_var_key, w_m, w_v)
-                #self.create_adapted_weights(b_var_key, b_m, b_v)
-            #for sample_w_m, sample_w_v, sample_b_m, sample_b_v, layer_input in zip(w_m, w_v, b_m, b_v, layer_inputs):
-                #means.append(tf.matmul(layer_input, sample_w_m) + sample_b_m)
-                #stds.append(tf.sqrt(tf.matmul(tf.square(layer_input), sample_w_v) + sample_b_v))
-            #mean = tf.squeeze(tf.stack(means, axis=0))
-            #std = tf.squeeze(tf.stack(stds, axis=0))
+            w_m, w_v = self.get_adapted_stats(w_var_key)
+            b_m, b_v = self.get_adapted_stats(w_var_key)
+
+        if self.layer_config['lr_adapt'] is False:
+            if self.layer_config['bias_enabled']:
+                mean = tf.matmul(x_m, w_m) + b_m
+                std = tf.sqrt(tf.matmul(tf.square(x_m), w_v) + b_v + self.epsilon)
+            else:
+                mean = tf.matmul(x_m, w_m)
+                std = tf.sqrt(tf.matmul(tf.square(x_m,), w_v) + self.epsilon)
+            if layer_norm:
+                m, v = tf.nn.moments(mean, axes=1)
+                std = tf.divide(std, tf.expand_dims(tf.sqrt(v), axis=1) + .005)
+                mean = tf.contrib.layers.layer_norm(mean)
+        else:
+            layer_inputs = tf.unstack(tf.expand_dims(x_m, axis=1), axis=0)
+            means = []
+            stds = []
+            if init:
+                w_m = [w_m] * len(layer_inputs)
+                w_v = [w_v] * len(layer_inputs)
+                b_m = [b_m] * len(layer_inputs)
+                b_v = [b_v] * len(layer_inputs)
+                self.create_adapted_weights(w_var_key, w_m, w_v)
+                self.create_adapted_weights(b_var_key, b_m, b_v)
+            for sample_w_m, sample_w_v, sample_b_m, sample_b_v, layer_input in zip(w_m, w_v, b_m, b_v, layer_inputs):
+                means.append(tf.matmul(layer_input, sample_w_m) + sample_b_m)
+                stds.append(tf.sqrt(tf.matmul(tf.square(layer_input), sample_w_v) + sample_b_v))
+            mean = tf.squeeze(tf.stack(means, axis=0))
+            std = tf.squeeze(tf.stack(stds, axis=0))
 
         shape = (tf.shape(x_m)[0], tf.shape(b_m)[1])
 
         if act_func is None:
             a = mean + tf.multiply(self.gauss.sample(sample_shape=shape), std)
-            #if self.layer_config.lr_adapt:
-                #self.adapt_weights(x_m, w_var_key, b_var_key, a)
+            if self.layer_config['lr_adapt']:
+                self.adapt_weights(x_m, w_var_key, b_var_key, a)
             return a
         else:
+            if self.layer_config['lr_adapt']:
+                raise Exception('not implemented for activation function sampling')
             prob_1 = 0.5 + 0.5 * tf.erf(tf.divide(mean, std * np.sqrt(2) + .000001))
             prob_1 = 0.0001 + (0.9999 - 0.0001) * prob_1
             reparam_args = [tf.log(1-prob_1) + self.sample_gumbel(shape), tf.log(prob_1) + self.sample_gumbel(shape)]

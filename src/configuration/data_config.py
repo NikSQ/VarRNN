@@ -31,7 +31,6 @@ class DataConfig:
             self.ds_configs[key].print_config()
 
 
-
 class DatasetConfig:
     def __init__(self, filename, data_key, in_seq_len, minibatch_enabled, minibatch_size, remove_bias,
                  do_shuffle, shuffle_buffer):
@@ -45,9 +44,7 @@ class DatasetConfig:
         self.shuffle_buffer = shuffle_buffer
 
     def print_config(self):
-        print("Filename: " + self.filename)
-        print("Key: + " + self.data_key + ", \tIn seq len:  " + self.in_seq_len)
-        print("Minibatch:  " + self.minibatch_enabled + ", \tSize  " + self.minibatch_size)
-        print("Target bias removed: " + self.remove_bias + ", \tShuffle: " + self.do_shuffle)
-
-
+        print("Filename: {}".format(self.filename))
+        print("Key: {}, \tIn seq len: {}".format(self.data_key, self.in_seq_len))
+        print("Minibatch:  {}, \tSize: {}".format(self.minibatch_enabled, self.minibatch_size))
+        print("Target bias removed: {}, \tShuffle: {}".format(self.remove_bias, self.do_shuffle))

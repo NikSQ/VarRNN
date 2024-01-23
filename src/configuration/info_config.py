@@ -37,13 +37,13 @@ class InfoConfig:
         print("====================================")
         print("Info configuration")
         print("")
-        print("Filename:  " + self.filename)
-        print("Timer: " + self.timer_enabled + ", \tProfiling: " + self.profiling_enabled + ", \tProfiling path: " + self.profiling_path)
-        print("Save weights: " + self.save_weights + ", \tEvery: " + self.save_weights_every + ", \tSave best weights: " + self.save_best_weights)
-        print("Compute T Metrics every: " + self.compute_tmetrics_every)
+        print("Filename:  {}".format(self.filename))
+        print("Timer: {}, \tProfiling: {}, \tProfiling path: {}".format(self.timer_enabled, self.profiling_enabled, self.profiling_path))
+        print("Save weights: {}, \tEvery: {}, \tSave best weights: {}".format(self.save_weights, self.save_weights_every, self.save_best_weights))
+        print("Compute T Metrics every: {}".format(self.compute_tmetrics_every))
         print("")
         if self.model_loader_config is not None:
-            print("Load model from  " + self.model_loader_config.filename + ", \t Force it: " + self.force_loading)
+            print("Load model from {}, \t Force it: {}".format(self.model_loader_config.filename, self.force_loading))
         else:
             print("No model loading")
         if self.model_saver_config is not None:
@@ -62,7 +62,7 @@ class ModelStorageConfig:
         if self.task_id is None:
             return '../tr_models/' + self.filename
         else:
-            return '../models/' + self.filename + '_' + {self.task_id}
+            return '../models/' + self.filename + '_' + str(self.task_id)
 
 
 
