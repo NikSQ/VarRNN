@@ -26,8 +26,8 @@ class NNConfig:
 
         for idx, layer in enumerate(self.layer_configs):
             print("")
-            print("Layer #" + idx + ", \tType: " + layer.layer_type + ", \tScope: " + layer.var_scope)
-            print("Units: " + layer.n_neurons + ", \tN activation bins: " + layer.n_activation_bins)
+            print("Layer #" + str(idx) + ", \tType: " + layer.layer_type + ", \tScope: " + layer.var_scope)
+            print("Units: " + str(layer.n_neurons) + ", \tN activation bins: " + str(layer.n_activation_bins))
             layer.print_gate_configs()
 
 
@@ -175,7 +175,7 @@ class FFGateConfig:
         self.bias_enabled = bias_enabled
 
     def print_config(self):
-        print("Bias: " + self.bias_enabled + ", \tN activation bins: " + self.n_act_bins + ", \tDiscrete activation: " + self.is_act_func_discrete)
+        print("Bias: " + str(self.bias_enabled) + ", \tN activation bins: " + str(self.n_act_bins) + ", \tDiscrete activation: " + str(self.is_act_func_discrete))
         if self.w_config is not None:
             self.w_config.print_config()
         if self.b_config is not None:

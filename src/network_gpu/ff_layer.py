@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from src.fp_tools import approx_activation
-from src.weights import Weights
+from src.network_gpu.weights import Weights
 from src.tools import get_batchnormalizer
 from src.global_variable import get_train_config, get_info_config, get_nn_config
 from src.configuration.constants import GraphCreationKeys

@@ -106,14 +106,20 @@ class TrainConfig:
         print("====================================")
         print("Training configuration")
         print("")
-        print("Learning rate: " + self.learning_rate + ", \tLearning rate anneal: " + self.learning_rate_anneal_period + ", \tTau: " + self.gumbel_tau)
-        print("Algorithm: " + self.algorithm + ", \tSTE: " + self.ste_type + ", \tn forward passes: " + self.n_forward_passes)
-        print("Var reg: " + self.variance_regularization + ", \tDir reg: " + self.dirichlet_regularization + ", \tEnt reg: " + self.entropy_regularization)
-        print("Data multiplier: " + self.data_multiplier)
-        print("Gradient clipping: " + self.gradient_clipping_enabled + ", \tGradient clip value: " + self.gradient_clip_value)
+        print("Learning rate: {}, \tLearning rate anneal: {}, \tTau:  {}".format(self.learning_rate,
+                                                                                 self.learning_rate_anneal_period,
+                                                                                 self.gumbel_tau))
+        print("Algorithm: {}, \tSTE: {}, \tn forward passes: {}".format(self.algorithm,
+                                                                        self.ste_type,
+                                                                        self.n_forward_passes))
+        print("Var reg: {}, \tDir reg: {}, \tEnt reg: {}".format(self.variance_regularization,
+                                                                 self.dirichlet_regularization,
+                                                                 self.entropy_regularization))
+        print("Data multiplier: {}".format(self.data_multiplier))
+        print("Gradient clipping: {}, \tGradient clip value: {}".format(self.gradient_clipping_enabled, self.gradient_clip_value))
         for idx, key in enumerate(self.layer_train_configs.keys()):
             print("")
-            print("Layer #" + idx)
+            print("Layer #{}".format(idx))
             print(key)
             self.layer_train_configs[key].print_config()
 
@@ -136,8 +142,8 @@ class LayerTrainConfig:
         return self
 
     def print_config(self):
-        print("Layer norm: " + self.layer_norm_enabled + ", \tLR Adapt: " + self.lr_adapt)
-        print("Dropout: " + self.dropout_enabled + ", \tp_dropout: " + self.p_dropout)
+        print("Layer norm: {}, \tLR Adapt: ".format(self.layer_norm_enabled, self.lr_adapt))
+        print("Dropout: {}, \tp_dropout: {}".format(self.dropout_enabled, self.p_dropout))
 
 
 # TODO these configs to NN
