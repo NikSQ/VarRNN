@@ -136,6 +136,7 @@ class Experiment:
                     model_saver.save(sess, self.info_config.model_saver_config.create_path())
 
             profiler.conclude_training(max_epoch)
+        return self.rnn.t_metrics.result_dict
 
     def run(self, number):
         with tf.Session() as sess:
