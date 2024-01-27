@@ -11,11 +11,12 @@ from src.network_gpu.tools import print_config
 from src.network_gpu.profiler import Profiler
 
 from src.global_variable import set_nn_config, set_train_config, set_info_config
+from src.t_metrics import save_to_file, print_results
 
 # Mon: 50 min
 
 class Experiment:
-    def __init__(self, nn_config, data_config, info_config, train_config):
+    def __init__(self, nn_config, data_config, info_config, train_config, task_id):
         self.rnn = None
         self.nn_config = nn_config
         self.train_config = train_config
@@ -23,6 +24,8 @@ class Experiment:
         self.datasets = load_gpu_datasets(data_config)
         self.gpu_dataset = GPUDatasets(data_config, self.datasets)
         self.timer = None
+        self.result_dicts = []
+        self.task_id = task_id
 
         set_nn_config(nn_config)
         set_info_config(info_config)
@@ -39,6 +42,11 @@ class Experiment:
         self.rnn = RNN(gpu_dataset)
         self.gpu_dataset = gpu_dataset
         self.data_config = data_config
+
+    def train_multiple_runs(self, epochs, runs):
+        for run in range(runs):
+            self.train(epochs)
+        self.save_results()
 
     def train(self, max_epoch):
         self.timer = Timer(self.info_config.timer_enabled)
@@ -135,7 +143,11 @@ class Experiment:
                 if self.info_config.model_saver_config is not None:
                     model_saver.save(sess, self.info_config.model_saver_config.create_path())
 
+                writer.close()
             profiler.conclude_training(max_epoch)
+
+        self.result_dicts.append(self.rnn.t_metrics.result_dict)
+        return self.rnn.t_metrics.result_dict
 
     def run(self, number):
         with tf.Session() as sess:
@@ -160,7 +172,7 @@ class Experiment:
         reader = tf.train.NewCheckpointReader(path)
         saved_shapes = reader.get_variable_to_shape_map()
         var_names = sorted([(var.name, var.name.split(':')[0]) for var in tf.global_variables()
-                if var.name.split(':')[0] in saved_shapes and 'batch_normalization' not in var.name])
+        if var.name.split(':')[0] in saved_shapes and 'batch_normalization' not in var.name])
         restore_vars = []
         with tf.variable_scope('', reuse=True):
             for var_name, saved_var_name in var_names:
@@ -185,3 +197,8 @@ class Experiment:
                 else:
                     np.save(path + '_r' + str(run) + '_e' + str(epoch) + '_' + layer_key + '_' + var_key + '_p.npy',
                             layer_weights[var_key]['probs'])
+
+    def save_results(self):
+        if self.info_config.save_training_metrics:
+            save_to_file(self.result_dicts, self.info_config.training_metrics_path + self.info_config.filename + "_" + str(self.task_id))
+        print_results(self.result_dicts)

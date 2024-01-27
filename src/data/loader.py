@@ -52,8 +52,36 @@ def load_gpu_datasets(data_config):
             extract_sequences(unprocessed_data, dataset_config)
         datasets[data_key] = dataset
         print(dataset[DatasetKeys.X].shape)
+    datasets = toy_samples(data_config)
     return datasets
 
+def toy_samples(data_config):
+    datasets = {}
+    for data_key in data_config.ds_configs.keys():
+        dataset = {}
+        n_samples = 60
+        n_timesteps = 11
+        n_features = 2
+
+        x = np.zeros((n_samples, n_timesteps, n_features))
+        y = np.zeros((n_samples, 3))
+        seqlen = (np.ones((n_samples,)) * (n_timesteps -2)).astype(np.int32)
+        for idx in range(0, 20):
+            x[idx, :, 0] = np.arange(n_timesteps) * np.random.uniform(-1./n_timesteps, 0) + np.random.randn(n_timesteps) * .1
+            y[idx] = np.array([1, 0, 0])
+
+        for idx in range(20, 40):
+            x[idx, :, 0] = np.arange(n_timesteps) * np.random.uniform(0, 1.0/n_timesteps) + np.random.randn(n_timesteps) * .1
+            y[idx] = np.array([0, 1, 0])
+
+        for idx in range(40, 60):
+            x[idx, :, 0] = np.cos(np.arange(n_timesteps)) + np.random.randn(n_timesteps) * .1
+            y[idx] = np.array([0, 0, 1])
+        dataset[DatasetKeys.X] = np.transpose(x, axes=[0, 2, 1])
+        dataset[DatasetKeys.Y] = y
+        dataset[DatasetKeys.SEQLEN] = seqlen
+        datasets[data_key] = dataset
+    return datasets
 
 
 filenames = {'penstroke_tr': '../datasets/mnist_pen_strokes/mps_full1_tr.mat',
