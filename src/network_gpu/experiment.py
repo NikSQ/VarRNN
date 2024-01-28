@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from copy import deepcopy
 
 from src.data.loader import load_gpu_datasets
 from src.data.labeled_data import GPUDatasets
@@ -49,6 +50,7 @@ class Experiment:
         self.save_results()
 
     def train(self, max_epoch):
+        self.rnn.t_metrics.reset_results()
         self.timer = Timer(self.info_config.timer_enabled)
         print_config(rnn_config=self.nn_config,
                      training_config=self.train_config,
@@ -79,6 +81,10 @@ class Experiment:
             current_epoch = 0
             gumbel_tau = self.train_config.gumbel_tau
             learning_rate = self.train_config.learning_rate
+
+            if self.info_config.save_gradients:
+                self.save_gradient_stats(sess, gumbel_tau)
+
             model_saver = tf.train.Saver(var_list=tf.trainable_variables())
             for epoch in range(max_epoch):
                 # Shuffle data
@@ -148,7 +154,7 @@ class Experiment:
 
             profiler.conclude_training(max_epoch)
 
-        self.result_dicts.append(self.rnn.t_metrics.result_dict)
+        self.result_dicts.append(deepcopy(self.rnn.t_metrics.result_dict))
         return self.rnn.t_metrics.result_dict
 
     def run(self, number):
@@ -204,3 +210,41 @@ class Experiment:
         if self.info_config.save_training_metrics:
             save_to_file(self.result_dicts, self.info_config.training_metrics_path + self.info_config.filename + "_" + str(self.task_id))
         print_results(self.result_dicts)
+
+    def save_gradient_stats(self, sess, gumbel_tau):
+        n_gradients = self.info_config.save_n_gradients
+
+        vars = []
+        rnn_gradients = []
+        for gradient, var in zip(self.rnn.gradients, self.rnn.vars):
+            if gradient is not None:
+                rnn_gradients.append(gradient)
+                vars.append(var)
+
+        gradient_1st_mom = []
+        gradient_2nd_mom = []
+        for gradient_idx in range(n_gradients):
+            #if self.train_config.algorithm in [AlgorithmC.AR, AlgorithmC.ARM]:
+            sess.run(self.rnn.c_arm_sample_op)
+            gradient = sess.run(rnn_gradients, feed_dict={self.gpu_dataset.batch_idx: 0,
+                                                     self.rnn.is_training: True,
+                                                     self.rnn.tau: gumbel_tau})
+            if len(gradient_1st_mom) == 0:
+                for idx, val in enumerate(gradient):
+                    gradient_1st_mom.append(val)
+                    gradient_2nd_mom.append(np.square(val))
+            else:
+                for idx, val in enumerate(gradient):
+                    gradient_1st_mom[idx] += val
+                    gradient_2nd_mom[idx] += np.square(val)
+
+        for idx in range(len(gradient_1st_mom)):
+            gradient_1st_mom[idx] /= n_gradients
+            gradient_2nd_mom[idx] /= n_gradients
+
+            suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.task_id) + '.npy'
+            np.save(file='../nr/ge' + suffix, arr=gradient_1st_mom[idx])
+            np.save(file='../nr/gsqe' + suffix, arr=gradient_2nd_mom[idx])
+        exit()
+
+

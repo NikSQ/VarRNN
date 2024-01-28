@@ -20,7 +20,6 @@ class InfoConfig:
         self.compute_tmetrics_every = compute_tmetrics_every
 
         self.tensorboard_config = TensorboardConfig()
-        self.gradient_variance_config = GradientVarianceConfig()
 
         self.force_loading = False
         self.model_loader_config = None
@@ -28,6 +27,9 @@ class InfoConfig:
 
         self.save_training_metrics = False
         self.training_metrics_path = ""
+
+        self.save_gradients = False
+        self.save_n_gradients = 1
 
     def add_model_saver(self, filename, task_id=None):
         self.model_saver_config = ModelStorageConfig(filename=filename, task_id=task_id)
@@ -39,6 +41,10 @@ class InfoConfig:
     def add_training_metrics_saver(self, path):
         self.save_training_metrics = True
         self.training_metrics_path = path
+
+    def add_gradient_saver(self, n_gradients):
+        self.save_gradients = True
+        self.save_n_gradients = n_gradients
 
     def print_config(self):
         print("====================================")
@@ -71,14 +77,6 @@ class ModelStorageConfig:
             return '../tr_models/' + self.filename
         else:
             return '../models/' + self.filename + '_' + str(self.task_id)
-
-
-
-class GradientVarianceConfig:
-    def __init__(self):
-        self.enabled = False
-        self.n_gradients = 1
-        self.n_gradients_per_sample = 1
 
 
 class TensorboardConfig:

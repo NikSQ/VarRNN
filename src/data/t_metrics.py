@@ -84,6 +84,15 @@ class TMetrics:
         self.best_va = {'is_current': False,
                         'acc': 0.}
 
+    def reset_results(self):
+        self.result_dict["epoch"] = list()
+        for key1 in self.result_dict.keys():
+            if key1 != "epoch":
+                for key2 in self.result_dict[key1].keys():
+                    self.result_dict[key1][key2] = []
+
+        self.best_va = {'is_current': False,
+                        'acc': 0.}
     # Connects metrics of datasets to TResults. Needs to be called for each dataset (training, validation and or test)
     # while building the graph
     def add_b_vars(self, process_key, vfe_op, kl_op, elogl_op, accs_op):

@@ -232,7 +232,7 @@ class RNN:
                         layer_samples[var_scope] = layer.weights.arm_samples
 
                 grads = []
-                grad_vars = []
+                vars = []
                 for var in variables:
                     for var_scope in layer_samples.keys():
                         if var_scope in var.name:
@@ -242,13 +242,14 @@ class RNN:
                                         grads.append(loss * layer_samples[var_scope][var_key])
                                     else:
                                         grads.append(loss * (1 - 2 * layer_samples[var_scope][var_key]))
-                                    grad_vars.append(var)
+                                    vars.append(var)
 
-                self.gradients = list(zip(grads, grad_vars))
                 self.gradient_ph = []
-                self.vars = grad_vars
+                self.vars = vars
+                self.gradients = grads
+                self.grad_vars = list(zip(grads, vars))
                 gradient_summaries = []
-                for grad, var in zip(grads, grad_vars):
+                for grad, var in zip(grads, vars):
                     if grad is not None:
                         gradient_summaries.append(
                             tf.summary.histogram('g_' + var.name[var.name.index('/') + 1:-2], grad))
@@ -355,7 +356,9 @@ class RNN:
                              for grad in gradients]
 
             # Set grad vars
-            self.grad_vars = zip(gradients, trainable_vars)
+            self.grad_vars = list(zip(gradients, trainable_vars))
+            self.gradients = gradients
+            self.vars = trainable_vars
 
             # Set up gradient summaries for tensorboard
             gradient_summaries = []
