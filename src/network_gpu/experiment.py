@@ -123,8 +123,9 @@ class Experiment:
                                     accumulated_gradients[gradient_idx] += gradients[gradient_idx][0]
 
                         # Compute mean over gradients and update the weights with those gradients
-                        print("M: " + str(np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1)))))
-                        print("S: " + str(np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1))))
+                        if False:
+                            print("M: " + str(np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1)))))
+                            print("S: " + str(np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1))))
                         for gradient_idx in range(len(accumulated_gradients)):
                             accumulated_gradients[gradient_idx] /= self.train_config.n_forward_passes
                         sess.run(self.rnn.train_b_op, feed_dict={gradient_ph: grad for gradient_ph, grad in zip(self.rnn.gradient_ph, accumulated_gradients)})
@@ -144,6 +145,7 @@ class Experiment:
                     model_saver.save(sess, self.info_config.model_saver_config.create_path())
 
                 writer.close()
+
             profiler.conclude_training(max_epoch)
 
         self.result_dicts.append(self.rnn.t_metrics.result_dict)
