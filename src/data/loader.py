@@ -52,7 +52,7 @@ def load_gpu_datasets(data_config):
             extract_sequences(unprocessed_data, dataset_config)
         datasets[data_key] = dataset
         print(dataset[DatasetKeys.X].shape)
-    datasets = toy_samples(data_config)
+    #datasets = toy_samples(data_config)
     return datasets
 
 def toy_samples(data_config):
