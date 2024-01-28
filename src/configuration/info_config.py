@@ -1,6 +1,6 @@
 class InfoConfig:
     def __init__(self,
-                 filename="default",
+                 filename="exp",
                  timer_enabled=False,
                  profiling_enabled=False,
                  profiling_path=None,
@@ -26,6 +26,9 @@ class InfoConfig:
         self.model_loader_config = None
         self.model_saver_config = None
 
+        self.save_training_metrics = False
+        self.training_metrics_path = ""
+
     def add_model_saver(self, filename, task_id=None):
         self.model_saver_config = ModelStorageConfig(filename=filename, task_id=task_id)
 
@@ -33,12 +36,17 @@ class InfoConfig:
         self.force_loading = force_loading
         self.model_loader_config = ModelStorageConfig(filename=filename, task_id=task_id)
 
+    def add_training_metrics_saver(self, path):
+        self.save_training_metrics = True
+        self.training_metrics_path = path
+
     def print_config(self):
         print("====================================")
         print("Info configuration")
         print("")
         print("Filename:  {}".format(self.filename))
         print("Timer: {}, \tProfiling: {}, \tProfiling path: {}".format(self.timer_enabled, self.profiling_enabled, self.profiling_path))
+        print("Save training metrics: {}, \tPath: {}".format(self.save_training_metrics, self.training_metrics_path))
         print("Save weights: {}, \tEvery: {}, \tSave best weights: {}".format(self.save_weights, self.save_weights_every, self.save_best_weights))
         print("Compute T Metrics every: {}".format(self.compute_tmetrics_every))
         print("")

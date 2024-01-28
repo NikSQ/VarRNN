@@ -11,11 +11,12 @@ from src.network_gpu.tools import print_config
 from src.network_gpu.profiler import Profiler
 
 from src.global_variable import set_nn_config, set_train_config, set_info_config
+from src.t_metrics import save_to_file, print_results
 
 # Mon: 50 min
 
 class Experiment:
-    def __init__(self, nn_config, data_config, info_config, train_config):
+    def __init__(self, nn_config, data_config, info_config, train_config, task_id):
         self.rnn = None
         self.nn_config = nn_config
         self.train_config = train_config
@@ -23,6 +24,8 @@ class Experiment:
         self.datasets = load_gpu_datasets(data_config)
         self.gpu_dataset = GPUDatasets(data_config, self.datasets)
         self.timer = None
+        self.result_dicts = []
+        self.task_id = task_id
 
         set_nn_config(nn_config)
         set_info_config(info_config)
@@ -39,6 +42,11 @@ class Experiment:
         self.rnn = RNN(gpu_dataset)
         self.gpu_dataset = gpu_dataset
         self.data_config = data_config
+
+    def train_multiple_runs(self, epochs, runs):
+        for run in range(runs):
+            self.train(epochs)
+        self.save_results()
 
     def train(self, max_epoch):
         self.timer = Timer(self.info_config.timer_enabled)
@@ -115,8 +123,9 @@ class Experiment:
                                     accumulated_gradients[gradient_idx] += gradients[gradient_idx][0]
 
                         # Compute mean over gradients and update the weights with those gradients
-                        print("M: " + str(np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1)))))
-                        print("S: " + str(np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1))))
+                        if False:
+                            print("M: " + str(np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1)))))
+                            print("S: " + str(np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1))))
                         for gradient_idx in range(len(accumulated_gradients)):
                             accumulated_gradients[gradient_idx] /= self.train_config.n_forward_passes
                         sess.run(self.rnn.train_b_op, feed_dict={gradient_ph: grad for gradient_ph, grad in zip(self.rnn.gradient_ph, accumulated_gradients)})
@@ -135,7 +144,11 @@ class Experiment:
                 if self.info_config.model_saver_config is not None:
                     model_saver.save(sess, self.info_config.model_saver_config.create_path())
 
+                writer.close()
+
             profiler.conclude_training(max_epoch)
+
+        self.result_dicts.append(self.rnn.t_metrics.result_dict)
         return self.rnn.t_metrics.result_dict
 
     def run(self, number):
@@ -161,7 +174,7 @@ class Experiment:
         reader = tf.train.NewCheckpointReader(path)
         saved_shapes = reader.get_variable_to_shape_map()
         var_names = sorted([(var.name, var.name.split(':')[0]) for var in tf.global_variables()
-                if var.name.split(':')[0] in saved_shapes and 'batch_normalization' not in var.name])
+        if var.name.split(':')[0] in saved_shapes and 'batch_normalization' not in var.name])
         restore_vars = []
         with tf.variable_scope('', reuse=True):
             for var_name, saved_var_name in var_names:
@@ -186,3 +199,8 @@ class Experiment:
                 else:
                     np.save(path + '_r' + str(run) + '_e' + str(epoch) + '_' + layer_key + '_' + var_key + '_p.npy',
                             layer_weights[var_key]['probs'])
+
+    def save_results(self):
+        if self.info_config.save_training_metrics:
+            save_to_file(self.result_dicts, self.info_config.training_metrics_path + self.info_config.filename + "_" + str(self.task_id))
+        print_results(self.result_dicts)
