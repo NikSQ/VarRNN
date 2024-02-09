@@ -327,7 +327,10 @@ class Weights:
                 return tf.stop_gradient(exact_weights - derivative_weights) + derivative_weights
 
             if self.train_config.algorithm == AlgorithmC.GUMBEL_STE:
-                return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
+                if self.train_config.ste_type == AlgorithmC.NO_STE:
+                    return gumbel_weights
+                elif self.train_config.ste_type == AlgorithmC.GUMBEL_STE:
+                    return tf.stop_gradient(exact_weights - gumbel_weights) + gumbel_weights
 
             return gumbel_weights
 

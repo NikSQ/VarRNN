@@ -44,6 +44,7 @@ def load_api_datasets(data_config):
 def load_gpu_datasets(data_config):
     datasets = {}
     
+    #"""
     for data_key in data_config.ds_configs.keys():
         dataset_config = data_config.ds_configs[data_key]
         unprocessed_data = loadmat(dataset_config.filename)
@@ -55,6 +56,7 @@ def load_gpu_datasets(data_config):
         print(data_key)
         print(dataset[DatasetKeys.X].shape)
     
+    #"""
     #datasets = toy_samples(data_config)
     return datasets
 
@@ -63,7 +65,7 @@ def toy_samples(data_config):
     for data_key in data_config.ds_configs.keys():
         dataset = {}
         n_samples = 60
-        n_timesteps = 11
+        n_timesteps = 3
         n_features = 2
 
         x = np.zeros((n_samples, n_timesteps, n_features))

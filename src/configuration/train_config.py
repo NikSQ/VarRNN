@@ -60,10 +60,12 @@ class TrainConfig:
     def set_algorithm(self,
                       algorithm,
                       n_forward_passes=DEFAULT_N_FORWARD_PASSES,
-                      ste_type=DEFAULT_STE_TYPE):
+                      ste_type=DEFAULT_STE_TYPE,
+                      gumbel_tau=DEFAULT_GUMBEL_TAU):
         self.algorithm = algorithm
         self.n_forward_passes = n_forward_passes
         self.ste_type = ste_type
+        self.gumbel_tau = gumbel_tau
         return self
 
     def set_variance_regulariztion(self, lambda_reg):
