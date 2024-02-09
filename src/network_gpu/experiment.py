@@ -61,12 +61,13 @@ class Experiment:
             profiler = Profiler(info_config=self.info_config)
             writer = tf.summary.FileWriter(self.info_config.tensorboard_config.path + str(self.train_config.task_id))
 
+            sess.run(tf.global_variables_initializer())
+
             if self.info_config.model_loader_config is not None:
                 self.load_model_from_file(sess, self.info_config.model_loader_config.create_path())
 
             self.timer.start()
 
-            sess.run(tf.global_variables_initializer())
             # Load datasets from numpy into GPU
             for data_key in self.gpu_dataset.data.keys():
                 sess.run(self.gpu_dataset.data[data_key][DatasetKeys.OP_LOAD],
@@ -229,6 +230,8 @@ class Experiment:
             gradient = sess.run(rnn_gradients, feed_dict={self.gpu_dataset.batch_idx: 0,
                                                      self.rnn.is_training: True,
                                                      self.rnn.tau: gumbel_tau})
+            if gradient_idx % 50 == 0:
+                print("Processed: " + str(gradient_idx))
             if len(gradient_1st_mom) == 0:
                 for idx, val in enumerate(gradient):
                     gradient_1st_mom.append(val)
@@ -241,10 +244,11 @@ class Experiment:
         for idx in range(len(gradient_1st_mom)):
             gradient_1st_mom[idx] /= n_gradients
             gradient_2nd_mom[idx] /= n_gradients
+            var = vars[idx]
 
             suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.task_id) + '.npy'
-            np.save(file='../nr/ge' + suffix, arr=gradient_1st_mom[idx])
-            np.save(file='../nr/gsqe' + suffix, arr=gradient_2nd_mom[idx])
+            np.save(file='../nr_grads/ge' + suffix, arr=gradient_1st_mom[idx])
+            np.save(file='../nr_grads/gsqe' + suffix, arr=gradient_2nd_mom[idx])
         exit()
 
 

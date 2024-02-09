@@ -43,6 +43,7 @@ def load_api_datasets(data_config):
 # Loads Dataset into GPU
 def load_gpu_datasets(data_config):
     datasets = {}
+    
     for data_key in data_config.ds_configs.keys():
         dataset_config = data_config.ds_configs[data_key]
         unprocessed_data = loadmat(dataset_config.filename)
@@ -53,6 +54,7 @@ def load_gpu_datasets(data_config):
         datasets[data_key] = dataset
         print(data_key)
         print(dataset[DatasetKeys.X].shape)
+    
     #datasets = toy_samples(data_config)
     return datasets
 
