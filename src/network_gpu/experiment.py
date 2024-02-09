@@ -61,12 +61,13 @@ class Experiment:
             profiler = Profiler(info_config=self.info_config)
             writer = tf.summary.FileWriter(self.info_config.tensorboard_config.path + str(self.train_config.task_id))
 
+            sess.run(tf.global_variables_initializer())
+
             if self.info_config.model_loader_config is not None:
                 self.load_model_from_file(sess, self.info_config.model_loader_config.create_path())
 
             self.timer.start()
 
-            sess.run(tf.global_variables_initializer())
             # Load datasets from numpy into GPU
             for data_key in self.gpu_dataset.data.keys():
                 sess.run(self.gpu_dataset.data[data_key][DatasetKeys.OP_LOAD],
@@ -121,15 +122,15 @@ class Experiment:
 
                             if len(accumulated_gradients) == 0:
                                 for gradient_idx in range(len(gradients)):
-                                    accumulated_gradients.append(gradients[gradient_idx][0])
+                                    accumulated_gradients.append(gradients[gradient_idx])
                             else:
                                 for gradient_idx in range(len(gradients)):
                                     if gradient_idx == 0:
-                                        grad_test.append(gradients[gradient_idx][0])
-                                    accumulated_gradients[gradient_idx] += gradients[gradient_idx][0]
+                                        grad_test.append(gradients[gradient_idx])
+                                    accumulated_gradients[gradient_idx] += gradients[gradient_idx]
 
                         # Compute mean over gradients and update the weights with those gradients
-                        if False:
+                        if True:
                             print("M: " + str(np.mean(np.abs(np.mean(np.stack(grad_test, axis=-1), axis=-1)))))
                             print("S: " + str(np.mean(np.std(np.stack(grad_test, axis=-1), axis=-1))))
                         for gradient_idx in range(len(accumulated_gradients)):
@@ -190,6 +191,7 @@ class Experiment:
                     restore_vars.append(curr_var)
         opt_saver = tf.train.Saver(restore_vars)
         opt_saver.restore(sess, path)
+        print("loaded")
 
     # This saves the weight probabilities in numpy format
     def save_weight_probs(self, path, epoch, run, weight_probs_dict):
@@ -214,6 +216,10 @@ class Experiment:
     def save_gradient_stats(self, sess, gumbel_tau):
         n_gradients = self.info_config.save_n_gradients
 
+        debug1 = self.rnn.layers[-1].weights.tensor_dict["w"]
+        debug2 = self.rnn.layers[-1].weights.logder_derivs["w"]
+        debug_sb = self.rnn.layers[-1].weights.var_dict["w_sb"]
+
         vars = []
         rnn_gradients = []
         for gradient, var in zip(self.rnn.gradients, self.rnn.vars):
@@ -223,12 +229,14 @@ class Experiment:
 
         gradient_1st_mom = []
         gradient_2nd_mom = []
+        samples = np.zeros((3,))
         for gradient_idx in range(n_gradients):
-            #if self.train_config.algorithm in [AlgorithmC.AR, AlgorithmC.ARM]:
             sess.run(self.rnn.c_arm_sample_op)
-            gradient = sess.run(rnn_gradients, feed_dict={self.gpu_dataset.batch_idx: 0,
-                                                     self.rnn.is_training: True,
-                                                     self.rnn.tau: gumbel_tau})
+            gradient, d1, d2, d3 = sess.run([rnn_gradients, debug1, debug2, debug_sb], feed_dict={self.gpu_dataset.batch_idx: 0,
+                                                                self.rnn.is_training: True,
+                                                                self.rnn.tau: gumbel_tau})
+            samples += np.squeeze(d1)
+
             if len(gradient_1st_mom) == 0:
                 for idx, val in enumerate(gradient):
                     gradient_1st_mom.append(val)
@@ -238,9 +246,16 @@ class Experiment:
                     gradient_1st_mom[idx] += val
                     gradient_2nd_mom[idx] += np.square(val)
 
+            if gradient_idx % 500 == 0:
+                print(f"processed {gradient_idx}")
+        samples = samples / n_gradients
+        print((samples + 1) * 0.5)
+        print(d3)
+        print(1 / (1 + np.exp(-np.squeeze(d3))))
         for idx in range(len(gradient_1st_mom)):
             gradient_1st_mom[idx] /= n_gradients
             gradient_2nd_mom[idx] /= n_gradients
+            var = vars[idx]
 
             suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.task_id) + '.npy'
             np.save(file='../nr/ge' + suffix, arr=gradient_1st_mom[idx])
