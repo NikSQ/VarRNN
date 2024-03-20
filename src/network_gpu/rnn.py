@@ -178,7 +178,7 @@ class RNN:
                 # TODO check whether kl loss has right scaling
                 for layer in self.layers:
                     kl += layer.weights.get_kl_loss()
-                kl /= (self.rnn_config.data_multiplier *
+                kl /= (self.train_config.data_multiplier *
                        self.gpu_datasets.data_config.ds_configs.minibatch_size *
                        self.gpu_datasets.data[data_key][DatasetKeys.N_MINIBATCHES])
                 vfe = kl - elogl
