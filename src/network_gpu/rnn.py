@@ -179,8 +179,8 @@ class RNN:
                 for layer in self.layers:
                     kl += layer.weights.get_kl_loss()
                 kl /= (self.train_config.data_multiplier *
-                       self.gpu_datasets.data_config.ds_configs.minibatch_size *
-                       self.gpu_datasets.data[data_key][DatasetKeys.N_MINIBATCHES])
+                       self.datasets.data_config.ds_configs[data_key].minibatch_size *
+                       self.datasets.data[data_key][DatasetKeys.N_MINIBATCHES])
                 vfe = kl - elogl
             else:
                 kl = tf.zeros(())
