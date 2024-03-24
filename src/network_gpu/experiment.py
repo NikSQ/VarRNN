@@ -216,10 +216,6 @@ class Experiment:
     def save_gradient_stats(self, sess, gumbel_tau):
         n_gradients = self.info_config.save_n_gradients
 
-        debug1 = self.rnn.layers[-1].weights.tensor_dict["w"]
-        debug2 = self.rnn.layers[-1].weights.logder_derivs["w"]
-        debug_sb = self.rnn.layers[-1].weights.var_dict["w_sb"]
-
         vars = []
         rnn_gradients = []
         for gradient, var in zip(self.rnn.gradients, self.rnn.vars):
@@ -235,7 +231,7 @@ class Experiment:
             gradient = sess.run(rnn_gradients, feed_dict={self.gpu_dataset.batch_idx: 0,
                                                      self.rnn.is_training: True,
                                                      self.rnn.tau: gumbel_tau})
-            if gradient_idx % 50 == 0:
+            if gradient_idx % 500 == 0:
                 print("Processed: " + str(gradient_idx))
 
             if len(gradient_1st_mom) == 0:
@@ -247,8 +243,6 @@ class Experiment:
                     gradient_1st_mom[idx] += val
                     gradient_2nd_mom[idx] += np.square(val)
 
-            if gradient_idx % 500 == 0:
-                print(f"processed {gradient_idx}")
 
         for idx in range(len(gradient_1st_mom)):
             gradient_1st_mom[idx] /= n_gradients

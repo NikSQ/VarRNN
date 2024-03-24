@@ -1,20 +1,14 @@
-2024-02-28 17:45:53.727456: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX AVX2 FMA
-2024-02-28 17:45:53.881737: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1405] Found device 0 with properties: 
-name: GeForce RTX 2080 Ti major: 7 minor: 5 memoryClockRate(GHz): 1.545
-pciBusID: 0000:03:00.0
-totalMemory: 10.76GiB freeMemory: 10.61GiB
-2024-02-28 17:45:53.882233: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1484] Adding visible gpu devices: 0
-2024-02-28 17:45:55.868515: I tensorflow/core/common_runtime/gpu/gpu_device.cc:965] Device interconnect StreamExecutor with strength 1 edge matrix:
-2024-02-28 17:45:55.868946: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971]      0 
-2024-02-28 17:45:55.869302: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] 0:   N 
-2024-02-28 17:45:55.869609: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1097] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 10237 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2080 Ti, pci bus id: 0000:03:00.0, compute capability: 7.5)
-2024-02-28 17:51:43.002907: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1484] Adding visible gpu devices: 0
-2024-02-28 17:51:43.003254: I tensorflow/core/common_runtime/gpu/gpu_device.cc:965] Device interconnect StreamExecutor with strength 1 edge matrix:
-2024-02-28 17:51:43.003479: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971]      0 
-2024-02-28 17:51:43.003672: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] 0:   N 
-2024-02-28 17:51:43.004096: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1097] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 10237 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2080 Ti, pci bus id: 0000:03:00.0, compute capability: 7.5)
-2024-02-28 17:57:27.347090: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1484] Adding visible gpu devices: 0
-2024-02-28 17:57:27.347624: I tensorflow/core/common_runtime/gpu/gpu_device.cc:965] Device interconnect StreamExecutor with strength 1 edge matrix:
-2024-02-28 17:57:27.348001: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971]      0 
-2024-02-28 17:57:27.348306: I tensorflow/core/common_runtime/gpu/gpu_device.cc:984] 0:   N 
-2024-02-28 17:57:27.348845: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1097] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 10237 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2080 Ti, pci bus id: 0000:03:00.0, compute capability: 7.5)
+Traceback (most recent call last):
+  File "../exps/test.py", line 127, in <module>
+    task_id=task_id)
+  File "/clusterFS/home/student/kopp13/VarRNN/src/network_gpu/experiment.py", line 40, in __init__
+    self.create_nn(self.gpu_dataset, data_config)
+  File "/clusterFS/home/student/kopp13/VarRNN/src/network_gpu/experiment.py", line 43, in create_nn
+    self.rnn = RNN(gpu_dataset)
+  File "/clusterFS/home/student/kopp13/VarRNN/src/network_gpu/rnn.py", line 68, in __init__
+    self.create_bayesian_training_graph(DatasetKeys.TR_SET)
+  File "/clusterFS/home/student/kopp13/VarRNN/src/network_gpu/rnn.py", line 271, in create_bayesian_training_graph
+    vfe, kl, elogl, acc = self.create_rnn_graph(key, self.rnn_config)
+  File "/clusterFS/home/student/kopp13/VarRNN/src/network_gpu/rnn.py", line 182, in create_rnn_graph
+    self.gpu_datasets.data_config.ds_configs.minibatch_size *
+AttributeError: 'RNN' object has no attribute 'gpu_datasets'
