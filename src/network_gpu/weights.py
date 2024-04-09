@@ -451,25 +451,17 @@ class Weights:
             return 0.
         return dir_reg / count
 
+    # That was changed to actual entropy
     # Adds a L2 regularizer on the parameters sa and sb (probability decay) to penalize low entropy
-    # TODO: Support for logit parametrization
     def get_entropy_reg(self):
         ent_reg = 0.
         count = 0.
         for var_key in self.var_keys:
             sa_var_name, sb_var_name = get_var_names(var_key, VarNames.SIGMOID_A, VarNames.SIGMOID_B)
-
-            if self.check_w_dist(var_key, dist=WeightC.BINARY):
-                ent_reg += tf.nn.l2_loss(self.var_dict[sb_var_name])
+            if self.check_w_dist(var_key, dist=WeightC.BINARY) or self.check_w_dist(var_key, dist=WeightC.TERNARY):
+                probs = self.get_discrete_probs(var_key, stacked=True)
+                ent_reg += -tf.reduce_sum(tf.log(probs + .000000001) * probs)
                 count += tf.cast(tf.size(self.var_dict[sb_var_name]), dtype=tf.float32)
-
-            elif self.check_w_dist(var_key, dist=WeightC.TERNARY):
-                ent_reg += tf.nn.l2_loss(self.var_dict[sa_var_name]) \
-                            + tf.nn.l2_loss(self.var_dict[sb_var_name])
-                count += tf.cast(tf.size(self.var_dict[sa_var_name]) + tf.size(self.var_dict[sb_var_name]),
-                                 dtype=tf.float32)
-            else:
-                raise Exception("Entropy regularization only works with discrete weights parametrized with sigmoid")
         if count == 0.:
             return 0.
 

@@ -67,9 +67,9 @@ class RNN:
 
         self.create_bayesian_training_graph(DatasetKeys.TR_SET)
         if self.train_config.algorithm in [AlgorithmC.LOG_DERIVATIVE, AlgorithmC.AR, AlgorithmC.ARM]:
-            self.create_bayesian_evaluation_graph("tr")
+            self.create_bayesian_evaluation_graph(DatasetKeys.TR_SET)
         for data_key in self.datasets.data.keys():
-            if data_key not in ["tr", "te"]:
+            if data_key not in [DatasetKeys.TR_SET]:
                 self.create_bayesian_evaluation_graph(data_key)
             self.create_sampling_evaluation_graph(data_key)
 
@@ -143,6 +143,7 @@ class RNN:
                                    x_shape=x_shape,
                                    mod_nn_config=mod_nn_config,
                                    second_arm_pass=False)
+
         output_m = tf.stack(output_m, axis=-1)
         one_hot = tf.one_hot(seq_lens, x_shape[2])[:, tf.newaxis, :]
         output_m = tf.multiply(output_m, one_hot)
