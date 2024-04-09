@@ -93,7 +93,7 @@ ff_train_config = LayerTrainConfig().set_config(layer_norm_enabled=False,
                                                 p_dropout=.95)
 
 #ADAPT
-algorithm = AlgorithmC.LOCAL_REPARAMETRIZATION
+algorithm = AlgorithmC.REPARAMETRIZATION
 #ste_type = [AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE][int(task_id / 5)]
 ste_type = AlgorithmC.NO_STE
 #gumbel_tau = np.logspace(-1, 1, 5)[task_id % 5]
