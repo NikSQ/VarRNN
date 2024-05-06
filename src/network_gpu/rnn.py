@@ -25,6 +25,7 @@ class RNN:
 
         weight_summaries = []
         sample_ops = []
+        map_sample_ops = []
         c_arm_sample_ops = []
         init_ops = []
         self.layers = []
@@ -46,11 +47,13 @@ class RNN:
 
             weight_summaries.append(layer.weights.weight_summaries)
             sample_ops.append(layer.weights.sample_op)
+            map_sample_ops.append(layer.weights.map_sample_op)
             c_arm_sample_ops.append(layer.weights.c_arm_sample_op)
             init_ops.append(layer.weights.init_op)
             self.layers.append(layer)
 
         self.sample_op = tf.group(*sample_ops)
+        self.map_sample_op = tf.group(*map_sample_ops)
         self.c_arm_sample_op = tf.group(*c_arm_sample_ops)
         self.init_op = tf.group(*init_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
@@ -66,12 +69,17 @@ class RNN:
         self.gradient_summaries = None
 
         self.create_bayesian_training_graph(DatasetKeys.TR_SET)
+        for data_key in self.datasets.data.keys():
+            self.create_bayesian_evaluation_graph(data_key)
+            self.create_sampling_evaluation_graph(data_key)
+        """
         if self.train_config.algorithm in [AlgorithmC.LOG_DERIVATIVE, AlgorithmC.AR, AlgorithmC.ARM]:
             self.create_bayesian_evaluation_graph(DatasetKeys.TR_SET)
         for data_key in self.datasets.data.keys():
             if data_key not in [DatasetKeys.TR_SET]:
                 self.create_bayesian_evaluation_graph(data_key)
             self.create_sampling_evaluation_graph(data_key)
+        """
 
     def unfold_rnn_layer(self, bayesian, data_key, layer, layer_idx, layer_input, x_shape, mod_nn_config,
                          reverse=False, second_arm_pass=False, annotations=False):
@@ -167,6 +175,7 @@ class RNN:
             prediction = tf.argmax(output_m, axis=1)
             acc = tf.reduce_mean(tf.cast(tf.equal(prediction, tf.argmax(y, axis=1)), dtype=tf.float32))
             self.t_metrics.add_s_vars(process_key=data_key + "_s", sample_op=self.sample_op, loss_op=loss, accs_op=acc)
+            self.t_metrics.add_s_vars(process_key=data_key + "_m", sample_op=self.map_sample_op, loss_op=loss, accs_op=acc)
             return loss, acc
 
         elif self.train_config.algorithm in [AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION] or \
@@ -199,6 +208,8 @@ class RNN:
             # In AR case:
             # f(1_u<sig(phi))
             return tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_m, labels=y, dim=1))
+        else:
+            raise Exception()
 
         self.t_metrics.add_b_vars(process_key=data_key + "_b", vfe_op=vfe, kl_op=kl, elogl_op=elogl, accs_op=acc)
         return vfe, kl, elogl, acc

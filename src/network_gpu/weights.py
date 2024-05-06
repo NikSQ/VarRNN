@@ -73,6 +73,7 @@ class Weights:
         self.layer_config = layer_config
         self.weight_summaries = None
         self.sample_op = None
+        self.map_sample_op = None
         self.init_op = None
         self.tau = tau
         self.epsilon = .00001
@@ -92,6 +93,7 @@ class Weights:
     # Currently supported distributions: Gaussian, Categorical with two or three categories (binary and ternary)
     def create_tf_vars(self):
         sample_ops = list()
+        map_sample_ops = list()
         weight_summaries = list()
         for var_key in self.var_keys:
             # var_key without any suffixes stores deterministic values for w and b (samples from the respective dist.)
@@ -212,9 +214,11 @@ class Weights:
                 raise Exception("Incompatible weight type (" + self.w_config[var_key].type + ") and " +
                                 "parametrization (" + self.w_config[var_key].parametrization + ")")
 
-            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_map_estimate(var_key)))
+            sample_ops.append(tf.assign(self.var_dict[var_key], self.get_weight_sample(var_key)))
+            map_sample_ops.append(tf.assign(self.var_dict[var_key], self.get_map_estimate(var_key)))
 
         self.sample_op = tf.group(*sample_ops)
+        self.map_sample_op = tf.group(*map_sample_ops)
         self.weight_summaries = tf.summary.merge(weight_summaries)
 
     def c_arm_create_sample_op(self):
@@ -257,6 +261,24 @@ class Weights:
                 return -1. + tf.cast(tf.argmax([self.var_dict[log_neg_var_name],
                                                 self.var_dict[log_zer_var_name],
                                                 self.var_dict[log_pos_var_name]]), tf.float32)
+
+    # In contrast to generate weight sample, this sampling method is not dependent on
+    def get_weight_sample(self, var_key):
+        shape = self.var_dict[var_key].shape
+        if self.check_w_dist(var_key, dist=WeightC.GAUSSIAN):
+            mean_var_name, variance_var_name = get_var_names(var_key, VarNames.GAUSSIAN_MEAN, VarNames.GAUSSIAN_VAR)
+            return self.var_dict[mean_var_name] + self.gauss.sample(shape) * tf.sqrt(self.var_dict[variance_var_name])
+        else:
+            probs = self.get_discrete_probs(var_key)
+            reparam_args = self.gumbel_reparam_args(probs, shape)
+
+            if self.check_w_dist(var_key, dist=WeightC.BINARY):
+                exact_weights = -1. + 2. * tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
+            elif self.check_w_dist(var_key, dist=WeightC.TERNARY):
+                exact_weights = -1. + tf.cast(tf.argmax(reparam_args), dtype=tf.float32)
+            else:
+                raise Exception()
+            return exact_weights
 
     def check_w_dist(self, var_key, dist):
         return self.w_config[var_key].dist == dist

@@ -13,6 +13,8 @@ def save_to_file(result_dicts, path):
 
         if process_key.endswith('_s'):
             metrics = convert_to_array(result_dicts, process_key, ['acc', 'loss'])
+        elif process_key.endswith('_m'):
+            metrics = convert_to_array(result_dicts, process_key, ['acc', 'loss'])
         elif process_key.endswith('_b'):
             metrics = convert_to_array(result_dicts, process_key, ['vfe', 'kl', 'elogl', 'acc'])
         else:
@@ -110,8 +112,10 @@ class TMetrics:
             #self.retrieve_s_results(sess, 'tr_s', is_pretrain, True)
 
         for process_key in self.op_dict.keys():
-            if process_key.endswith('_s') and process_key is not 'tr_s':
+            if process_key.endswith('_s'):
                 self.retrieve_s_results(sess, process_key, is_pretrain, False)
+            elif process_key.endswith('_m'):
+                self.retrieve_m_results(sess, process_key, is_pretrain, False)
             elif process_key.endswith('_b'):
                 self.retrieve_b_results(sess, process_key, False, tau)
             else:
@@ -138,7 +142,7 @@ class TMetrics:
         self.result_dict[process_key]['elogl'].append(elogl)
         self.result_dict[process_key]['acc'].append(acc)
 
-    def retrieve_s_results(self, sess, process_key, is_pretrain, is_training):
+    def retrieve_m_results(self, sess, process_key, is_pretrain, is_training):
         data_key = process_key[:-2]
 
         cum_loss = 0
@@ -150,10 +154,33 @@ class TMetrics:
                                  feed_dict={self.gpu_dataset.batch_idx: minibatch_idx, self.is_training: is_training})
             cum_loss += loss
             cum_acc += acc
-        if is_training:
-            return
+
         loss = cum_loss / self.gpu_dataset.data[data_key]['n_minibatches']
         acc = cum_acc / self.gpu_dataset.data[data_key]['n_minibatches']
+
+        self.result_dict[process_key]['loss'].append(loss)
+        self.result_dict[process_key]['acc'].append(acc)
+
+    def retrieve_s_results(self, sess, process_key, is_pretrain, is_training):
+        data_key = process_key[:-2]
+
+        cum_loss = 0
+        cum_acc = 0
+        n_samples = 5
+        if is_pretrain is False:
+            sess.run(self.op_dict[process_key]['sample'])
+
+        for iter_idx in range(n_samples):
+            for minibatch_idx in range(self.gpu_dataset.data[data_key]['n_minibatches']):
+                loss, acc = sess.run(self.op_dict[process_key]['metrics'],
+                                     feed_dict={self.gpu_dataset.batch_idx: minibatch_idx, self.is_training: is_training})
+                cum_loss += loss
+                cum_acc += acc
+        if is_training:
+            return
+
+        loss = cum_loss / (self.gpu_dataset.data[data_key]['n_minibatches'] * n_samples)
+        acc = cum_acc / (self.gpu_dataset.data[data_key]['n_minibatches'] * n_samples)
 
         if process_key == 'va_s':
             if self.best_va['acc'] < acc:
@@ -174,9 +201,14 @@ class TMetrics:
                   .format(self.result_dict['epoch'][-1], session_idx, self.result_dict['tr_b']['acc'][-1],
                           self.result_dict['tr_b']['vfe'][-1], self.result_dict['va_b']['acc'][-1],
                           self.result_dict['va_b']['vfe'][-1]) +
-                  '\t MAP NN | Acc: {:6.4f} | Loss: {:6.4f}'
-                  .format(self.result_dict['va_s']['acc'][-1],
-                          self.result_dict['va_s']['loss'][-1]))
+                  '\n MAP NN | TrAcc: {:6.4f} | VaAcc: {:6.4f} | TeAcc: {:6.4f}'
+                  .format(self.result_dict['tr_m']['acc'][-1],
+                          self.result_dict['va_m']['acc'][-1],
+                          self.result_dict['te_m']['acc'][-1]) +
+                  '\n S NN | TrAcc: {:6.4f} | VaAcc: {:6.4f} | TeAcc: {:6.4f}'
+                  .format(self.result_dict['tr_s']['acc'][-1],
+                          self.result_dict['va_s']['acc'][-1],
+                          self.result_dict['te_s']['acc'][-1]))
         else:
             print('{:3}, {:2} | VaAcc: {:6.4f}, VaLoss: {:8.5f}'
                   .format(self.result_dict['epoch'][-1], session_idx,
