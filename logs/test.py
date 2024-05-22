@@ -46,11 +46,14 @@ data_config.add_mnist_small()
 
 nn_config = NNConfig()
 
+weights = [WeightC.TERNARY, WeightC.BINARY][int(task_id / 2)]
+parametrization = [WeightC.SIGMOID, WeightC.LOGIT][task_id % 2]
 
 # Specification of weight properties which are then used in layers
 b_config = GaussianWeightConfig()
 bi_config = GaussianWeightConfig().set_initializers(mean_initializer=-1.5)
-w_config = DiscreteWeightConfig(dist=WeightC.BINARY, parametrization=WeightC.SIGMOID)
+#w_config = DiscreteWeightConfig(dist=WeightC.TERNARY, parametrization=WeightC.SIGMOID)
+w_config = DiscreteWeightConfig(dist=weights, parametrization=parametrization)
 #w_config = GaussianWeightConfig().set_initializers(mean_initializer=WeightC.XAVIER_INIT)
 
 
@@ -86,14 +89,13 @@ ff_train_config = LayerTrainConfig().set_config(layer_norm_enabled=False,
                                                 p_dropout=.95)
 
 #ADAPT
-algorithm = [AlgorithmC.REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION][task_id % 2]
-#algorithm = AlgorithmC.REPARAMETRIZATION
-ste_type = [AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE][int(task_id / 2)]
+#algorithm = [AlgorithmC.REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION][task_id % 2]
+algorithm = AlgorithmC.REPARAMETRIZATION
 gumbel_tau = 1.
 
 train_config = TrainConfig(task_id=task_id)\
     .set_learning_rate(learning_rate=.2)\
-    .set_algorithm(algorithm=algorithm, n_forward_passes=1, ste_type=ste_type, gumbel_tau=gumbel_tau)\
+    .set_algorithm(algorithm=algorithm, n_forward_passes=1, ste_type=AlgorithmC.NO_STE, gumbel_tau=gumbel_tau)\
     .add_layer_train_config(var_scope=["lstm_1", "lstm_2"], layer_train_config=lstm_train_config) \
     .add_layer_train_config(var_scope=["ff_3"], layer_train_config=ff_train_config) \
 
