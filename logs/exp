@@ -68,8 +68,8 @@ lstm_layer_config = LSTMLayerConfig()\
 ff_layer_config = FFLayerConfig()\
     .set_weight_config(weight_config=w_config, bias_config=b_config)
 
-n_neurons = [1, 3, 10][int(task_id / 4)]
-filename = ["toy_1", "toy_3", "toy_10"][int(task_id / 4)]
+n_neurons = [1, 3, 10][int(task_id / 2)]
+filename = ["toy_1", "toy_3", "toy_10"][int(task_id / 2)]
 
 nn_config.add_layer_config(n_neurons=4, layer_config=InputLayerConfig())
 nn_config.add_layer_config(n_neurons=n_neurons, layer_config=lstm_layer_config, var_scope="lstm_1")
@@ -92,14 +92,15 @@ ff_train_config = LayerTrainConfig().set_config(layer_norm_enabled=False,
                                                 p_dropout=.95)
 
 #ADAPT
-algorithm = [AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.ARM][task_id % 4]
-#algorithm = AlgorithmC.REPARAMETRIZATION
-gumbel_tau = [0.1, .5, 1., 1.][task_id % 4]
+#algorithm = [AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.ARM][task_id % 4]
+#algorithm = [AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.ARM][task_id % 4]
+algorithm = AlgorithmC.REPARAMETRIZATION
+gumbel_tau = [0.1, .5][task_id % 2]
 
 
 train_config = TrainConfig(task_id=task_id) \
     .set_learning_rate(learning_rate=.2)\
-    .set_algorithm(algorithm=algorithm, n_forward_passes=1, ste_type=AlgorithmC.NO_STE, gumbel_tau=gumbel_tau)\
+    .set_algorithm(algorithm=algorithm, n_forward_passes=1, ste_type=AlgorithmC.GUMBEL_STE, gumbel_tau=gumbel_tau)\
     .add_layer_train_config(var_scope=["lstm_1", "lstm_2"], layer_train_config=lstm_train_config) \
     .add_layer_train_config(var_scope=["ff_3"], layer_train_config=ff_train_config) \
 
@@ -114,7 +115,7 @@ n_grads = 1000000
 info_config = InfoConfig(filename="test", timer_enabled=False, profiling_enabled=False)
 #info_config.add_model_saver(filename="toy_small", task_id=task_id)
 #info_config.add_model_saver(filename=filename, task_id=task_id)
-info_config.add_model_loader(filename=filename, task_id=int(task_id / 4))
+info_config.add_model_loader(filename=filename, task_id=int(task_id / 2))
 #info_config.add_training_metrics_saver(path="../nr/")
 info_config.add_gradient_saver(n_grads)
 
