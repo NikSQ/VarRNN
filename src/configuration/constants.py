@@ -9,6 +9,7 @@ class WeightC:
 
     XAVIER_INIT = "xavier"
     BINARY_INIT = "binary"
+    DIRICHLET_INIT = "dirichlet"
 
 
 class VarNames:
