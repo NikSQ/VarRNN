@@ -11,13 +11,56 @@ from src.configuration.constants import WeightC, AlgorithmC, VarNames, Activatio
 def get_initializer(initializer_type, shape):
     if type(initializer_type) in [int, float]:
         init_vals = np.ones(shape) * initializer_type
-    elif initializer_type == WeightC.XAVIER_INIT:
+    elif initializer_type[0] == WeightC.XAVIER_INIT:
         init_vals = np.random.randn(shape[0], shape[1]) * np.sqrt(2/sum(shape))
-    elif initializer_type == WeightC.BINARY_INIT:
+    elif initializer_type[0] == WeightC.BINARY_INIT:
         init_vals = 2 * np.random.binomial(n=1, p=0.5, size=shape) - 1
     else:
         raise Exception("{} is not a valid weight initialization".format(initializer_type))
     return tf.constant_initializer(init_vals)
+
+
+def get_dirichlet_init(initializer_type, shape, parametrization):
+    probs = np.random.dirichlet(initializer_type[1], size=shape)
+    probs = probs.astype(dtype=np.float32)
+    if parametrization == WeightC.LOGIT:
+        return get_logit_params_from_probs(probs)
+    elif parametrization == WeightC.SIGMOID:
+        return get_sigmoid_params_from_probs(probs)
+    else:
+        raise Exception("{} is not an understood weight parametrization".format(parametrization))
+
+
+def get_sigmoid_params_from_probs(probs):
+    if probs.shape[-1] == 2:
+        return tf.constant_initializer(-np.log(np.divide(1. - probs[:, :, 1], probs[:, :, 1])))
+    else:
+        sa = -np.log(np.divide(1. - probs[:, :, 1], probs[:, :, 1]))
+        cond_prob = np.divide(probs[:, :, 2], 1 - probs[:, :, 1])
+        sb = -np.log(np.divide(1. - cond_prob, cond_prob))
+
+        sa = tf.constant_initializer(sa)
+        sb = tf.constant_initializer(sb)
+        return sa, sb
+
+
+def get_logit_params_from_probs(probs):
+    if probs.shape[-1] == 2:
+        log_neg = np.zeros((probs.shape[0], probs.shape[1]))
+        log_pos = np.log(np.divide(probs[:, :, 1], 1 - probs[:, :, 1]))
+
+        log_neg = tf.constant_initializer(log_neg)
+        log_pos = tf.constant_initializer(log_pos)
+        return log_neg, log_pos
+    else:
+        log_neg = np.log(np.divide(1 - probs[:, :, 2] - probs[:, :, 1], probs[:, :, 1]))
+        log_zer = np.zeros((probs.shape[0], probs.shape[1]))
+        log_pos = np.log(np.divide(probs[:, :, 2], probs[:, :, 1]))
+
+        log_neg = tf.constant_initializer(log_neg)
+        log_zer = tf.constant_initializer(log_zer)
+        log_pos = tf.constant_initializer(log_pos)
+        return log_neg, log_zer, log_pos
 
 
 def get_bin_prob_from_pretrained(weight, w_config):
@@ -39,7 +82,8 @@ def get_ter_prob_from_pretrained(weight, w_config):
     quotient = prob_0 + prob_p + prob_n
     prob_0 = tf.divide(prob_0, quotient)
     prob_p = tf.divide(prob_p, quotient)
-    return prob_0, prob_p 
+    return prob_0, prob_p
+
 
 
 def get_var_names(var_key, *var_descriptions):
@@ -100,7 +144,7 @@ class Weights:
             if var_key.startswith('w'):
                 shape = self.w_shape
                 self.var_dict[var_key] = tf.get_variable(name=var_key, shape=shape,
-                                                         initializer=get_initializer(WeightC.XAVIER_INIT, shape))
+                                                         initializer=get_initializer((WeightC.XAVIER_INIT, None), shape))
             elif var_key.startswith('b'):
                 shape = self.b_shape
                 self.var_dict[var_key] = tf.get_variable(name=var_key, shape=shape,
@@ -133,24 +177,31 @@ class Weights:
 
                 if self.w_config[var_key].dist == WeightC.BINARY:
                     #  p(w=1) = sigmoid(sb) -> from paper 1710.07739
+                    if self.w_config[var_key].sb_initializer[0] == WeightC.DIRICHLET_INIT:
+                        sb_init = get_dirichlet_init(self.w_config[var_key].sb_initializer, shape, WeightC.SIGMOID)
+                    else:
+                        sb_init = get_initializer(self.w_config[var_key].sb_initializer, shape)
                     self.var_dict[sb_var_name] = tf.get_variable(name=sb_var_name,
                                                                  shape=shape,
-                                                                 initializer=get_initializer(
-                                                                     self.w_config[var_key].sb_initializer, shape),
+                                                                 initializer=sb_init,
                                                                  dtype=tf.float32)
 
                     weight_summaries.append(tf.summary.histogram(sb_var_name, self.var_dict[sb_var_name]))
                 elif self.w_config[var_key].dist == WeightC.TERNARY:
                     # p(w=0) = sigmoid(sa), p(w=1 | w !=0) = sigmoid(sb) -> from paper 1710.07739
+                    if self.w_config[var_key].sa_initializer[0] == WeightC.DIRICHLET_INIT:
+                        sa_init, sb_init = get_dirichlet_init(self.w_config[var_key].sa_initializer, shape, WeightC.SIGMOID)
+                    else:
+                        sa_init = get_initializer(self.w_config[var_key].sa_initializer, shape)
+                        sb_init = get_initializer(self.w_config[var_key].sb_initializer, shape)
+
                     self.var_dict[sa_var_name] = tf.get_variable(name=sa_var_name,
                                                                  shape=shape,
-                                                                 initializer=get_initializer(
-                                                                     self.w_config[var_key].sa_initializer, shape),
+                                                                 initializer=sa_init,
                                                                  dtype=tf.float32)
                     self.var_dict[sb_var_name] = tf.get_variable(name=sb_var_name,
                                                                  shape=shape,
-                                                                 initializer=get_initializer(
-                                                                     self.w_config[var_key].sb_initializer, shape),
+                                                                 initializer=sb_init,
                                                                  dtype=tf.float32)
 
                     weight_summaries.append(tf.summary.histogram(sa_var_name, self.var_dict[sa_var_name]))
@@ -166,42 +217,45 @@ class Weights:
                                                                                      VarNames.LOGITS_POS)
 
                 if self.w_config[var_key].dist == WeightC.BINARY:
+                    if self.w_config[var_key].log_pos_initializer[0] == WeightC.DIRICHLET_INIT:
+                        log_neg_init, log_pos_init = get_dirichlet_init(self.w_config[var_key].log_pos_initializer, shape, WeightC.LOGIT)
+                    else:
+                        log_neg_init = get_initializer(self.w_config[var_key].log_neg_initializer, shape)
+                        log_pos_init = get_initializer(self.w_config[var_key].log_pos_initializer, shape)
+
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for possible weight values
                     self.var_dict[log_neg_var_name] = tf.get_variable(name=log_neg_var_name,
                                                                       shape=shape,
-                                                                      initializer=get_initializer(
-                                                                          self.w_config[var_key].log_neg_initializer,
-                                                                          shape),
+                                                                      initializer=log_neg_init,
                                                                       dtype=tf.float32)
                     self.var_dict[log_pos_var_name] = tf.get_variable(name=log_pos_var_name,
                                                                       shape=shape,
-                                                                      initializer=get_initializer(
-                                                                          self.w_config[var_key].log_pos_initializer,
-                                                                          shape),
+                                                                      initializer=log_pos_init,
                                                                       dtype=tf.float32)
 
                     weight_summaries.append(tf.summary.histogram(log_neg_var_name, self.var_dict[log_neg_var_name]))
                     weight_summaries.append(tf.summary.histogram(log_pos_var_name, self.var_dict[log_pos_var_name]))
 
                 elif self.w_config[var_key].dist == WeightC.TERNARY:
+                    if self.w_config[var_key].log_pos_initializer[0] == WeightC.DIRICHLET_INIT:
+                        log_neg_init, log_zer_init, log_pos_init = get_dirichlet_init(self.w_config[var_key].log_pos_initializer, shape, WeightC.LOGIT)
+                    else:
+                        log_neg_init = get_initializer(self.w_config[var_key].log_neg_initializer, shape)
+                        log_zer_init = get_initializer(self.w_config[var_key].log_zer_initializer, shape)
+                        log_pos_init = get_initializer(self.w_config[var_key].log_pos_initializer, shape)
+
                     # p(w) = softmax(logits) -> Stored are the unscaled logits for possible weight values
                     self.var_dict[log_neg_var_name] = tf.get_variable(name=log_neg_var_name,
                                                                       shape=shape,
-                                                                      initializer=get_initializer(
-                                                                          self.w_config[var_key].log_neg_initializer,
-                                                                          shape),
+                                                                      initializer=log_neg_init,
                                                                       dtype=tf.float32)
                     self.var_dict[log_zer_var_name] = tf.get_variable(name=log_zer_var_name,
                                                                       shape=shape,
-                                                                      initializer=get_initializer(
-                                                                          self.w_config[var_key].log_zer_initializer,
-                                                                          shape),
+                                                                      initializer=log_zer_init,
                                                                       dtype=tf.float32)
                     self.var_dict[log_pos_var_name] = tf.get_variable(name=log_pos_var_name,
                                                                       shape=shape,
-                                                                      initializer=get_initializer(
-                                                                          self.w_config[var_key].log_pos_initializer,
-                                                                          shape),
+                                                                      initializer=log_pos_init,
                                                                       dtype=tf.float32)
 
                     weight_summaries.append(tf.summary.histogram(log_neg_var_name, self.var_dict[log_neg_var_name]))
@@ -586,7 +640,7 @@ class Weights:
                 probs = tf.nn.softmax([self.var_dict[log_neg_var_name], self.var_dict[log_zer_var_name],
                                        self.var_dict[log_pos_var_name]])
                 prob_not_zero = probs[0] + probs[2]
-                m = (probs[2] - probs[0]) * prob_not_zero
+                m = probs[2] - probs[0]
 
             v = prob_not_zero - tf.square(m) + .0001
         else:
