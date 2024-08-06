@@ -23,12 +23,19 @@ def get_initializer(initializer_type, shape):
 def get_dirichlet_init(initializer_type, shape, parametrization):
     probs = np.random.dirichlet(initializer_type[1], size=shape)
     probs = probs.astype(dtype=np.float32)
+    create_stable_probs(probs)
     if parametrization == WeightC.LOGIT:
         return get_logit_params_from_probs(probs)
     elif parametrization == WeightC.SIGMOID:
         return get_sigmoid_params_from_probs(probs)
     else:
         raise Exception("{} is not an understood weight parametrization".format(parametrization))
+
+
+def create_stable_probs(probs):
+    probs += np.ones_like(probs) * .001
+    probs = probs / np.sum(probs, axis=-1, keepdims=True)
+    return probs
 
 
 def get_sigmoid_params_from_probs(probs):
