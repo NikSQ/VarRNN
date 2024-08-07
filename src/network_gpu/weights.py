@@ -528,7 +528,7 @@ class Weights:
             if self.check_w_dist(var_key, dist=WeightC.BINARY) or self.check_w_dist(var_key, dist=WeightC.TERNARY):
                 probs = self.get_discrete_probs(var_key, stacked=True)
                 dir_reg += tf.reduce_mean(tf.reduce_prod(probs, axis=0))
-                count += 100.
+                count += tf.cast(tf.size(self.var_dict[sb_var_name]), dtype=tf.float32)
 
         if count == 0.:
             return 0.
@@ -543,12 +543,12 @@ class Weights:
             sa_var_name, sb_var_name = get_var_names(var_key, VarNames.SIGMOID_A, VarNames.SIGMOID_B)
             if self.check_w_dist(var_key, dist=WeightC.BINARY) or self.check_w_dist(var_key, dist=WeightC.TERNARY):
                 probs = self.get_discrete_probs(var_key, stacked=True)
-                ent_reg += -tf.reduce_sum(tf.log(probs + .000000001) * probs)
+                ent_reg += tf.reduce_sum(tf.log(probs + .000000001) * probs)
                 count += tf.cast(tf.size(self.var_dict[sb_var_name]), dtype=tf.float32)
         if count == 0.:
             return 0.
 
-        return ent_reg / count
+        return -ent_reg / count
 
     # Adds a L2 regularizer for pretraining a deterministic network_api (non-bayesian)
     def get_pretraining_reg(self):
@@ -644,8 +644,10 @@ class Weights:
                                                                                      VarNames.LOGITS_NEG,
                                                                                      VarNames.LOGITS_ZER,
                                                                                      VarNames.LOGITS_POS)
-                probs = tf.nn.softmax([self.var_dict[log_neg_var_name], self.var_dict[log_zer_var_name],
-                                       self.var_dict[log_pos_var_name]])
+                #probs = tf.nn.softmax([self.var_dict[log_neg_var_name], self.var_dict[log_zer_var_name],
+                                       #self.var_dict[log_pos_var_name]])
+                logits = tf.stack([self.var_dict[log_neg_var_name], self.var_dict[log_zer_var_name], self.var_dict[log_pos_var_name]], axis=0)
+                probs = tf.nn.softmax(logits, axis=0)
                 prob_not_zero = probs[0] + probs[2]
                 m = probs[2] - probs[0]
 
