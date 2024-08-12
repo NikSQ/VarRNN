@@ -10,6 +10,7 @@ class WeightC:
     XAVIER_INIT = "xavier"
     BINARY_INIT = "binary"
     DIRICHLET_INIT = "dirichlet"
+    CONSTANT_INIT = "constant"
 
 
 class VarNames:

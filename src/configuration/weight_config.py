@@ -2,7 +2,7 @@ import numpy as np
 from src.configuration.constants import WeightC
 
 DEFAULT_MEAN_INITIALIZER = (WeightC.XAVIER_INIT, None)
-DEFAULT_LOGVAR_INITIALIZER = (WeightC.XAVIER_INIT, None)
+DEFAULT_LOGVAR_INITIALIZER = (WeightC.CONSTANT_INIT, 0.1)
 DEFAULT_MEAN_PRIOR = 0.
 DEFAULT_LOGVAR_PRIOR = 0.
 

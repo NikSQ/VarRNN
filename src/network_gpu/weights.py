@@ -1,6 +1,7 @@
 import tensorflow as tf
 #import tensorflow_probability as tfp
 import numpy as np
+import math
 import copy
 
 from src.global_variable import get_train_config
@@ -9,8 +10,8 @@ from src.configuration.constants import WeightC, AlgorithmC, VarNames, Activatio
 
 # Returns a tf variable initializer, dependent on initializer_type which is either a scalar or an understood string
 def get_initializer(initializer_type, shape):
-    if type(initializer_type) in [int, float]:
-        init_vals = np.ones(shape) * initializer_type
+    if initializer_type[0] == WeightC.CONSTANT_INIT:
+        init_vals = np.ones(shape) * initializer_type[1]
     elif initializer_type[0] == WeightC.XAVIER_INIT:
         init_vals = np.random.randn(shape[0], shape[1]) * np.sqrt(2/sum(shape))
     elif initializer_type[0] == WeightC.BINARY_INIT:
@@ -91,6 +92,44 @@ def get_ter_prob_from_pretrained(weight, w_config):
     prob_p = tf.divide(prob_p, quotient)
     return prob_0, prob_p
 
+def gaussian(x, mean, std):
+    mean = tf.expand_dims(mean, axis=0)
+    mean = tf.expand_dims(mean, axis=0)
+    std = tf.expand_dims(std, axis=0)
+    std = tf.expand_dims(std, axis=0)
+    x = tf.expand_dims(x, axis=2)
+    return 1/(std * tf.sqrt(2*math.pi)) * tf.exp(-0.5*tf.square(x - mean) / tf.square(std))
+
+def get_bin_prob_from_dirich_pretrained(weight, std_step_ratio=2.0, concentration_factor=0.5):
+    """
+    std = float(2 / std_step_ratio)
+    means = [1., -1.]
+    alphas = [gaussian(weight, mean, std) * concentration_factor for mean in means]
+    w_probs = np.zeros((weight.shape[0], weight.shape[1], 2), dtype=np.float32)
+    width, height = tf.shape(weight)
+    weight_list = tf.unstack(tf.reshape(weight, shape=(-1)))
+    prob_0_list = []
+    prob_1_list = []
+    for w in weight_list:
+        alphas = [gaussian(w, mean, std) for mean in std]
+        probs = np.random.dirichlet(alphas).astype(tf.float32)
+            alphas_w = [alpha[x_coord, y_coord] for alpha in alphas]
+            w_probs[x_coord, y_coord, :] = np.random.dirichlet(alphas_w).astype(np.float32)
+    w_probs = create_stable_probs(w_probs)
+    """
+    raise Exception("not implemented")
+    return w_probs
+
+
+def get_ter_prob_from_novel_pretrained(weight, std_step_ratio=0.8, concentration_factor=0.5):
+    step = float(math.atan(0.5) / 5)
+    means = tf.constant([-step*2, 0., step*2])
+    std = [step / std_step_ratio] * 3
+    std = tf.constant(std)
+    gaussians = gaussian(weight, means, std)
+    w_probs = gaussians / tf.reduce_sum(gaussians, axis=-1, keepdims=True)
+    w_probs = create_stable_probs(w_probs)
+    return w_probs
 
 
 def get_var_names(var_key, *var_descriptions):
@@ -466,7 +505,7 @@ class Weights:
     # In case of a discrete distribution, a discretization method is applied to infer weight probabilities
     # The continuous values are stored in self.var_dict[var_key], the respective distribution parameters will be stored
     # in self.var_dict[var_key + parameter_suffix]
-    def create_init_op(self):
+    def create_init_op(self, dirich=True):
         init_ops = []
         for var_key in self.var_keys:
             if self.check_w_dist(var_key, dist=WeightC.GAUSSIAN):
@@ -478,8 +517,12 @@ class Weights:
                 if not var_key.startswith('w'):
                     raise Exception()
 
-                init_weights = self.normalize_weights(var_key)
-                prob_1 = get_bin_prob_from_pretrained(init_weights, self.w_config[var_key])
+                if not dirich:
+                    init_weights = self.normalize_weights(var_key)
+                    prob_1 = get_bin_prob_from_pretrained(init_weights, self.w_config[var_key])
+                else:
+                    probs = get_bin_prob_from_dirich_pretrained(self.var_dict[var_key])
+                    prob_1 = probs[:, :, 1]
 
                 if self.check_w_param(var_key, parametrization=WeightC.SIGMOID):
                     sb_var_name = get_var_name(var_key, VarNames.SIGMOID_B)
@@ -495,8 +538,13 @@ class Weights:
                 if not var_key.startswith('w'):
                     raise Exception()
 
-                init_weights = self.normalize_weights(var_key)
-                prob_0, prob_1 = get_ter_prob_from_pretrained(init_weights, self.w_config[var_key])
+                if not dirich:
+                    init_weights = self.normalize_weights(var_key)
+                    prob_0, prob_1 = get_ter_prob_from_pretrained(init_weights, self.w_config[var_key])
+                else:
+                    probs = get_ter_prob_from_novel_pretrained(self.var_dict[var_key])
+                    prob_0 = probs[:, :, 1]
+                    prob_1 = probs[:, :, 2]
 
                 if self.check_w_param(var_key, parametrization=WeightC.SIGMOID):
                     sa_var_name, sb_var_name = get_var_names(var_key, VarNames.SIGMOID_A, VarNames.SIGMOID_B)
