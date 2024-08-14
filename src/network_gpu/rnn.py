@@ -246,15 +246,22 @@ class RNN:
                 grads = []
                 vars = []
                 for var in variables:
+                    print("outest loop: " + var.name)
                     for var_scope in layer_samples.keys():
+                        print("var scope: " + var_scope)
                         if var_scope in var.name:
+                            print("that went off")
+                            print(layer_samples[var_scope].keys())
                             for var_key in layer_samples[var_scope].keys():
+                                print(var_key)
                                 if var_key + '_sb' == var.name[var.name.index('/') + 1:-2]:
                                     if AlgorithmC.LOG_DERIVATIVE in self.train_config.algorithm:
                                         grads.append(loss * layer_samples[var_scope][var_key])
                                     else:
                                         grads.append(loss * (1 - 2 * layer_samples[var_scope][var_key]))
                                     vars.append(var)
+                                    print("added")
+                                    print(var.name)
 
                 self.gradient_ph = []
                 self.vars = vars

@@ -12,6 +12,10 @@ class WeightC:
     DIRICHLET_INIT = "dirichlet"
     CONSTANT_INIT = "constant"
 
+    INIT_PRETRAIN_PAPER = "init_pretrain_paper" 
+    INIT_PRETRAIN_SMOOTH = "init_pretrain_smooth" 
+    INIT_PRETRAIN_HARD = "init_pretrain_hard" 
+
 
 class VarNames:
     LOGITS_NEG = "_log_neg"

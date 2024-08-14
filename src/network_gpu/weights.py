@@ -24,7 +24,7 @@ def get_initializer(initializer_type, shape):
 def get_dirichlet_init(initializer_type, shape, parametrization):
     probs = np.random.dirichlet(initializer_type[1], size=shape)
     probs = probs.astype(dtype=np.float32)
-    probs = create_stable_probs(probs)
+    probs = create_stable_probs_np(probs)
     if parametrization == WeightC.LOGIT:
         return get_logit_params_from_probs(probs)
     elif parametrization == WeightC.SIGMOID:
@@ -32,10 +32,14 @@ def get_dirichlet_init(initializer_type, shape, parametrization):
     else:
         raise Exception("{} is not an understood weight parametrization".format(parametrization))
 
-
-def create_stable_probs(probs):
+def create_stable_probs_np(probs):
     probs += np.ones_like(probs) * .001
     probs = probs / np.sum(probs, axis=-1, keepdims=True)
+    return probs
+
+def create_stable_probs_tf(probs, min_val=0.001):
+    probs += tf.ones_like(probs) * min_val 
+    probs = probs / tf.reduce_sum(probs, axis=-1, keepdims=True)
     return probs
 
 
@@ -77,7 +81,7 @@ def get_bin_prob_from_pretrained(weight, w_config):
                             w_config.from_pretrained_init_p_max)
 
 
-def get_ter_prob_from_pretrained(weight, w_config):
+def get_ter_prob_from_pretrained_paper(weight, w_config):
     prob_0 = tf.clip_by_value(1 - tf.abs(weight),
                               w_config.from_pretrained_init_p_min,
                               w_config.from_pretrained_init_p_max)
@@ -120,15 +124,27 @@ def get_bin_prob_from_dirich_pretrained(weight, std_step_ratio=2.0, concentratio
     raise Exception("not implemented")
     return w_probs
 
+def get_ter_prob_from_pretrained_hard(weight):
+    weight = tf.round(tf.tanh(weight*5))
+    weight = tf.clip_by_value(weight, -1., 1.)
+    probs_n1 = tf.ones_like(weight) * weight * (weight - 1) / 2
+    probs_0 = tf.ones_like(weight) * (weight + 1) * (weight - 1) *(-1)
+    probs_1 = tf.ones_like(weight) * (weight + 1) * (weight) /(2)
+    probs = tf.stack([probs_n1, probs_0, probs_1], axis=-1)
+    return create_stable_probs_tf(probs, 0.01)
 
-def get_ter_prob_from_novel_pretrained(weight, std_step_ratio=0.8, concentration_factor=0.5):
-    step = float(math.atan(0.5) / 5)
+
+
+
+def get_ter_prob_from_pretrained_smooth(weight, std_step_ratio=0.5):
+    step = float(math.atan(0.5) / 5) 
     means = tf.constant([-step*2, 0., step*2])
-    std = [step / std_step_ratio] * 3
+    std = [step * std_step_ratio] * 3
     std = tf.constant(std)
+    weight = tf.clip_by_value(weight, -step*2, step*2)
     gaussians = gaussian(weight, means, std)
     w_probs = gaussians / tf.reduce_sum(gaussians, axis=-1, keepdims=True)
-    w_probs = create_stable_probs(w_probs)
+    w_probs = create_stable_probs_tf(w_probs)
     return w_probs
 
 
@@ -505,12 +521,13 @@ class Weights:
     # In case of a discrete distribution, a discretization method is applied to infer weight probabilities
     # The continuous values are stored in self.var_dict[var_key], the respective distribution parameters will be stored
     # in self.var_dict[var_key + parameter_suffix]
-    def create_init_op(self, dirich=True):
+    def create_init_op(self):
         init_ops = []
         for var_key in self.var_keys:
             if self.check_w_dist(var_key, dist=WeightC.GAUSSIAN):
                 # Initialize Gaussian mean parameter
                 mean_var_name = get_var_name(var_key, VarNames.GAUSSIAN_MEAN)
+                var_var_name = get_var_name(var_key, VarNames.GAUSSIAN_VAR)
                 init_ops.append(tf.assign(self.var_dict[mean_var_name], self.var_dict[var_key]))
 
             elif self.check_w_dist(var_key, dist=WeightC.BINARY):
@@ -537,12 +554,16 @@ class Weights:
             elif self.check_w_dist(var_key, dist=WeightC.TERNARY):
                 if not var_key.startswith('w'):
                     raise Exception()
-
-                if not dirich:
+                
+                if self.w_config[var_key].init_from_pretrain_type == WeightC.INIT_PRETRAIN_PAPER:
                     init_weights = self.normalize_weights(var_key)
-                    prob_0, prob_1 = get_ter_prob_from_pretrained(init_weights, self.w_config[var_key])
-                else:
-                    probs = get_ter_prob_from_novel_pretrained(self.var_dict[var_key])
+                    prob_0, prob_1 = get_ter_prob_from_pretrained_paper(init_weights, self.w_config[var_key])
+                elif self.w_config[var_key].init_from_pretrain_type == WeightC.INIT_PRETRAIN_SMOOTH:
+                    probs = get_ter_prob_from_pretrained_smooth(self.var_dict[var_key])
+                    prob_0 = probs[:, :, 1]
+                    prob_1 = probs[:, :, 2]
+                elif self.w_config[var_key].init_from_pretrain_type == WeightC.INIT_PRETRAIN_HARD:
+                    probs = get_ter_prob_from_pretrained_hard(self.var_dict[var_key])
                     prob_0 = probs[:, :, 1]
                     prob_1 = probs[:, :, 2]
 
