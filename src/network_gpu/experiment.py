@@ -12,7 +12,7 @@ from src.network_gpu.tools import print_config
 from src.network_gpu.profiler import Profiler
 
 from src.global_variable import set_nn_config, set_train_config, set_info_config
-from src.t_metrics import save_to_file, print_results
+from src.data.t_metrics import save_to_file, print_results
 
 # Mon: 50 min
 
