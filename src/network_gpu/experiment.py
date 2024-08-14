@@ -12,7 +12,7 @@ from src.network_gpu.tools import print_config
 from src.network_gpu.profiler import Profiler
 
 from src.global_variable import set_nn_config, set_train_config, set_info_config
-from src.t_metrics import save_to_file, print_results
+from src.data.t_metrics import save_to_file, print_results
 
 # Mon: 50 min
 
@@ -65,6 +65,7 @@ class Experiment:
 
             if self.info_config.model_loader_config is not None:
                 self.load_model_from_file(sess, self.info_config.model_loader_config.create_path())
+                sess.run(self.rnn.init_op)
 
             self.timer.start()
 
@@ -182,9 +183,20 @@ class Experiment:
         saved_shapes = reader.get_variable_to_shape_map()
         var_names = sorted([(var.name, var.name.split(':')[0]) for var in tf.global_variables()
         if var.name.split(':')[0] in saved_shapes and 'batch_normalization' not in var.name])
+        print("starting")
+        print(var_names)
+        for s in saved_shapes:
+            if "output_layer" in s:
+                print(s)
+        print("=====")
         restore_vars = []
         with tf.variable_scope('', reuse=True):
             for var_name, saved_var_name in var_names:
+                print("New variable")
+                print(var_name)
+                print(saved_var_name)
+                print("=====")
+
                 curr_var = tf.get_variable(saved_var_name)
                 var_shape = curr_var.get_shape().as_list()
                 if var_shape == saved_shapes[saved_var_name]:

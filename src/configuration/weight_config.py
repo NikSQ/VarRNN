@@ -2,7 +2,7 @@ import numpy as np
 from src.configuration.constants import WeightC
 
 DEFAULT_MEAN_INITIALIZER = (WeightC.XAVIER_INIT, None)
-DEFAULT_LOGVAR_INITIALIZER = (WeightC.CONSTANT_INIT, 0.1)
+DEFAULT_LOGVAR_INITIALIZER = (WeightC.CONSTANT_INIT, np.log(0.01))
 DEFAULT_MEAN_PRIOR = 0.
 DEFAULT_LOGVAR_PRIOR = 0.
 
@@ -15,11 +15,18 @@ DEFAULT_TERNARY_PRIORS = [1/3] * 3
 DEFAULT_FROM_PRETRAINED_INIT_P_MIN = 0.05
 DEFAULT_FROM_PRETRAINED_INIT_P_MAX = 0.95
 
+DEFAULT_INIT_FROM_PRETRAIN = WeightC.INIT_PRETRAIN_SMOOTH
+
 
 
 class WeightConfig:
     def __init__(self, dist):
         self.dist = dist
+        self.init_from_pretrain_type = DEFAULT_INIT_FROM_PRETRAIN
+
+    def set_init_from_pretrain_type(self, init_from_pretrain_type):
+        self.init_from_pretrain_type = init_from_pretrain_type
+        return self
 
 
 class GaussianWeightConfig(WeightConfig):
