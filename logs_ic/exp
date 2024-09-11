@@ -27,9 +27,12 @@ def run(task_id):
         sys.stdout = f
 
 
-    epochs = 300
-    runs = 1
-    exp_id = int(task_id / 3)
+    if int(task_id / 5) == 0:
+        epochs = 700
+    else:
+        epochs = 2500
+    runs = 3
+
     #
     #
     # =====================================================================================================================
@@ -53,11 +56,13 @@ def run(task_id):
     priors = [1., 3., 1.]
 
     # Specification of weight properties which are then used in layers
-    b_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.XAVIER_INIT, None), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.0001)))
-    bi_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.CONSTANT_INIT, -1.5), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.0001)))
+    b_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.XAVIER_INIT, None), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.01)))
+    bi_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.CONSTANT_INIT, -1.5), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.01)))
     #w_config = DiscreteWeightConfig(dist=WeightC.TERNARY, parametrization=WeightC.SIGMOID)
     w_config = DiscreteWeightConfig(dist=WeightC.TERNARY, parametrization=WeightC.SIGMOID).set_priors(priors).set_init_from_pretrain_type(WeightC.INIT_PRETRAIN_PAPER)
     #w_config = GaussianWeightConfig().set_initializers(mean_initializer=WeightC.XAVIER_INIT)
+
+
 
     discrete_gates = [[],
                       [NetworkC.INPUT_GATE], 
@@ -66,7 +71,8 @@ def run(task_id):
                       [NetworkC.INPUT_GATE, NetworkC.CANDIDATE_GATE],
                       [NetworkC.INPUT_GATE, NetworkC.OUTPUT_GATE],
                       [NetworkC.CANDIDATE_GATE, NetworkC.OUTPUT_GATE],
-                      [NetworkC.INPUT_GATE, NetworkC.CANDIDATE_GATE, NetworkC.OUTPUT_GATE]][exp_id % 8]
+                      [NetworkC.INPUT_GATE, NetworkC.CANDIDATE_GATE, NetworkC.OUTPUT_GATE]][task_id % 8]
+    discrete_gates = [] 
 
     continuous_gates = [[NetworkC.INPUT_GATE, NetworkC.CANDIDATE_GATE, NetworkC.OUTPUT_GATE],
                        [NetworkC.CANDIDATE_GATE, NetworkC.OUTPUT_GATE],
@@ -75,7 +81,8 @@ def run(task_id):
                        [NetworkC.OUTPUT_GATE], 
                        [NetworkC.CANDIDATE_GATE], 
                        [NetworkC.INPUT_GATE], 
-                       []][exp_id % 8]
+                       []][task_id % 8]
+    continuous_gates = [NetworkC.INPUT_GATE, NetworkC.CANDIDATE_GATE, NetworkC.OUTPUT_GATE]
     
 
 
@@ -108,16 +115,20 @@ def run(task_id):
     ff_train_config = LayerTrainConfig().set_config(layer_norm_enabled=False,
                                                     dropout_enabled=False,
                                                     p_dropout=.95)
-
     #ADAPT
-    algorithm = [AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION][int(exp_id / 24)]
-    gumbel_tau = [.3, 1., 3., .3, 1., 3., .3, 1., 3., .3, 1., 3.][int(exp_id / 8)]
-    ste = [AlgorithmC.GUMBEL_STE, AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE, AlgorithmC.NO_STE][int(exp_id / 24)]
+
+    #algorithm = [AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION][int(exp_id / 24)]
+    #gumbel_tau = [.3, 1., 3., .3, 1., 3., .3, 1., 3., .3, 1., 3.][int(exp_id / 8)]
+    #ste = [AlgorithmC.GUMBEL_STE, AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE, AlgorithmC.NO_STE][int(exp_id / 24)]
+    algorithm = AlgorithmC.REPARAMETRIZATION
+    ste_type = [AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE][int(task_id / 5)]
+    gumbel_tau = np.logspace(-1, 1, 5)[task_id % 5]
+    
 
 
     train_config = TrainConfig(task_id=task_id) \
         .set_learning_rate(learning_rate=.2)\
-        .set_algorithm(algorithm=algorithm, n_forward_passes=1, ste_type=ste, gumbel_tau=gumbel_tau)\
+        .set_algorithm(algorithm=algorithm, n_forward_passes=1, ste_type=ste_type, gumbel_tau=gumbel_tau)\
         .add_layer_train_config(var_scope=["lstm_0", "lstm_1"], layer_train_config=lstm_train_config) \
         .add_layer_train_config(var_scope=["output_layer"], layer_train_config=ff_train_config) \
 
@@ -130,7 +141,7 @@ def run(task_id):
     #
     info_config = InfoConfig(filename="test", timer_enabled=False, profiling_enabled=False)
     #info_config.add_model_saver(filename="toy_small", task_id=task_id)
-    info_config.add_model_loader(filename="m_model_" + str(task_id % 24))
+    #info_config.add_model_loader(filename="m_model_" + str(task_id % 24))
     info_config.add_training_metrics_saver(path="../nr_ic/")
     #info_config.add_gradient_saver(n_grads)
 
