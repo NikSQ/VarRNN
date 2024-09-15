@@ -26,12 +26,8 @@ def run(task_id):
         f = open('../logs_ic/exp_' + str(task_id) + '.txt', 'w')
         sys.stdout = f
 
-
-    if int(task_id / 5) == 0:
-        epochs = 700
-    else:
-        epochs = 2500
-    runs = 3
+    epochs = 1
+    runs = 1
 
     #
     #
@@ -56,10 +52,10 @@ def run(task_id):
     priors = [1., 3., 1.]
 
     # Specification of weight properties which are then used in layers
-    b_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.XAVIER_INIT, None), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.01)))
-    bi_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.CONSTANT_INIT, -1.5), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.01)))
+    b_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.XAVIER_INIT, None), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.1)))
+    bi_config = GaussianWeightConfig().set_initializers(mean_initializer=(WeightC.CONSTANT_INIT, -1.5), logvar_initializer=(WeightC.CONSTANT_INIT, np.log(0.1)))
     #w_config = DiscreteWeightConfig(dist=WeightC.TERNARY, parametrization=WeightC.SIGMOID)
-    w_config = DiscreteWeightConfig(dist=WeightC.TERNARY, parametrization=WeightC.SIGMOID).set_priors(priors).set_init_from_pretrain_type(WeightC.INIT_PRETRAIN_PAPER)
+    w_config = DiscreteWeightConfig(dist=WeightC.BINARY, parametrization=WeightC.SIGMOID)#.set_priors(priors)
     #w_config = GaussianWeightConfig().set_initializers(mean_initializer=WeightC.XAVIER_INIT)
 
 
@@ -97,10 +93,14 @@ def run(task_id):
     ff_layer_config = FFLayerConfig()\
         .set_weight_config(weight_config=w_config, bias_config=b_config)
 
+    n_neurons = [1, 3, 10][int(task_id / 4)]
+    filename = ["toy_1", "toy_3", "toy_10"][int(task_id / 4)]
+
     nn_config.add_layer_config(n_neurons=4, layer_config=InputLayerConfig())
-    nn_config.add_layer_config(n_neurons=50, layer_config=lstm_layer_config, var_scope="lstm_0")
-    nn_config.add_layer_config(n_neurons=30, layer_config=lstm_layer_config, var_scope="lstm_1")
-    nn_config.add_layer_config(n_neurons=10, layer_config=ff_layer_config, var_scope="output_layer")
+    nn_config.add_layer_config(n_neurons=n_neurons, layer_config=lstm_layer_config, var_scope="lstm_1")
+    #nn_config.add_layer_config(n_neurons=50, layer_config=lstm_layer_config, var_scope="lstm_0")
+    #nn_config.add_layer_config(n_neurons=30, layer_config=lstm_layer_config, var_scope="lstm_1")
+    nn_config.add_layer_config(n_neurons=10, layer_config=ff_layer_config, var_scope="ff_layer")
 
     #
     #
@@ -120,9 +120,11 @@ def run(task_id):
     #algorithm = [AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION][int(exp_id / 24)]
     #gumbel_tau = [.3, 1., 3., .3, 1., 3., .3, 1., 3., .3, 1., 3.][int(exp_id / 8)]
     #ste = [AlgorithmC.GUMBEL_STE, AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE, AlgorithmC.NO_STE][int(exp_id / 24)]
-    algorithm = AlgorithmC.REPARAMETRIZATION
-    ste_type = [AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE][int(task_id / 5)]
-    gumbel_tau = np.logspace(-1, 1, 5)[task_id % 5]
+    algorithm = [AlgorithmC.REPARAMETRIZATION, AlgorithmC.REPARAMETRIZATION, AlgorithmC.LOCAL_REPARAMETRIZATION, AlgorithmC.ARM][task_id % 4]
+    #ste_type = [AlgorithmC.NO_STE, AlgorithmC.GUMBEL_STE][int(task_id / 5)]
+    ste_type = AlgorithmC.NO_STE
+    #gumbel_tau = np.logspace(-1, 1, 5)[task_id % 5]
+    gumbel_tau = [0.1, 0.5, 1., 1.][task_id % 4]
     
 
 
@@ -139,11 +141,13 @@ def run(task_id):
     # =====================================================================================================================
     #
     #
+    n_grads = 100000
     info_config = InfoConfig(filename="test", timer_enabled=False, profiling_enabled=False)
     #info_config.add_model_saver(filename="toy_small", task_id=task_id)
-    #info_config.add_model_loader(filename="m_model_" + str(task_id % 24))
-    info_config.add_training_metrics_saver(path="../nr_ic/")
-    #info_config.add_gradient_saver(n_grads)
+    #info_config.add_model_saver(filenaIme="full_m_model", task_id=task_id)
+    info_config.add_model_loader(filename=filename, task_id=int(task_id / 4))
+    #info_config.add_training_metrics_saver(path="../nr_ic/")
+    info_config.add_gradient_saver(n_grads)
 
     exp = Experiment(nn_config=nn_config,
                     data_config=data_config,
@@ -157,3 +161,6 @@ def run(task_id):
         sys.stdout = orig_stdout
         f.close()
     # Tested: Reparametrization and local reparametrization on gaussian weights, sigmoid binary / ternary and logistic binary / ternary (no ste)
+
+if __name__ == "__main__":
+    run(5)
