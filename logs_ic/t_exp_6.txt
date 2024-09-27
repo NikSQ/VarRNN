@@ -1,0 +1,1990 @@
+va
+(4638, 13, 20)
+tr
+(30048, 13, 20)
+te
+(4433, 13, 20)
+
+=============================
+CONFIG FILE
+====================================
+Training configuration
+
+Learning rate: 0.2, 	Learning rate anneal: inf, 	Tau:  1.0
+Algorithm: reparametrization, 	STE: gumbel, 	n forward passes: 1
+Var reg: 0.0, 	Dir reg: 0.0, 	Ent reg: 0.0
+Data multiplier: None
+Gradient clipping: False, 	Gradient clip value: 1.0
+
+Layer #0
+output_layer
+Layer norm: False, 	LR Adapt: 
+Dropout: False, 	p_dropout: 0.95
+
+Layer #1
+lstm_1
+Layer norm: False, 	LR Adapt: 
+Dropout: False, 	p_dropout: 0.95
+
+Layer #2
+lstm_0
+Layer norm: False, 	LR Adapt: 
+Dropout: False, 	p_dropout: 0.95
+====================================
+RNN configuration
+
+Layer #0, 	Type: input_layer, 	Scope: 
+Units: 13, 	N activation bins: None
+
+Layer #1, 	Type: lstm layer, 	Scope: lstm_0
+Units: 70, 	N activation bins: None
+Bias: True, 	N activation bins: 2, 	Discrete activation: True
+Type: ternary, 	Parametetrization: logit, 	Priors: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+p_init_min: 0.05, 	p_init_max: 0.95
+Neg init: ('xavier', None), 	Zer init: ('xavier', None), 	Pos init: ('xavier', None)
+Type: gaussian, 	M init: ('xavier', None), 	Log V init: ('constant', -6.907755278982137)
+M prior: 0.0, 	 Log V prior: 0.0
+None
+Bias: True, 	N activation bins: 2, 	Discrete activation: False
+Type: ternary, 	Parametetrization: logit, 	Priors: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+p_init_min: 0.05, 	p_init_max: 0.95
+Neg init: ('xavier', None), 	Zer init: ('xavier', None), 	Pos init: ('xavier', None)
+Type: gaussian, 	M init: ('constant', -1.5), 	Log V init: ('constant', -6.907755278982137)
+M prior: 0.0, 	 Log V prior: 0.0
+None
+Bias: True, 	N activation bins: 2, 	Discrete activation: True
+Type: ternary, 	Parametetrization: logit, 	Priors: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+p_init_min: 0.05, 	p_init_max: 0.95
+Neg init: ('xavier', None), 	Zer init: ('xavier', None), 	Pos init: ('xavier', None)
+Type: gaussian, 	M init: ('xavier', None), 	Log V init: ('constant', -6.907755278982137)
+M prior: 0.0, 	 Log V prior: 0.0
+None
+
+Layer #2, 	Type: lstm layer, 	Scope: lstm_1
+Units: 100, 	N activation bins: None
+Bias: True, 	N activation bins: 2, 	Discrete activation: True
+Type: ternary, 	Parametetrization: logit, 	Priors: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+p_init_min: 0.05, 	p_init_max: 0.95
+Neg init: ('xavier', None), 	Zer init: ('xavier', None), 	Pos init: ('xavier', None)
+Type: gaussian, 	M init: ('xavier', None), 	Log V init: ('constant', -6.907755278982137)
+M prior: 0.0, 	 Log V prior: 0.0
+None
+Bias: True, 	N activation bins: 2, 	Discrete activation: False
+Type: ternary, 	Parametetrization: logit, 	Priors: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+p_init_min: 0.05, 	p_init_max: 0.95
+Neg init: ('xavier', None), 	Zer init: ('xavier', None), 	Pos init: ('xavier', None)
+Type: gaussian, 	M init: ('constant', -1.5), 	Log V init: ('constant', -6.907755278982137)
+M prior: 0.0, 	 Log V prior: 0.0
+None
+Bias: True, 	N activation bins: 2, 	Discrete activation: True
+Type: ternary, 	Parametetrization: logit, 	Priors: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+p_init_min: 0.05, 	p_init_max: 0.95
+Neg init: ('xavier', None), 	Zer init: ('xavier', None), 	Pos init: ('xavier', None)
+Type: gaussian, 	M init: ('xavier', None), 	Log V init: ('constant', -6.907755278982137)
+M prior: 0.0, 	 Log V prior: 0.0
+None
+
+Layer #3, 	Type: ff layer, 	Scope: output_layer
+Units: 60, 	N activation bins: None
+====================================
+Dataset configuration
+
+Filename: /home/niki/workspace/timit/timit_va.mat
+Key: va, 	In seq len: 20
+Minibatch:  True, 	Size: 1024
+Target bias removed: False, 	Shuffle: False
+
+Filename: /home/niki/workspace/timit/timit_tr.mat
+Key: tr, 	In seq len: 20
+Minibatch:  True, 	Size: 1024
+Target bias removed: False, 	Shuffle: True
+
+Filename: /home/niki/workspace/timit/timit_te.mat
+Key: te, 	In seq len: 20
+Minibatch:  True, 	Size: 1024
+Target bias removed: False, 	Shuffle: False
+====================================
+Info configuration
+
+Filename:  test
+Timer: False, 	Profiling: False, 	Profiling path: None
+Save training metrics: True, 	Path: ../nr_ic/t_
+Save weights: False, 	Every: 1, 	Save best weights: False
+Compute T Metrics every: 1
+
+Load model from t_model_dacts, 	 Force it: True
+No model saving
+
+starting
+[('lstm_0/bc:0', 'lstm_0/bc'), ('lstm_0/bi:0', 'lstm_0/bi'), ('lstm_0/bo:0', 'lstm_0/bo'), ('lstm_0/wc:0', 'lstm_0/wc'), ('lstm_0/wi:0', 'lstm_0/wi'), ('lstm_0/wo:0', 'lstm_0/wo'), ('lstm_1/bc:0', 'lstm_1/bc'), ('lstm_1/bi:0', 'lstm_1/bi'), ('lstm_1/bo:0', 'lstm_1/bo'), ('lstm_1/wc:0', 'lstm_1/wc'), ('lstm_1/wi:0', 'lstm_1/wi'), ('lstm_1/wo:0', 'lstm_1/wo'), ('output_layer/b:0', 'output_layer/b'), ('output_layer/w:0', 'output_layer/w')]
+output_layer/b
+output_layer/w
+=====
+New variable
+lstm_0/bc:0
+lstm_0/bc
+=====
+New variable
+lstm_0/bi:0
+lstm_0/bi
+=====
+New variable
+lstm_0/bo:0
+lstm_0/bo
+=====
+New variable
+lstm_0/wc:0
+lstm_0/wc
+=====
+New variable
+lstm_0/wi:0
+lstm_0/wi
+=====
+New variable
+lstm_0/wo:0
+lstm_0/wo
+=====
+New variable
+lstm_1/bc:0
+lstm_1/bc
+=====
+New variable
+lstm_1/bi:0
+lstm_1/bi
+=====
+New variable
+lstm_1/bo:0
+lstm_1/bo
+=====
+New variable
+lstm_1/wc:0
+lstm_1/wc
+=====
+New variable
+lstm_1/wi:0
+lstm_1/wi
+=====
+New variable
+lstm_1/wo:0
+lstm_1/wo
+=====
+New variable
+output_layer/b:0
+output_layer/b
+=====
+New variable
+output_layer/w:0
+output_layer/w
+=====
+loaded
+  0,  0 | TrAcc: 0.1456, TrLoss:  4.53620, VaAcc: 0.1355, VaLoss:  4.48562
+ MAP NN | TrAcc: 0.2815 | VaAcc: 0.2516 | TeAcc: 0.2262
+ S NN | TrAcc: 0.1129 | VaAcc: 0.1439 | TeAcc: 0.1133
+  1,  0 | TrAcc: 0.2455, TrLoss:  2.71380, VaAcc: 0.2279, VaLoss:  2.82510
+ MAP NN | TrAcc: 0.2908 | VaAcc: 0.2686 | TeAcc: 0.2441
+ S NN | TrAcc: 0.2449 | VaAcc: 0.2393 | TeAcc: 0.1898
+  2,  0 | TrAcc: 0.2956, TrLoss:  2.44354, VaAcc: 0.2732, VaLoss:  2.57697
+ MAP NN | TrAcc: 0.3269 | VaAcc: 0.2951 | TeAcc: 0.2752
+ S NN | TrAcc: 0.2964 | VaAcc: 0.2602 | TeAcc: 0.2254
+  3,  0 | TrAcc: 0.3274, TrLoss:  2.31467, VaAcc: 0.3008, VaLoss:  2.44447
+ MAP NN | TrAcc: 0.3621 | VaAcc: 0.3322 | TeAcc: 0.3061
+ S NN | TrAcc: 0.3269 | VaAcc: 0.2873 | TeAcc: 0.2656
+  4,  0 | TrAcc: 0.3384, TrLoss:  2.21904, VaAcc: 0.3281, VaLoss:  2.33563
+ MAP NN | TrAcc: 0.3673 | VaAcc: 0.3428 | TeAcc: 0.3115
+ S NN | TrAcc: 0.3350 | VaAcc: 0.2969 | TeAcc: 0.2855
+  5,  0 | TrAcc: 0.3783, TrLoss:  2.10884, VaAcc: 0.3455, VaLoss:  2.27064
+ MAP NN | TrAcc: 0.4079 | VaAcc: 0.3688 | TeAcc: 0.3338
+ S NN | TrAcc: 0.3813 | VaAcc: 0.3408 | TeAcc: 0.3070
+  6,  0 | TrAcc: 0.3839, TrLoss:  2.06615, VaAcc: 0.3463, VaLoss:  2.24439
+ MAP NN | TrAcc: 0.4080 | VaAcc: 0.3564 | TeAcc: 0.3242
+ S NN | TrAcc: 0.3886 | VaAcc: 0.3566 | TeAcc: 0.3160
+  7,  0 | TrAcc: 0.4002, TrLoss:  1.99867, VaAcc: 0.3537, VaLoss:  2.20530
+ MAP NN | TrAcc: 0.4276 | VaAcc: 0.3768 | TeAcc: 0.3463
+ S NN | TrAcc: 0.3952 | VaAcc: 0.3660 | TeAcc: 0.3340
+  8,  0 | TrAcc: 0.4067, TrLoss:  1.96166, VaAcc: 0.3680, VaLoss:  2.15991
+ MAP NN | TrAcc: 0.4302 | VaAcc: 0.4021 | TeAcc: 0.3551
+ S NN | TrAcc: 0.4106 | VaAcc: 0.3809 | TeAcc: 0.3260
+  9,  0 | TrAcc: 0.4129, TrLoss:  1.94030, VaAcc: 0.3703, VaLoss:  2.15815
+ MAP NN | TrAcc: 0.4335 | VaAcc: 0.3945 | TeAcc: 0.3551
+ S NN | TrAcc: 0.4132 | VaAcc: 0.3670 | TeAcc: 0.3418
+ 10,  0 | TrAcc: 0.4299, TrLoss:  1.88467, VaAcc: 0.3738, VaLoss:  2.14749
+ MAP NN | TrAcc: 0.4495 | VaAcc: 0.3977 | TeAcc: 0.3729
+ S NN | TrAcc: 0.4283 | VaAcc: 0.3809 | TeAcc: 0.3594
+ 11,  0 | TrAcc: 0.4382, TrLoss:  1.84546, VaAcc: 0.3914, VaLoss:  2.08039
+ MAP NN | TrAcc: 0.4508 | VaAcc: 0.3998 | TeAcc: 0.3676
+ S NN | TrAcc: 0.4360 | VaAcc: 0.3891 | TeAcc: 0.3617
+ 12,  0 | TrAcc: 0.4419, TrLoss:  1.83079, VaAcc: 0.4002, VaLoss:  2.07286
+ MAP NN | TrAcc: 0.4528 | VaAcc: 0.3996 | TeAcc: 0.3725
+ S NN | TrAcc: 0.4354 | VaAcc: 0.3967 | TeAcc: 0.3441
+ 13,  0 | TrAcc: 0.4453, TrLoss:  1.80923, VaAcc: 0.3945, VaLoss:  2.05538
+ MAP NN | TrAcc: 0.4613 | VaAcc: 0.4180 | TeAcc: 0.3730
+ S NN | TrAcc: 0.4430 | VaAcc: 0.3854 | TeAcc: 0.3654
+ 14,  0 | TrAcc: 0.4464, TrLoss:  1.80490, VaAcc: 0.3896, VaLoss:  2.07896
+ MAP NN | TrAcc: 0.4657 | VaAcc: 0.4084 | TeAcc: 0.3678
+ S NN | TrAcc: 0.4520 | VaAcc: 0.4068 | TeAcc: 0.3660
+ 15,  0 | TrAcc: 0.4514, TrLoss:  1.78197, VaAcc: 0.4074, VaLoss:  2.05399
+ MAP NN | TrAcc: 0.4647 | VaAcc: 0.4094 | TeAcc: 0.3680
+ S NN | TrAcc: 0.4530 | VaAcc: 0.4098 | TeAcc: 0.3676
+ 16,  0 | TrAcc: 0.4594, TrLoss:  1.75794, VaAcc: 0.4113, VaLoss:  2.01476
+ MAP NN | TrAcc: 0.4734 | VaAcc: 0.4092 | TeAcc: 0.3783
+ S NN | TrAcc: 0.4603 | VaAcc: 0.3990 | TeAcc: 0.3650
+ 17,  0 | TrAcc: 0.4669, TrLoss:  1.73889, VaAcc: 0.4062, VaLoss:  2.01746
+ MAP NN | TrAcc: 0.4801 | VaAcc: 0.4113 | TeAcc: 0.3811
+ S NN | TrAcc: 0.4630 | VaAcc: 0.4033 | TeAcc: 0.3752
+ 18,  0 | TrAcc: 0.4637, TrLoss:  1.73519, VaAcc: 0.4115, VaLoss:  2.01751
+ MAP NN | TrAcc: 0.4780 | VaAcc: 0.4221 | TeAcc: 0.3811
+ S NN | TrAcc: 0.4664 | VaAcc: 0.4109 | TeAcc: 0.3760
+ 19,  0 | TrAcc: 0.4699, TrLoss:  1.72335, VaAcc: 0.4137, VaLoss:  2.00535
+ MAP NN | TrAcc: 0.4800 | VaAcc: 0.4199 | TeAcc: 0.3852
+ S NN | TrAcc: 0.4760 | VaAcc: 0.4092 | TeAcc: 0.3807
+ 20,  0 | TrAcc: 0.4763, TrLoss:  1.69252, VaAcc: 0.4148, VaLoss:  1.98053
+ MAP NN | TrAcc: 0.4914 | VaAcc: 0.4291 | TeAcc: 0.3875
+ S NN | TrAcc: 0.4782 | VaAcc: 0.4170 | TeAcc: 0.3787
+ 21,  0 | TrAcc: 0.4826, TrLoss:  1.67491, VaAcc: 0.4209, VaLoss:  1.98405
+ MAP NN | TrAcc: 0.4920 | VaAcc: 0.4275 | TeAcc: 0.3877
+ S NN | TrAcc: 0.4796 | VaAcc: 0.4211 | TeAcc: 0.3773
+ 22,  0 | TrAcc: 0.4798, TrLoss:  1.67793, VaAcc: 0.4125, VaLoss:  1.98725
+ MAP NN | TrAcc: 0.4890 | VaAcc: 0.4209 | TeAcc: 0.3885
+ S NN | TrAcc: 0.4797 | VaAcc: 0.4203 | TeAcc: 0.3787
+ 23,  0 | TrAcc: 0.4881, TrLoss:  1.65565, VaAcc: 0.4262, VaLoss:  1.95614
+ MAP NN | TrAcc: 0.4972 | VaAcc: 0.4338 | TeAcc: 0.3871
+ S NN | TrAcc: 0.4866 | VaAcc: 0.4260 | TeAcc: 0.3811
+ 24,  0 | TrAcc: 0.4831, TrLoss:  1.66509, VaAcc: 0.4234, VaLoss:  1.97247
+ MAP NN | TrAcc: 0.4959 | VaAcc: 0.4277 | TeAcc: 0.3848
+ S NN | TrAcc: 0.4829 | VaAcc: 0.4203 | TeAcc: 0.3701
+ 25,  0 | TrAcc: 0.4837, TrLoss:  1.65460, VaAcc: 0.4273, VaLoss:  1.95340
+ MAP NN | TrAcc: 0.4947 | VaAcc: 0.4307 | TeAcc: 0.3924
+ S NN | TrAcc: 0.4884 | VaAcc: 0.4275 | TeAcc: 0.3783
+ 26,  0 | TrAcc: 0.4852, TrLoss:  1.64453, VaAcc: 0.4182, VaLoss:  1.97527
+ MAP NN | TrAcc: 0.4964 | VaAcc: 0.4277 | TeAcc: 0.3904
+ S NN | TrAcc: 0.4818 | VaAcc: 0.4275 | TeAcc: 0.3799
+ 27,  0 | TrAcc: 0.4944, TrLoss:  1.62152, VaAcc: 0.4336, VaLoss:  1.95742
+ MAP NN | TrAcc: 0.5032 | VaAcc: 0.4299 | TeAcc: 0.3975
+ S NN | TrAcc: 0.4966 | VaAcc: 0.4287 | TeAcc: 0.3904
+ 28,  0 | TrAcc: 0.4966, TrLoss:  1.62514, VaAcc: 0.4252, VaLoss:  1.96845
+ MAP NN | TrAcc: 0.5011 | VaAcc: 0.4236 | TeAcc: 0.3912
+ S NN | TrAcc: 0.4908 | VaAcc: 0.4262 | TeAcc: 0.3953
+ 29,  0 | TrAcc: 0.5008, TrLoss:  1.61126, VaAcc: 0.4297, VaLoss:  1.94665
+ MAP NN | TrAcc: 0.5062 | VaAcc: 0.4311 | TeAcc: 0.4000
+ S NN | TrAcc: 0.4981 | VaAcc: 0.4297 | TeAcc: 0.3914
+ 30,  0 | TrAcc: 0.4994, TrLoss:  1.60070, VaAcc: 0.4332, VaLoss:  1.95086
+ MAP NN | TrAcc: 0.5071 | VaAcc: 0.4371 | TeAcc: 0.3965
+ S NN | TrAcc: 0.4970 | VaAcc: 0.4271 | TeAcc: 0.3826
+ 31,  0 | TrAcc: 0.4984, TrLoss:  1.60717, VaAcc: 0.4289, VaLoss:  1.95595
+ MAP NN | TrAcc: 0.5059 | VaAcc: 0.4305 | TeAcc: 0.3932
+ S NN | TrAcc: 0.4997 | VaAcc: 0.4281 | TeAcc: 0.3889
+ 32,  0 | TrAcc: 0.4972, TrLoss:  1.61145, VaAcc: 0.4246, VaLoss:  1.96930
+ MAP NN | TrAcc: 0.5024 | VaAcc: 0.4322 | TeAcc: 0.3891
+ S NN | TrAcc: 0.5023 | VaAcc: 0.4264 | TeAcc: 0.3824
+ 33,  0 | TrAcc: 0.4979, TrLoss:  1.61858, VaAcc: 0.4244, VaLoss:  1.95923
+ MAP NN | TrAcc: 0.5021 | VaAcc: 0.4311 | TeAcc: 0.3941
+ S NN | TrAcc: 0.4981 | VaAcc: 0.4293 | TeAcc: 0.3826
+ 34,  0 | TrAcc: 0.4988, TrLoss:  1.60045, VaAcc: 0.4260, VaLoss:  1.95500
+ MAP NN | TrAcc: 0.5095 | VaAcc: 0.4344 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5029 | VaAcc: 0.4279 | TeAcc: 0.3883
+ 35,  0 | TrAcc: 0.5063, TrLoss:  1.59039, VaAcc: 0.4211, VaLoss:  1.95140
+ MAP NN | TrAcc: 0.5106 | VaAcc: 0.4242 | TeAcc: 0.3879
+ S NN | TrAcc: 0.4993 | VaAcc: 0.4289 | TeAcc: 0.3820
+ 36,  0 | TrAcc: 0.5088, TrLoss:  1.58537, VaAcc: 0.4313, VaLoss:  1.93686
+ MAP NN | TrAcc: 0.5088 | VaAcc: 0.4344 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5045 | VaAcc: 0.4299 | TeAcc: 0.3836
+ 37,  0 | TrAcc: 0.5079, TrLoss:  1.57281, VaAcc: 0.4264, VaLoss:  1.94440
+ MAP NN | TrAcc: 0.5152 | VaAcc: 0.4354 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5130 | VaAcc: 0.4299 | TeAcc: 0.3928
+ 38,  0 | TrAcc: 0.5085, TrLoss:  1.57031, VaAcc: 0.4291, VaLoss:  1.94897
+ MAP NN | TrAcc: 0.5173 | VaAcc: 0.4412 | TeAcc: 0.4010
+ S NN | TrAcc: 0.5096 | VaAcc: 0.4322 | TeAcc: 0.3928
+ 39,  0 | TrAcc: 0.5121, TrLoss:  1.56456, VaAcc: 0.4367, VaLoss:  1.94002
+ MAP NN | TrAcc: 0.5179 | VaAcc: 0.4359 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5102 | VaAcc: 0.4299 | TeAcc: 0.3924
+ 40,  0 | TrAcc: 0.5126, TrLoss:  1.55902, VaAcc: 0.4340, VaLoss:  1.93089
+ MAP NN | TrAcc: 0.5214 | VaAcc: 0.4410 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5169 | VaAcc: 0.4412 | TeAcc: 0.3996
+ 41,  0 | TrAcc: 0.5125, TrLoss:  1.55629, VaAcc: 0.4279, VaLoss:  1.94480
+ MAP NN | TrAcc: 0.5233 | VaAcc: 0.4357 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5120 | VaAcc: 0.4307 | TeAcc: 0.3904
+ 42,  0 | TrAcc: 0.5137, TrLoss:  1.56026, VaAcc: 0.4350, VaLoss:  1.93105
+ MAP NN | TrAcc: 0.5182 | VaAcc: 0.4293 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5135 | VaAcc: 0.4258 | TeAcc: 0.3941
+ 43,  0 | TrAcc: 0.5135, TrLoss:  1.55527, VaAcc: 0.4393, VaLoss:  1.93644
+ MAP NN | TrAcc: 0.5168 | VaAcc: 0.4363 | TeAcc: 0.4000
+ S NN | TrAcc: 0.5128 | VaAcc: 0.4355 | TeAcc: 0.3930
+ 44,  0 | TrAcc: 0.5149, TrLoss:  1.54817, VaAcc: 0.4340, VaLoss:  1.92448
+ MAP NN | TrAcc: 0.5214 | VaAcc: 0.4346 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5140 | VaAcc: 0.4361 | TeAcc: 0.3879
+ 45,  0 | TrAcc: 0.5175, TrLoss:  1.54312, VaAcc: 0.4309, VaLoss:  1.94804
+ MAP NN | TrAcc: 0.5230 | VaAcc: 0.4424 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5179 | VaAcc: 0.4336 | TeAcc: 0.3885
+ 46,  0 | TrAcc: 0.5233, TrLoss:  1.53238, VaAcc: 0.4393, VaLoss:  1.92604
+ MAP NN | TrAcc: 0.5269 | VaAcc: 0.4424 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5236 | VaAcc: 0.4348 | TeAcc: 0.3936
+ 47,  0 | TrAcc: 0.5165, TrLoss:  1.53578, VaAcc: 0.4314, VaLoss:  1.93190
+ MAP NN | TrAcc: 0.5241 | VaAcc: 0.4338 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5216 | VaAcc: 0.4281 | TeAcc: 0.3928
+ 48,  0 | TrAcc: 0.5210, TrLoss:  1.53088, VaAcc: 0.4373, VaLoss:  1.93388
+ MAP NN | TrAcc: 0.5244 | VaAcc: 0.4326 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5246 | VaAcc: 0.4350 | TeAcc: 0.4033
+ 49,  0 | TrAcc: 0.5192, TrLoss:  1.52731, VaAcc: 0.4313, VaLoss:  1.93865
+ MAP NN | TrAcc: 0.5234 | VaAcc: 0.4359 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5228 | VaAcc: 0.4301 | TeAcc: 0.3937
+ 50,  0 | TrAcc: 0.5140, TrLoss:  1.54711, VaAcc: 0.4311, VaLoss:  1.94687
+ MAP NN | TrAcc: 0.5226 | VaAcc: 0.4283 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5196 | VaAcc: 0.4320 | TeAcc: 0.3854
+ 51,  0 | TrAcc: 0.5242, TrLoss:  1.52341, VaAcc: 0.4348, VaLoss:  1.92331
+ MAP NN | TrAcc: 0.5259 | VaAcc: 0.4383 | TeAcc: 0.4014
+ S NN | TrAcc: 0.5212 | VaAcc: 0.4332 | TeAcc: 0.3953
+ 52,  0 | TrAcc: 0.5246, TrLoss:  1.52094, VaAcc: 0.4383, VaLoss:  1.93068
+ MAP NN | TrAcc: 0.5249 | VaAcc: 0.4410 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5229 | VaAcc: 0.4410 | TeAcc: 0.3973
+ 53,  0 | TrAcc: 0.5227, TrLoss:  1.52703, VaAcc: 0.4348, VaLoss:  1.93110
+ MAP NN | TrAcc: 0.5250 | VaAcc: 0.4389 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5205 | VaAcc: 0.4395 | TeAcc: 0.3992
+ 54,  0 | TrAcc: 0.5203, TrLoss:  1.53590, VaAcc: 0.4332, VaLoss:  1.93438
+ MAP NN | TrAcc: 0.5265 | VaAcc: 0.4330 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5244 | VaAcc: 0.4303 | TeAcc: 0.3980
+ 55,  0 | TrAcc: 0.5233, TrLoss:  1.51267, VaAcc: 0.4389, VaLoss:  1.93095
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4402 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5241 | VaAcc: 0.4318 | TeAcc: 0.3945
+ 56,  0 | TrAcc: 0.5258, TrLoss:  1.51581, VaAcc: 0.4352, VaLoss:  1.93065
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4385 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5289 | VaAcc: 0.4355 | TeAcc: 0.3939
+ 57,  0 | TrAcc: 0.5253, TrLoss:  1.50928, VaAcc: 0.4385, VaLoss:  1.93198
+ MAP NN | TrAcc: 0.5291 | VaAcc: 0.4371 | TeAcc: 0.3973
+ S NN | TrAcc: 0.5253 | VaAcc: 0.4379 | TeAcc: 0.3975
+ 58,  0 | TrAcc: 0.5242, TrLoss:  1.51361, VaAcc: 0.4342, VaLoss:  1.94105
+ MAP NN | TrAcc: 0.5285 | VaAcc: 0.4410 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5273 | VaAcc: 0.4396 | TeAcc: 0.3951
+ 59,  0 | TrAcc: 0.5280, TrLoss:  1.51219, VaAcc: 0.4420, VaLoss:  1.93436
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4469 | TeAcc: 0.4035
+ S NN | TrAcc: 0.5231 | VaAcc: 0.4486 | TeAcc: 0.3957
+ 60,  0 | TrAcc: 0.5302, TrLoss:  1.50315, VaAcc: 0.4418, VaLoss:  1.93279
+ MAP NN | TrAcc: 0.5316 | VaAcc: 0.4395 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5251 | VaAcc: 0.4346 | TeAcc: 0.3941
+ 61,  0 | TrAcc: 0.5309, TrLoss:  1.50207, VaAcc: 0.4359, VaLoss:  1.94663
+ MAP NN | TrAcc: 0.5351 | VaAcc: 0.4379 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5298 | VaAcc: 0.4396 | TeAcc: 0.3898
+ 62,  0 | TrAcc: 0.5235, TrLoss:  1.51483, VaAcc: 0.4400, VaLoss:  1.92822
+ MAP NN | TrAcc: 0.5259 | VaAcc: 0.4340 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5243 | VaAcc: 0.4295 | TeAcc: 0.3893
+ 63,  0 | TrAcc: 0.5342, TrLoss:  1.48765, VaAcc: 0.4406, VaLoss:  1.91030
+ MAP NN | TrAcc: 0.5334 | VaAcc: 0.4412 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4385 | TeAcc: 0.3963
+ 64,  0 | TrAcc: 0.5282, TrLoss:  1.49595, VaAcc: 0.4420, VaLoss:  1.93594
+ MAP NN | TrAcc: 0.5348 | VaAcc: 0.4430 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5319 | VaAcc: 0.4428 | TeAcc: 0.3973
+ 65,  0 | TrAcc: 0.5305, TrLoss:  1.49872, VaAcc: 0.4400, VaLoss:  1.92175
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4398 | TeAcc: 0.4035
+ S NN | TrAcc: 0.5248 | VaAcc: 0.4400 | TeAcc: 0.4006
+ 66,  0 | TrAcc: 0.5256, TrLoss:  1.50912, VaAcc: 0.4338, VaLoss:  1.93390
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4408 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5218 | VaAcc: 0.4328 | TeAcc: 0.3943
+ 67,  0 | TrAcc: 0.5289, TrLoss:  1.49771, VaAcc: 0.4453, VaLoss:  1.92158
+ MAP NN | TrAcc: 0.5312 | VaAcc: 0.4416 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5283 | VaAcc: 0.4406 | TeAcc: 0.3936
+ 68,  0 | TrAcc: 0.5304, TrLoss:  1.48651, VaAcc: 0.4344, VaLoss:  1.92926
+ MAP NN | TrAcc: 0.5341 | VaAcc: 0.4428 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5337 | VaAcc: 0.4396 | TeAcc: 0.3982
+ 69,  0 | TrAcc: 0.5307, TrLoss:  1.49376, VaAcc: 0.4393, VaLoss:  1.92071
+ MAP NN | TrAcc: 0.5361 | VaAcc: 0.4385 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5276 | VaAcc: 0.4393 | TeAcc: 0.3930
+ 70,  0 | TrAcc: 0.5330, TrLoss:  1.48793, VaAcc: 0.4322, VaLoss:  1.93755
+ MAP NN | TrAcc: 0.5345 | VaAcc: 0.4416 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5333 | VaAcc: 0.4326 | TeAcc: 0.3975
+ 71,  0 | TrAcc: 0.5354, TrLoss:  1.47901, VaAcc: 0.4443, VaLoss:  1.91272
+ MAP NN | TrAcc: 0.5357 | VaAcc: 0.4475 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5343 | VaAcc: 0.4445 | TeAcc: 0.3986
+ 72,  0 | TrAcc: 0.5348, TrLoss:  1.48213, VaAcc: 0.4398, VaLoss:  1.92759
+ MAP NN | TrAcc: 0.5355 | VaAcc: 0.4381 | TeAcc: 0.4037
+ S NN | TrAcc: 0.5339 | VaAcc: 0.4449 | TeAcc: 0.4084
+ 73,  0 | TrAcc: 0.5316, TrLoss:  1.48786, VaAcc: 0.4346, VaLoss:  1.93063
+ MAP NN | TrAcc: 0.5332 | VaAcc: 0.4400 | TeAcc: 0.4002
+ S NN | TrAcc: 0.5321 | VaAcc: 0.4352 | TeAcc: 0.4004
+ 74,  0 | TrAcc: 0.5257, TrLoss:  1.50203, VaAcc: 0.4395, VaLoss:  1.93211
+ MAP NN | TrAcc: 0.5282 | VaAcc: 0.4395 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5234 | VaAcc: 0.4387 | TeAcc: 0.3953
+ 75,  0 | TrAcc: 0.5284, TrLoss:  1.49876, VaAcc: 0.4291, VaLoss:  1.92955
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4389 | TeAcc: 0.4004
+ S NN | TrAcc: 0.5267 | VaAcc: 0.4328 | TeAcc: 0.3961
+ 76,  0 | TrAcc: 0.5263, TrLoss:  1.50653, VaAcc: 0.4359, VaLoss:  1.93621
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4404 | TeAcc: 0.4045
+ S NN | TrAcc: 0.5262 | VaAcc: 0.4346 | TeAcc: 0.4016
+ 77,  0 | TrAcc: 0.5265, TrLoss:  1.50102, VaAcc: 0.4457, VaLoss:  1.91257
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4453 | TeAcc: 0.4029
+ S NN | TrAcc: 0.5284 | VaAcc: 0.4482 | TeAcc: 0.3945
+ 78,  0 | TrAcc: 0.5265, TrLoss:  1.49860, VaAcc: 0.4426, VaLoss:  1.91191
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4436 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5287 | VaAcc: 0.4412 | TeAcc: 0.3936
+ 79,  0 | TrAcc: 0.5266, TrLoss:  1.49900, VaAcc: 0.4391, VaLoss:  1.92207
+ MAP NN | TrAcc: 0.5323 | VaAcc: 0.4428 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4309 | TeAcc: 0.3959
+ 80,  0 | TrAcc: 0.5306, TrLoss:  1.49528, VaAcc: 0.4396, VaLoss:  1.90991
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4480 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4475 | TeAcc: 0.3971
+ 81,  0 | TrAcc: 0.5318, TrLoss:  1.48498, VaAcc: 0.4396, VaLoss:  1.90690
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4367 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5305 | VaAcc: 0.4455 | TeAcc: 0.3926
+ 82,  0 | TrAcc: 0.5305, TrLoss:  1.49263, VaAcc: 0.4453, VaLoss:  1.90596
+ MAP NN | TrAcc: 0.5358 | VaAcc: 0.4453 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5344 | VaAcc: 0.4406 | TeAcc: 0.3984
+ 83,  0 | TrAcc: 0.5323, TrLoss:  1.49210, VaAcc: 0.4434, VaLoss:  1.91757
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4477 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5375 | VaAcc: 0.4496 | TeAcc: 0.3963
+ 84,  0 | TrAcc: 0.5321, TrLoss:  1.48872, VaAcc: 0.4467, VaLoss:  1.89510
+ MAP NN | TrAcc: 0.5365 | VaAcc: 0.4449 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5333 | VaAcc: 0.4383 | TeAcc: 0.3936
+ 85,  0 | TrAcc: 0.5329, TrLoss:  1.48241, VaAcc: 0.4420, VaLoss:  1.90848
+ MAP NN | TrAcc: 0.5369 | VaAcc: 0.4420 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5378 | VaAcc: 0.4443 | TeAcc: 0.3918
+ 86,  0 | TrAcc: 0.5332, TrLoss:  1.47704, VaAcc: 0.4471, VaLoss:  1.90258
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4424 | TeAcc: 0.3910
+ S NN | TrAcc: 0.5334 | VaAcc: 0.4437 | TeAcc: 0.3937
+ 87,  0 | TrAcc: 0.5330, TrLoss:  1.48790, VaAcc: 0.4412, VaLoss:  1.91640
+ MAP NN | TrAcc: 0.5346 | VaAcc: 0.4395 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5350 | VaAcc: 0.4465 | TeAcc: 0.3953
+ 88,  0 | TrAcc: 0.5328, TrLoss:  1.48205, VaAcc: 0.4473, VaLoss:  1.89483
+ MAP NN | TrAcc: 0.5418 | VaAcc: 0.4467 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4414 | TeAcc: 0.3926
+ 89,  0 | TrAcc: 0.5315, TrLoss:  1.48522, VaAcc: 0.4373, VaLoss:  1.92313
+ MAP NN | TrAcc: 0.5387 | VaAcc: 0.4408 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4336 | TeAcc: 0.3891
+ 90,  0 | TrAcc: 0.5276, TrLoss:  1.49847, VaAcc: 0.4363, VaLoss:  1.92989
+ MAP NN | TrAcc: 0.5278 | VaAcc: 0.4373 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5225 | VaAcc: 0.4361 | TeAcc: 0.3930
+ 91,  0 | TrAcc: 0.5308, TrLoss:  1.49211, VaAcc: 0.4418, VaLoss:  1.91575
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4463 | TeAcc: 0.3918
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4436 | TeAcc: 0.3865
+ 92,  0 | TrAcc: 0.5312, TrLoss:  1.48816, VaAcc: 0.4377, VaLoss:  1.92854
+ MAP NN | TrAcc: 0.5352 | VaAcc: 0.4408 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5348 | VaAcc: 0.4406 | TeAcc: 0.3920
+ 93,  0 | TrAcc: 0.5298, TrLoss:  1.49776, VaAcc: 0.4355, VaLoss:  1.91462
+ MAP NN | TrAcc: 0.5295 | VaAcc: 0.4418 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5285 | VaAcc: 0.4307 | TeAcc: 0.3918
+ 94,  0 | TrAcc: 0.5264, TrLoss:  1.50871, VaAcc: 0.4363, VaLoss:  1.94045
+ MAP NN | TrAcc: 0.5306 | VaAcc: 0.4371 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5282 | VaAcc: 0.4328 | TeAcc: 0.3941
+ 95,  0 | TrAcc: 0.5306, TrLoss:  1.48491, VaAcc: 0.4373, VaLoss:  1.92730
+ MAP NN | TrAcc: 0.5344 | VaAcc: 0.4416 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5320 | VaAcc: 0.4361 | TeAcc: 0.3939
+ 96,  0 | TrAcc: 0.5300, TrLoss:  1.48395, VaAcc: 0.4367, VaLoss:  1.90745
+ MAP NN | TrAcc: 0.5371 | VaAcc: 0.4426 | TeAcc: 0.4025
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4412 | TeAcc: 0.3953
+ 97,  0 | TrAcc: 0.5242, TrLoss:  1.50781, VaAcc: 0.4346, VaLoss:  1.93996
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4414 | TeAcc: 0.3973
+ S NN | TrAcc: 0.5167 | VaAcc: 0.4375 | TeAcc: 0.3908
+ 98,  0 | TrAcc: 0.5273, TrLoss:  1.49558, VaAcc: 0.4344, VaLoss:  1.91782
+ MAP NN | TrAcc: 0.5291 | VaAcc: 0.4355 | TeAcc: 0.3994
+ S NN | TrAcc: 0.5277 | VaAcc: 0.4344 | TeAcc: 0.3980
+ 99,  0 | TrAcc: 0.5325, TrLoss:  1.48142, VaAcc: 0.4414, VaLoss:  1.92376
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4408 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5348 | VaAcc: 0.4348 | TeAcc: 0.3973
+100,  0 | TrAcc: 0.5368, TrLoss:  1.47264, VaAcc: 0.4414, VaLoss:  1.92007
+ MAP NN | TrAcc: 0.5410 | VaAcc: 0.4420 | TeAcc: 0.4043
+ S NN | TrAcc: 0.5344 | VaAcc: 0.4432 | TeAcc: 0.3922
+101,  0 | TrAcc: 0.5359, TrLoss:  1.47657, VaAcc: 0.4408, VaLoss:  1.91640
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4381 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5365 | VaAcc: 0.4410 | TeAcc: 0.3977
+102,  0 | TrAcc: 0.5311, TrLoss:  1.49032, VaAcc: 0.4453, VaLoss:  1.91005
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4404 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4369 | TeAcc: 0.3986
+103,  0 | TrAcc: 0.5368, TrLoss:  1.47356, VaAcc: 0.4371, VaLoss:  1.92891
+ MAP NN | TrAcc: 0.5394 | VaAcc: 0.4387 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5357 | VaAcc: 0.4363 | TeAcc: 0.3980
+104,  0 | TrAcc: 0.5375, TrLoss:  1.46561, VaAcc: 0.4492, VaLoss:  1.89048
+ MAP NN | TrAcc: 0.5399 | VaAcc: 0.4396 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5364 | VaAcc: 0.4426 | TeAcc: 0.4000
+105,  0 | TrAcc: 0.5304, TrLoss:  1.49517, VaAcc: 0.4342, VaLoss:  1.94551
+ MAP NN | TrAcc: 0.5294 | VaAcc: 0.4375 | TeAcc: 0.4031
+ S NN | TrAcc: 0.5230 | VaAcc: 0.4373 | TeAcc: 0.4018
+106,  0 | TrAcc: 0.5316, TrLoss:  1.47934, VaAcc: 0.4383, VaLoss:  1.92525
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4420 | TeAcc: 0.4008
+ S NN | TrAcc: 0.5390 | VaAcc: 0.4398 | TeAcc: 0.4043
+107,  0 | TrAcc: 0.5326, TrLoss:  1.48832, VaAcc: 0.4371, VaLoss:  1.93060
+ MAP NN | TrAcc: 0.5335 | VaAcc: 0.4404 | TeAcc: 0.4068
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4346 | TeAcc: 0.4021
+108,  0 | TrAcc: 0.5327, TrLoss:  1.48372, VaAcc: 0.4371, VaLoss:  1.93204
+ MAP NN | TrAcc: 0.5391 | VaAcc: 0.4375 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5351 | VaAcc: 0.4328 | TeAcc: 0.4037
+109,  0 | TrAcc: 0.5304, TrLoss:  1.48591, VaAcc: 0.4437, VaLoss:  1.92215
+ MAP NN | TrAcc: 0.5341 | VaAcc: 0.4453 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5284 | VaAcc: 0.4406 | TeAcc: 0.3984
+110,  0 | TrAcc: 0.5348, TrLoss:  1.47821, VaAcc: 0.4457, VaLoss:  1.90627
+ MAP NN | TrAcc: 0.5391 | VaAcc: 0.4430 | TeAcc: 0.4010
+ S NN | TrAcc: 0.5352 | VaAcc: 0.4502 | TeAcc: 0.3951
+111,  0 | TrAcc: 0.5329, TrLoss:  1.48386, VaAcc: 0.4398, VaLoss:  1.93007
+ MAP NN | TrAcc: 0.5366 | VaAcc: 0.4363 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4428 | TeAcc: 0.3992
+112,  0 | TrAcc: 0.5334, TrLoss:  1.48020, VaAcc: 0.4359, VaLoss:  1.91916
+ MAP NN | TrAcc: 0.5352 | VaAcc: 0.4367 | TeAcc: 0.3887
+ S NN | TrAcc: 0.5323 | VaAcc: 0.4379 | TeAcc: 0.3891
+113,  0 | TrAcc: 0.5341, TrLoss:  1.48292, VaAcc: 0.4453, VaLoss:  1.91584
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4428 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5321 | VaAcc: 0.4467 | TeAcc: 0.3934
+114,  0 | TrAcc: 0.5284, TrLoss:  1.49800, VaAcc: 0.4355, VaLoss:  1.92989
+ MAP NN | TrAcc: 0.5336 | VaAcc: 0.4299 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5307 | VaAcc: 0.4334 | TeAcc: 0.3896
+115,  0 | TrAcc: 0.5297, TrLoss:  1.49438, VaAcc: 0.4369, VaLoss:  1.93161
+ MAP NN | TrAcc: 0.5306 | VaAcc: 0.4375 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5293 | VaAcc: 0.4354 | TeAcc: 0.3979
+116,  0 | TrAcc: 0.5346, TrLoss:  1.47846, VaAcc: 0.4430, VaLoss:  1.92866
+ MAP NN | TrAcc: 0.5336 | VaAcc: 0.4471 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5360 | VaAcc: 0.4375 | TeAcc: 0.3963
+117,  0 | TrAcc: 0.5346, TrLoss:  1.47604, VaAcc: 0.4395, VaLoss:  1.93642
+ MAP NN | TrAcc: 0.5376 | VaAcc: 0.4383 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4363 | TeAcc: 0.4004
+118,  0 | TrAcc: 0.5331, TrLoss:  1.48059, VaAcc: 0.4402, VaLoss:  1.93860
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4350 | TeAcc: 0.3893
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4383 | TeAcc: 0.3902
+119,  0 | TrAcc: 0.5288, TrLoss:  1.48828, VaAcc: 0.4338, VaLoss:  1.94296
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4340 | TeAcc: 0.3883
+ S NN | TrAcc: 0.5327 | VaAcc: 0.4359 | TeAcc: 0.3900
+120,  0 | TrAcc: 0.5346, TrLoss:  1.47035, VaAcc: 0.4338, VaLoss:  1.92602
+ MAP NN | TrAcc: 0.5347 | VaAcc: 0.4377 | TeAcc: 0.3990
+ S NN | TrAcc: 0.5372 | VaAcc: 0.4385 | TeAcc: 0.3869
+121,  0 | TrAcc: 0.5368, TrLoss:  1.46920, VaAcc: 0.4373, VaLoss:  1.93040
+ MAP NN | TrAcc: 0.5377 | VaAcc: 0.4354 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4410 | TeAcc: 0.4021
+122,  0 | TrAcc: 0.5359, TrLoss:  1.47259, VaAcc: 0.4391, VaLoss:  1.92809
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4371 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5351 | VaAcc: 0.4396 | TeAcc: 0.3906
+123,  0 | TrAcc: 0.5398, TrLoss:  1.46532, VaAcc: 0.4352, VaLoss:  1.92646
+ MAP NN | TrAcc: 0.5400 | VaAcc: 0.4369 | TeAcc: 0.4021
+ S NN | TrAcc: 0.5372 | VaAcc: 0.4375 | TeAcc: 0.4045
+124,  0 | TrAcc: 0.5375, TrLoss:  1.46337, VaAcc: 0.4385, VaLoss:  1.92422
+ MAP NN | TrAcc: 0.5418 | VaAcc: 0.4416 | TeAcc: 0.4012
+ S NN | TrAcc: 0.5362 | VaAcc: 0.4346 | TeAcc: 0.3986
+125,  0 | TrAcc: 0.5370, TrLoss:  1.46884, VaAcc: 0.4326, VaLoss:  1.93136
+ MAP NN | TrAcc: 0.5400 | VaAcc: 0.4299 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5355 | VaAcc: 0.4281 | TeAcc: 0.3994
+126,  0 | TrAcc: 0.5310, TrLoss:  1.48612, VaAcc: 0.4324, VaLoss:  1.94197
+ MAP NN | TrAcc: 0.5312 | VaAcc: 0.4361 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5321 | VaAcc: 0.4340 | TeAcc: 0.3910
+127,  0 | TrAcc: 0.5337, TrLoss:  1.47566, VaAcc: 0.4381, VaLoss:  1.92756
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4395 | TeAcc: 0.4029
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4359 | TeAcc: 0.4031
+128,  0 | TrAcc: 0.5350, TrLoss:  1.47950, VaAcc: 0.4383, VaLoss:  1.92691
+ MAP NN | TrAcc: 0.5386 | VaAcc: 0.4398 | TeAcc: 0.4027
+ S NN | TrAcc: 0.5352 | VaAcc: 0.4416 | TeAcc: 0.4002
+129,  0 | TrAcc: 0.5343, TrLoss:  1.48264, VaAcc: 0.4393, VaLoss:  1.92092
+ MAP NN | TrAcc: 0.5375 | VaAcc: 0.4383 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5369 | VaAcc: 0.4311 | TeAcc: 0.3941
+130,  0 | TrAcc: 0.5361, TrLoss:  1.46376, VaAcc: 0.4400, VaLoss:  1.91496
+ MAP NN | TrAcc: 0.5375 | VaAcc: 0.4443 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5382 | VaAcc: 0.4404 | TeAcc: 0.3994
+131,  0 | TrAcc: 0.5329, TrLoss:  1.48075, VaAcc: 0.4367, VaLoss:  1.92241
+ MAP NN | TrAcc: 0.5361 | VaAcc: 0.4371 | TeAcc: 0.4018
+ S NN | TrAcc: 0.5378 | VaAcc: 0.4361 | TeAcc: 0.3982
+132,  0 | TrAcc: 0.5336, TrLoss:  1.48032, VaAcc: 0.4367, VaLoss:  1.92249
+ MAP NN | TrAcc: 0.5362 | VaAcc: 0.4441 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5325 | VaAcc: 0.4363 | TeAcc: 0.3992
+133,  0 | TrAcc: 0.5308, TrLoss:  1.48907, VaAcc: 0.4354, VaLoss:  1.92987
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4406 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5298 | VaAcc: 0.4385 | TeAcc: 0.3945
+134,  0 | TrAcc: 0.5328, TrLoss:  1.47997, VaAcc: 0.4314, VaLoss:  1.92455
+ MAP NN | TrAcc: 0.5349 | VaAcc: 0.4365 | TeAcc: 0.3994
+ S NN | TrAcc: 0.5327 | VaAcc: 0.4338 | TeAcc: 0.3939
+135,  0 | TrAcc: 0.5327, TrLoss:  1.48020, VaAcc: 0.4348, VaLoss:  1.93102
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4391 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5374 | VaAcc: 0.4352 | TeAcc: 0.4010
+136,  0 | TrAcc: 0.5299, TrLoss:  1.49000, VaAcc: 0.4285, VaLoss:  1.94405
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4342 | TeAcc: 0.3904
+ S NN | TrAcc: 0.5327 | VaAcc: 0.4307 | TeAcc: 0.3953
+137,  0 | TrAcc: 0.5312, TrLoss:  1.49660, VaAcc: 0.4371, VaLoss:  1.94313
+ MAP NN | TrAcc: 0.5327 | VaAcc: 0.4379 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5309 | VaAcc: 0.4342 | TeAcc: 0.3936
+138,  0 | TrAcc: 0.5280, TrLoss:  1.49980, VaAcc: 0.4418, VaLoss:  1.93167
+ MAP NN | TrAcc: 0.5327 | VaAcc: 0.4402 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4359 | TeAcc: 0.3947
+139,  0 | TrAcc: 0.5358, TrLoss:  1.48536, VaAcc: 0.4424, VaLoss:  1.92921
+ MAP NN | TrAcc: 0.5330 | VaAcc: 0.4482 | TeAcc: 0.3994
+ S NN | TrAcc: 0.5324 | VaAcc: 0.4408 | TeAcc: 0.4029
+140,  0 | TrAcc: 0.5339, TrLoss:  1.48359, VaAcc: 0.4402, VaLoss:  1.93109
+ MAP NN | TrAcc: 0.5375 | VaAcc: 0.4457 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5328 | VaAcc: 0.4447 | TeAcc: 0.4004
+141,  0 | TrAcc: 0.5363, TrLoss:  1.47994, VaAcc: 0.4488, VaLoss:  1.90912
+ MAP NN | TrAcc: 0.5387 | VaAcc: 0.4445 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5347 | VaAcc: 0.4455 | TeAcc: 0.3980
+142,  0 | TrAcc: 0.5312, TrLoss:  1.49294, VaAcc: 0.4422, VaLoss:  1.92817
+ MAP NN | TrAcc: 0.5323 | VaAcc: 0.4383 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5318 | VaAcc: 0.4406 | TeAcc: 0.3949
+143,  0 | TrAcc: 0.5312, TrLoss:  1.49412, VaAcc: 0.4359, VaLoss:  1.94485
+ MAP NN | TrAcc: 0.5313 | VaAcc: 0.4400 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5335 | VaAcc: 0.4465 | TeAcc: 0.3959
+144,  0 | TrAcc: 0.5395, TrLoss:  1.46801, VaAcc: 0.4406, VaLoss:  1.91033
+ MAP NN | TrAcc: 0.5375 | VaAcc: 0.4477 | TeAcc: 0.4012
+ S NN | TrAcc: 0.5352 | VaAcc: 0.4437 | TeAcc: 0.3969
+145,  0 | TrAcc: 0.5389, TrLoss:  1.47363, VaAcc: 0.4445, VaLoss:  1.91560
+ MAP NN | TrAcc: 0.5411 | VaAcc: 0.4459 | TeAcc: 0.4010
+ S NN | TrAcc: 0.5378 | VaAcc: 0.4406 | TeAcc: 0.4012
+146,  0 | TrAcc: 0.5413, TrLoss:  1.46619, VaAcc: 0.4416, VaLoss:  1.92018
+ MAP NN | TrAcc: 0.5377 | VaAcc: 0.4424 | TeAcc: 0.4018
+ S NN | TrAcc: 0.5376 | VaAcc: 0.4400 | TeAcc: 0.4031
+147,  0 | TrAcc: 0.5356, TrLoss:  1.47458, VaAcc: 0.4379, VaLoss:  1.91998
+ MAP NN | TrAcc: 0.5376 | VaAcc: 0.4389 | TeAcc: 0.4027
+ S NN | TrAcc: 0.5350 | VaAcc: 0.4361 | TeAcc: 0.3959
+148,  0 | TrAcc: 0.5337, TrLoss:  1.47900, VaAcc: 0.4354, VaLoss:  1.91598
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4410 | TeAcc: 0.4047
+ S NN | TrAcc: 0.5378 | VaAcc: 0.4455 | TeAcc: 0.4000
+149,  0 | TrAcc: 0.5375, TrLoss:  1.46477, VaAcc: 0.4395, VaLoss:  1.90421
+ MAP NN | TrAcc: 0.5417 | VaAcc: 0.4422 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5391 | VaAcc: 0.4414 | TeAcc: 0.3945
+150,  0 | TrAcc: 0.5362, TrLoss:  1.47091, VaAcc: 0.4430, VaLoss:  1.92105
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4385 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5381 | VaAcc: 0.4379 | TeAcc: 0.3945
+151,  0 | TrAcc: 0.5382, TrLoss:  1.46873, VaAcc: 0.4404, VaLoss:  1.90942
+ MAP NN | TrAcc: 0.5392 | VaAcc: 0.4436 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5385 | VaAcc: 0.4428 | TeAcc: 0.3939
+152,  0 | TrAcc: 0.5354, TrLoss:  1.47624, VaAcc: 0.4469, VaLoss:  1.91124
+ MAP NN | TrAcc: 0.5419 | VaAcc: 0.4475 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5379 | VaAcc: 0.4443 | TeAcc: 0.4043
+153,  0 | TrAcc: 0.5368, TrLoss:  1.46526, VaAcc: 0.4439, VaLoss:  1.90444
+ MAP NN | TrAcc: 0.5408 | VaAcc: 0.4432 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5387 | VaAcc: 0.4381 | TeAcc: 0.3977
+154,  0 | TrAcc: 0.5385, TrLoss:  1.47425, VaAcc: 0.4426, VaLoss:  1.91441
+ MAP NN | TrAcc: 0.5380 | VaAcc: 0.4424 | TeAcc: 0.3998
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4447 | TeAcc: 0.3902
+155,  0 | TrAcc: 0.5377, TrLoss:  1.46566, VaAcc: 0.4395, VaLoss:  1.91862
+ MAP NN | TrAcc: 0.5426 | VaAcc: 0.4465 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5364 | VaAcc: 0.4398 | TeAcc: 0.3967
+156,  0 | TrAcc: 0.5409, TrLoss:  1.45357, VaAcc: 0.4457, VaLoss:  1.90040
+ MAP NN | TrAcc: 0.5453 | VaAcc: 0.4459 | TeAcc: 0.3896
+ S NN | TrAcc: 0.5432 | VaAcc: 0.4484 | TeAcc: 0.3895
+157,  0 | TrAcc: 0.5374, TrLoss:  1.46534, VaAcc: 0.4414, VaLoss:  1.91318
+ MAP NN | TrAcc: 0.5404 | VaAcc: 0.4428 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5397 | VaAcc: 0.4465 | TeAcc: 0.3920
+158,  0 | TrAcc: 0.5335, TrLoss:  1.47335, VaAcc: 0.4359, VaLoss:  1.93682
+ MAP NN | TrAcc: 0.5400 | VaAcc: 0.4373 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5373 | VaAcc: 0.4295 | TeAcc: 0.3910
+159,  0 | TrAcc: 0.5392, TrLoss:  1.46875, VaAcc: 0.4486, VaLoss:  1.90922
+ MAP NN | TrAcc: 0.5370 | VaAcc: 0.4459 | TeAcc: 0.3990
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4439 | TeAcc: 0.4012
+160,  0 | TrAcc: 0.5330, TrLoss:  1.47939, VaAcc: 0.4428, VaLoss:  1.92220
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4410 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5318 | VaAcc: 0.4416 | TeAcc: 0.3965
+161,  0 | TrAcc: 0.5386, TrLoss:  1.47253, VaAcc: 0.4410, VaLoss:  1.91843
+ MAP NN | TrAcc: 0.5402 | VaAcc: 0.4430 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5363 | VaAcc: 0.4391 | TeAcc: 0.3805
+162,  0 | TrAcc: 0.5368, TrLoss:  1.46518, VaAcc: 0.4459, VaLoss:  1.90698
+ MAP NN | TrAcc: 0.5412 | VaAcc: 0.4484 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5420 | VaAcc: 0.4492 | TeAcc: 0.4006
+163,  0 | TrAcc: 0.5387, TrLoss:  1.46569, VaAcc: 0.4414, VaLoss:  1.90743
+ MAP NN | TrAcc: 0.5404 | VaAcc: 0.4406 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5389 | VaAcc: 0.4389 | TeAcc: 0.4008
+164,  0 | TrAcc: 0.5404, TrLoss:  1.45602, VaAcc: 0.4449, VaLoss:  1.89902
+ MAP NN | TrAcc: 0.5420 | VaAcc: 0.4504 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5438 | VaAcc: 0.4385 | TeAcc: 0.3980
+165,  0 | TrAcc: 0.5357, TrLoss:  1.46842, VaAcc: 0.4434, VaLoss:  1.90690
+ MAP NN | TrAcc: 0.5361 | VaAcc: 0.4361 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4412 | TeAcc: 0.3937
+166,  0 | TrAcc: 0.5416, TrLoss:  1.46037, VaAcc: 0.4457, VaLoss:  1.89888
+ MAP NN | TrAcc: 0.5392 | VaAcc: 0.4479 | TeAcc: 0.3914
+ S NN | TrAcc: 0.5381 | VaAcc: 0.4490 | TeAcc: 0.3975
+167,  0 | TrAcc: 0.5388, TrLoss:  1.46081, VaAcc: 0.4436, VaLoss:  1.90907
+ MAP NN | TrAcc: 0.5405 | VaAcc: 0.4490 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5379 | VaAcc: 0.4396 | TeAcc: 0.3895
+168,  0 | TrAcc: 0.5333, TrLoss:  1.48104, VaAcc: 0.4396, VaLoss:  1.91051
+ MAP NN | TrAcc: 0.5345 | VaAcc: 0.4395 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4393 | TeAcc: 0.3953
+169,  0 | TrAcc: 0.5413, TrLoss:  1.46292, VaAcc: 0.4422, VaLoss:  1.90420
+ MAP NN | TrAcc: 0.5419 | VaAcc: 0.4479 | TeAcc: 0.4023
+ S NN | TrAcc: 0.5393 | VaAcc: 0.4463 | TeAcc: 0.4018
+170,  0 | TrAcc: 0.5358, TrLoss:  1.47107, VaAcc: 0.4393, VaLoss:  1.91560
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4461 | TeAcc: 0.4012
+ S NN | TrAcc: 0.5378 | VaAcc: 0.4463 | TeAcc: 0.3973
+171,  0 | TrAcc: 0.5362, TrLoss:  1.47480, VaAcc: 0.4330, VaLoss:  1.90727
+ MAP NN | TrAcc: 0.5395 | VaAcc: 0.4357 | TeAcc: 0.4053
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4414 | TeAcc: 0.3932
+172,  0 | TrAcc: 0.5318, TrLoss:  1.47729, VaAcc: 0.4473, VaLoss:  1.91015
+ MAP NN | TrAcc: 0.5373 | VaAcc: 0.4467 | TeAcc: 0.4049
+ S NN | TrAcc: 0.5335 | VaAcc: 0.4463 | TeAcc: 0.3992
+173,  0 | TrAcc: 0.5367, TrLoss:  1.46920, VaAcc: 0.4428, VaLoss:  1.90459
+ MAP NN | TrAcc: 0.5409 | VaAcc: 0.4443 | TeAcc: 0.4004
+ S NN | TrAcc: 0.5390 | VaAcc: 0.4439 | TeAcc: 0.3990
+174,  0 | TrAcc: 0.5371, TrLoss:  1.46986, VaAcc: 0.4494, VaLoss:  1.90304
+ MAP NN | TrAcc: 0.5386 | VaAcc: 0.4453 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5369 | VaAcc: 0.4463 | TeAcc: 0.3945
+175,  0 | TrAcc: 0.5322, TrLoss:  1.47846, VaAcc: 0.4418, VaLoss:  1.91402
+ MAP NN | TrAcc: 0.5355 | VaAcc: 0.4459 | TeAcc: 0.4002
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4436 | TeAcc: 0.4000
+176,  0 | TrAcc: 0.5362, TrLoss:  1.47046, VaAcc: 0.4369, VaLoss:  1.90473
+ MAP NN | TrAcc: 0.5374 | VaAcc: 0.4467 | TeAcc: 0.4039
+ S NN | TrAcc: 0.5369 | VaAcc: 0.4373 | TeAcc: 0.4049
+177,  0 | TrAcc: 0.5367, TrLoss:  1.47174, VaAcc: 0.4385, VaLoss:  1.92225
+ MAP NN | TrAcc: 0.5352 | VaAcc: 0.4396 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5376 | VaAcc: 0.4467 | TeAcc: 0.3986
+178,  0 | TrAcc: 0.5368, TrLoss:  1.46453, VaAcc: 0.4455, VaLoss:  1.90677
+ MAP NN | TrAcc: 0.5409 | VaAcc: 0.4441 | TeAcc: 0.4014
+ S NN | TrAcc: 0.5407 | VaAcc: 0.4449 | TeAcc: 0.4008
+179,  0 | TrAcc: 0.5345, TrLoss:  1.47209, VaAcc: 0.4402, VaLoss:  1.93173
+ MAP NN | TrAcc: 0.5374 | VaAcc: 0.4377 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5355 | VaAcc: 0.4387 | TeAcc: 0.3904
+180,  0 | TrAcc: 0.5415, TrLoss:  1.45875, VaAcc: 0.4422, VaLoss:  1.91244
+ MAP NN | TrAcc: 0.5422 | VaAcc: 0.4449 | TeAcc: 0.4008
+ S NN | TrAcc: 0.5427 | VaAcc: 0.4445 | TeAcc: 0.4031
+181,  0 | TrAcc: 0.5391, TrLoss:  1.45986, VaAcc: 0.4436, VaLoss:  1.90587
+ MAP NN | TrAcc: 0.5406 | VaAcc: 0.4441 | TeAcc: 0.4020
+ S NN | TrAcc: 0.5367 | VaAcc: 0.4434 | TeAcc: 0.4062
+182,  0 | TrAcc: 0.5374, TrLoss:  1.46260, VaAcc: 0.4426, VaLoss:  1.92234
+ MAP NN | TrAcc: 0.5403 | VaAcc: 0.4357 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5394 | VaAcc: 0.4355 | TeAcc: 0.4031
+183,  0 | TrAcc: 0.5377, TrLoss:  1.46977, VaAcc: 0.4383, VaLoss:  1.93015
+ MAP NN | TrAcc: 0.5400 | VaAcc: 0.4406 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5380 | VaAcc: 0.4371 | TeAcc: 0.3977
+184,  0 | TrAcc: 0.5348, TrLoss:  1.47055, VaAcc: 0.4404, VaLoss:  1.91511
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4391 | TeAcc: 0.4041
+ S NN | TrAcc: 0.5397 | VaAcc: 0.4400 | TeAcc: 0.4004
+185,  0 | TrAcc: 0.5392, TrLoss:  1.46276, VaAcc: 0.4395, VaLoss:  1.90620
+ MAP NN | TrAcc: 0.5404 | VaAcc: 0.4418 | TeAcc: 0.4006
+ S NN | TrAcc: 0.5410 | VaAcc: 0.4400 | TeAcc: 0.4025
+186,  0 | TrAcc: 0.5350, TrLoss:  1.47367, VaAcc: 0.4361, VaLoss:  1.92707
+ MAP NN | TrAcc: 0.5384 | VaAcc: 0.4420 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5349 | VaAcc: 0.4432 | TeAcc: 0.3953
+187,  0 | TrAcc: 0.5393, TrLoss:  1.46620, VaAcc: 0.4373, VaLoss:  1.91044
+ MAP NN | TrAcc: 0.5415 | VaAcc: 0.4369 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5424 | VaAcc: 0.4367 | TeAcc: 0.3937
+188,  0 | TrAcc: 0.5376, TrLoss:  1.46793, VaAcc: 0.4338, VaLoss:  1.92777
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4416 | TeAcc: 0.4006
+ S NN | TrAcc: 0.5379 | VaAcc: 0.4365 | TeAcc: 0.4064
+189,  0 | TrAcc: 0.5426, TrLoss:  1.45304, VaAcc: 0.4424, VaLoss:  1.91359
+ MAP NN | TrAcc: 0.5427 | VaAcc: 0.4436 | TeAcc: 0.4053
+ S NN | TrAcc: 0.5432 | VaAcc: 0.4410 | TeAcc: 0.3996
+190,  0 | TrAcc: 0.5383, TrLoss:  1.46194, VaAcc: 0.4451, VaLoss:  1.91073
+ MAP NN | TrAcc: 0.5397 | VaAcc: 0.4408 | TeAcc: 0.3994
+ S NN | TrAcc: 0.5398 | VaAcc: 0.4434 | TeAcc: 0.3998
+191,  0 | TrAcc: 0.5396, TrLoss:  1.45870, VaAcc: 0.4393, VaLoss:  1.93160
+ MAP NN | TrAcc: 0.5404 | VaAcc: 0.4367 | TeAcc: 0.3889
+ S NN | TrAcc: 0.5368 | VaAcc: 0.4350 | TeAcc: 0.3936
+192,  0 | TrAcc: 0.5437, TrLoss:  1.45241, VaAcc: 0.4375, VaLoss:  1.92966
+ MAP NN | TrAcc: 0.5425 | VaAcc: 0.4387 | TeAcc: 0.4033
+ S NN | TrAcc: 0.5439 | VaAcc: 0.4357 | TeAcc: 0.3977
+193,  0 | TrAcc: 0.5431, TrLoss:  1.45364, VaAcc: 0.4346, VaLoss:  1.92907
+ MAP NN | TrAcc: 0.5454 | VaAcc: 0.4348 | TeAcc: 0.3980
+ S NN | TrAcc: 0.5394 | VaAcc: 0.4389 | TeAcc: 0.3969
+194,  0 | TrAcc: 0.5434, TrLoss:  1.45020, VaAcc: 0.4342, VaLoss:  1.92464
+ MAP NN | TrAcc: 0.5467 | VaAcc: 0.4379 | TeAcc: 0.4018
+ S NN | TrAcc: 0.5461 | VaAcc: 0.4387 | TeAcc: 0.4006
+195,  0 | TrAcc: 0.5412, TrLoss:  1.46430, VaAcc: 0.4361, VaLoss:  1.91555
+ MAP NN | TrAcc: 0.5410 | VaAcc: 0.4379 | TeAcc: 0.4000
+ S NN | TrAcc: 0.5437 | VaAcc: 0.4348 | TeAcc: 0.3977
+196,  0 | TrAcc: 0.5382, TrLoss:  1.46680, VaAcc: 0.4326, VaLoss:  1.93944
+ MAP NN | TrAcc: 0.5392 | VaAcc: 0.4395 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5396 | VaAcc: 0.4359 | TeAcc: 0.3975
+197,  0 | TrAcc: 0.5427, TrLoss:  1.45685, VaAcc: 0.4352, VaLoss:  1.92087
+ MAP NN | TrAcc: 0.5399 | VaAcc: 0.4396 | TeAcc: 0.4006
+ S NN | TrAcc: 0.5382 | VaAcc: 0.4416 | TeAcc: 0.3904
+198,  0 | TrAcc: 0.5383, TrLoss:  1.46384, VaAcc: 0.4398, VaLoss:  1.91919
+ MAP NN | TrAcc: 0.5411 | VaAcc: 0.4432 | TeAcc: 0.4045
+ S NN | TrAcc: 0.5393 | VaAcc: 0.4377 | TeAcc: 0.4080
+199,  0 | TrAcc: 0.5404, TrLoss:  1.46568, VaAcc: 0.4377, VaLoss:  1.92847
+ MAP NN | TrAcc: 0.5421 | VaAcc: 0.4424 | TeAcc: 0.4041
+ S NN | TrAcc: 0.5381 | VaAcc: 0.4324 | TeAcc: 0.4047
+200,  0 | TrAcc: 0.5354, TrLoss:  1.46378, VaAcc: 0.4389, VaLoss:  1.92515
+ MAP NN | TrAcc: 0.5373 | VaAcc: 0.4420 | TeAcc: 0.4002
+ S NN | TrAcc: 0.5386 | VaAcc: 0.4410 | TeAcc: 0.4014
+201,  0 | TrAcc: 0.5376, TrLoss:  1.47522, VaAcc: 0.4416, VaLoss:  1.94042
+ MAP NN | TrAcc: 0.5375 | VaAcc: 0.4340 | TeAcc: 0.4012
+ S NN | TrAcc: 0.5366 | VaAcc: 0.4371 | TeAcc: 0.3967
+202,  0 | TrAcc: 0.5351, TrLoss:  1.47134, VaAcc: 0.4414, VaLoss:  1.92304
+ MAP NN | TrAcc: 0.5401 | VaAcc: 0.4322 | TeAcc: 0.4016
+ S NN | TrAcc: 0.5391 | VaAcc: 0.4381 | TeAcc: 0.4008
+203,  0 | TrAcc: 0.5351, TrLoss:  1.47423, VaAcc: 0.4309, VaLoss:  1.93223
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4357 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4365 | TeAcc: 0.3937
+204,  0 | TrAcc: 0.5309, TrLoss:  1.47812, VaAcc: 0.4371, VaLoss:  1.92230
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4350 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5360 | VaAcc: 0.4332 | TeAcc: 0.4012
+205,  0 | TrAcc: 0.5369, TrLoss:  1.46922, VaAcc: 0.4297, VaLoss:  1.93769
+ MAP NN | TrAcc: 0.5377 | VaAcc: 0.4279 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5342 | VaAcc: 0.4313 | TeAcc: 0.3941
+206,  0 | TrAcc: 0.5342, TrLoss:  1.47736, VaAcc: 0.4402, VaLoss:  1.93414
+ MAP NN | TrAcc: 0.5410 | VaAcc: 0.4404 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5380 | VaAcc: 0.4371 | TeAcc: 0.4037
+207,  0 | TrAcc: 0.5380, TrLoss:  1.46370, VaAcc: 0.4398, VaLoss:  1.93650
+ MAP NN | TrAcc: 0.5396 | VaAcc: 0.4441 | TeAcc: 0.4000
+ S NN | TrAcc: 0.5381 | VaAcc: 0.4400 | TeAcc: 0.3973
+208,  0 | TrAcc: 0.5410, TrLoss:  1.46755, VaAcc: 0.4434, VaLoss:  1.93115
+ MAP NN | TrAcc: 0.5417 | VaAcc: 0.4410 | TeAcc: 0.4045
+ S NN | TrAcc: 0.5390 | VaAcc: 0.4361 | TeAcc: 0.3990
+209,  0 | TrAcc: 0.5382, TrLoss:  1.47201, VaAcc: 0.4445, VaLoss:  1.92534
+ MAP NN | TrAcc: 0.5385 | VaAcc: 0.4377 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5397 | VaAcc: 0.4420 | TeAcc: 0.3959
+210,  0 | TrAcc: 0.5358, TrLoss:  1.48170, VaAcc: 0.4301, VaLoss:  1.93645
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4316 | TeAcc: 0.3857
+ S NN | TrAcc: 0.5338 | VaAcc: 0.4305 | TeAcc: 0.3895
+211,  0 | TrAcc: 0.5388, TrLoss:  1.47452, VaAcc: 0.4330, VaLoss:  1.92162
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4344 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5371 | VaAcc: 0.4375 | TeAcc: 0.3920
+212,  0 | TrAcc: 0.5395, TrLoss:  1.46195, VaAcc: 0.4385, VaLoss:  1.93016
+ MAP NN | TrAcc: 0.5386 | VaAcc: 0.4387 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5414 | VaAcc: 0.4393 | TeAcc: 0.3965
+213,  0 | TrAcc: 0.5323, TrLoss:  1.47429, VaAcc: 0.4354, VaLoss:  1.95382
+ MAP NN | TrAcc: 0.5364 | VaAcc: 0.4371 | TeAcc: 0.4004
+ S NN | TrAcc: 0.5333 | VaAcc: 0.4348 | TeAcc: 0.3971
+214,  0 | TrAcc: 0.5342, TrLoss:  1.48038, VaAcc: 0.4293, VaLoss:  1.94188
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4342 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5323 | VaAcc: 0.4279 | TeAcc: 0.3994
+215,  0 | TrAcc: 0.5331, TrLoss:  1.48208, VaAcc: 0.4352, VaLoss:  1.94682
+ MAP NN | TrAcc: 0.5303 | VaAcc: 0.4387 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5324 | VaAcc: 0.4363 | TeAcc: 0.4023
+216,  0 | TrAcc: 0.5385, TrLoss:  1.47446, VaAcc: 0.4330, VaLoss:  1.93400
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4365 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5347 | VaAcc: 0.4334 | TeAcc: 0.3959
+217,  0 | TrAcc: 0.5369, TrLoss:  1.47208, VaAcc: 0.4275, VaLoss:  1.94892
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4377 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5361 | VaAcc: 0.4355 | TeAcc: 0.3930
+218,  0 | TrAcc: 0.5379, TrLoss:  1.46711, VaAcc: 0.4359, VaLoss:  1.94401
+ MAP NN | TrAcc: 0.5391 | VaAcc: 0.4369 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5372 | VaAcc: 0.4383 | TeAcc: 0.3994
+219,  0 | TrAcc: 0.5379, TrLoss:  1.47795, VaAcc: 0.4305, VaLoss:  1.94334
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4297 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5378 | VaAcc: 0.4338 | TeAcc: 0.3975
+220,  0 | TrAcc: 0.5342, TrLoss:  1.46953, VaAcc: 0.4359, VaLoss:  1.93866
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4309 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5333 | VaAcc: 0.4334 | TeAcc: 0.3971
+221,  0 | TrAcc: 0.5366, TrLoss:  1.46470, VaAcc: 0.4318, VaLoss:  1.94806
+ MAP NN | TrAcc: 0.5389 | VaAcc: 0.4326 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4305 | TeAcc: 0.3982
+222,  0 | TrAcc: 0.5365, TrLoss:  1.47380, VaAcc: 0.4309, VaLoss:  1.93936
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4293 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5357 | VaAcc: 0.4268 | TeAcc: 0.3918
+223,  0 | TrAcc: 0.5360, TrLoss:  1.47147, VaAcc: 0.4359, VaLoss:  1.92023
+ MAP NN | TrAcc: 0.5389 | VaAcc: 0.4361 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5382 | VaAcc: 0.4361 | TeAcc: 0.3994
+224,  0 | TrAcc: 0.5347, TrLoss:  1.48175, VaAcc: 0.4307, VaLoss:  1.94881
+ MAP NN | TrAcc: 0.5361 | VaAcc: 0.4324 | TeAcc: 0.3879
+ S NN | TrAcc: 0.5345 | VaAcc: 0.4266 | TeAcc: 0.3891
+225,  0 | TrAcc: 0.5330, TrLoss:  1.47502, VaAcc: 0.4338, VaLoss:  1.94314
+ MAP NN | TrAcc: 0.5366 | VaAcc: 0.4369 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5350 | VaAcc: 0.4336 | TeAcc: 0.3977
+226,  0 | TrAcc: 0.5313, TrLoss:  1.49425, VaAcc: 0.4309, VaLoss:  1.93145
+ MAP NN | TrAcc: 0.5317 | VaAcc: 0.4404 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5306 | VaAcc: 0.4336 | TeAcc: 0.3922
+227,  0 | TrAcc: 0.5286, TrLoss:  1.49828, VaAcc: 0.4346, VaLoss:  1.93848
+ MAP NN | TrAcc: 0.5332 | VaAcc: 0.4406 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5291 | VaAcc: 0.4385 | TeAcc: 0.3930
+228,  0 | TrAcc: 0.5314, TrLoss:  1.48050, VaAcc: 0.4330, VaLoss:  1.94747
+ MAP NN | TrAcc: 0.5343 | VaAcc: 0.4350 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5334 | VaAcc: 0.4309 | TeAcc: 0.3912
+229,  0 | TrAcc: 0.5369, TrLoss:  1.47444, VaAcc: 0.4371, VaLoss:  1.94103
+ MAP NN | TrAcc: 0.5394 | VaAcc: 0.4383 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5390 | VaAcc: 0.4383 | TeAcc: 0.3957
+230,  0 | TrAcc: 0.5359, TrLoss:  1.47779, VaAcc: 0.4393, VaLoss:  1.93844
+ MAP NN | TrAcc: 0.5370 | VaAcc: 0.4369 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5360 | VaAcc: 0.4328 | TeAcc: 0.3980
+231,  0 | TrAcc: 0.5367, TrLoss:  1.47705, VaAcc: 0.4340, VaLoss:  1.95067
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4355 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5345 | VaAcc: 0.4400 | TeAcc: 0.3982
+232,  0 | TrAcc: 0.5270, TrLoss:  1.49792, VaAcc: 0.4254, VaLoss:  1.96859
+ MAP NN | TrAcc: 0.5296 | VaAcc: 0.4332 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5271 | VaAcc: 0.4291 | TeAcc: 0.3930
+233,  0 | TrAcc: 0.5284, TrLoss:  1.50589, VaAcc: 0.4365, VaLoss:  1.94227
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4336 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4326 | TeAcc: 0.3941
+234,  0 | TrAcc: 0.5304, TrLoss:  1.49322, VaAcc: 0.4332, VaLoss:  1.94452
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4346 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4395 | TeAcc: 0.3840
+235,  0 | TrAcc: 0.5330, TrLoss:  1.48780, VaAcc: 0.4393, VaLoss:  1.94415
+ MAP NN | TrAcc: 0.5360 | VaAcc: 0.4393 | TeAcc: 0.3902
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4387 | TeAcc: 0.3975
+236,  0 | TrAcc: 0.5303, TrLoss:  1.50822, VaAcc: 0.4301, VaLoss:  1.95383
+ MAP NN | TrAcc: 0.5274 | VaAcc: 0.4365 | TeAcc: 0.3855
+ S NN | TrAcc: 0.5269 | VaAcc: 0.4338 | TeAcc: 0.3840
+237,  0 | TrAcc: 0.5290, TrLoss:  1.50132, VaAcc: 0.4320, VaLoss:  1.96295
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4281 | TeAcc: 0.3848
+ S NN | TrAcc: 0.5282 | VaAcc: 0.4338 | TeAcc: 0.3863
+238,  0 | TrAcc: 0.5293, TrLoss:  1.50610, VaAcc: 0.4359, VaLoss:  1.95805
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4375 | TeAcc: 0.3906
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4332 | TeAcc: 0.3934
+239,  0 | TrAcc: 0.5268, TrLoss:  1.51022, VaAcc: 0.4316, VaLoss:  1.96021
+ MAP NN | TrAcc: 0.5269 | VaAcc: 0.4295 | TeAcc: 0.3875
+ S NN | TrAcc: 0.5302 | VaAcc: 0.4270 | TeAcc: 0.3873
+240,  0 | TrAcc: 0.5310, TrLoss:  1.49749, VaAcc: 0.4357, VaLoss:  1.95778
+ MAP NN | TrAcc: 0.5304 | VaAcc: 0.4381 | TeAcc: 0.3924
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4369 | TeAcc: 0.3971
+241,  0 | TrAcc: 0.5314, TrLoss:  1.49450, VaAcc: 0.4283, VaLoss:  1.96442
+ MAP NN | TrAcc: 0.5328 | VaAcc: 0.4316 | TeAcc: 0.3896
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4395 | TeAcc: 0.3936
+242,  0 | TrAcc: 0.5328, TrLoss:  1.50045, VaAcc: 0.4309, VaLoss:  1.95990
+ MAP NN | TrAcc: 0.5334 | VaAcc: 0.4340 | TeAcc: 0.3881
+ S NN | TrAcc: 0.5300 | VaAcc: 0.4324 | TeAcc: 0.3867
+243,  0 | TrAcc: 0.5316, TrLoss:  1.49856, VaAcc: 0.4365, VaLoss:  1.96278
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4332 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4328 | TeAcc: 0.3885
+244,  0 | TrAcc: 0.5301, TrLoss:  1.49546, VaAcc: 0.4283, VaLoss:  1.96320
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4320 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4279 | TeAcc: 0.3924
+245,  0 | TrAcc: 0.5327, TrLoss:  1.49415, VaAcc: 0.4355, VaLoss:  1.95115
+ MAP NN | TrAcc: 0.5346 | VaAcc: 0.4420 | TeAcc: 0.4016
+ S NN | TrAcc: 0.5335 | VaAcc: 0.4389 | TeAcc: 0.3963
+246,  0 | TrAcc: 0.5313, TrLoss:  1.49078, VaAcc: 0.4283, VaLoss:  1.94908
+ MAP NN | TrAcc: 0.5346 | VaAcc: 0.4332 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4371 | TeAcc: 0.3904
+247,  0 | TrAcc: 0.5339, TrLoss:  1.48973, VaAcc: 0.4326, VaLoss:  1.96391
+ MAP NN | TrAcc: 0.5336 | VaAcc: 0.4369 | TeAcc: 0.3996
+ S NN | TrAcc: 0.5297 | VaAcc: 0.4289 | TeAcc: 0.3965
+248,  0 | TrAcc: 0.5334, TrLoss:  1.48184, VaAcc: 0.4301, VaLoss:  1.96038
+ MAP NN | TrAcc: 0.5371 | VaAcc: 0.4324 | TeAcc: 0.4004
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4309 | TeAcc: 0.4018
+249,  0 | TrAcc: 0.5302, TrLoss:  1.49191, VaAcc: 0.4338, VaLoss:  1.94793
+ MAP NN | TrAcc: 0.5345 | VaAcc: 0.4285 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4258 | TeAcc: 0.3902
+250,  0 | TrAcc: 0.5314, TrLoss:  1.49122, VaAcc: 0.4311, VaLoss:  1.95982
+ MAP NN | TrAcc: 0.5344 | VaAcc: 0.4383 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4389 | TeAcc: 0.3910
+251,  0 | TrAcc: 0.5309, TrLoss:  1.49602, VaAcc: 0.4316, VaLoss:  1.95538
+ MAP NN | TrAcc: 0.5344 | VaAcc: 0.4336 | TeAcc: 0.4008
+ S NN | TrAcc: 0.5329 | VaAcc: 0.4348 | TeAcc: 0.3977
+252,  0 | TrAcc: 0.5285, TrLoss:  1.49224, VaAcc: 0.4330, VaLoss:  1.95768
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4367 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5277 | VaAcc: 0.4320 | TeAcc: 0.3920
+253,  0 | TrAcc: 0.5319, TrLoss:  1.48185, VaAcc: 0.4307, VaLoss:  1.95093
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4354 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4332 | TeAcc: 0.3986
+254,  0 | TrAcc: 0.5325, TrLoss:  1.48714, VaAcc: 0.4260, VaLoss:  1.95774
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4283 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5278 | VaAcc: 0.4260 | TeAcc: 0.3961
+255,  0 | TrAcc: 0.5362, TrLoss:  1.47994, VaAcc: 0.4350, VaLoss:  1.94548
+ MAP NN | TrAcc: 0.5376 | VaAcc: 0.4352 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5383 | VaAcc: 0.4320 | TeAcc: 0.3955
+256,  0 | TrAcc: 0.5361, TrLoss:  1.47766, VaAcc: 0.4283, VaLoss:  1.94064
+ MAP NN | TrAcc: 0.5346 | VaAcc: 0.4314 | TeAcc: 0.3918
+ S NN | TrAcc: 0.5338 | VaAcc: 0.4305 | TeAcc: 0.3971
+257,  0 | TrAcc: 0.5373, TrLoss:  1.47214, VaAcc: 0.4434, VaLoss:  1.93795
+ MAP NN | TrAcc: 0.5343 | VaAcc: 0.4441 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5350 | VaAcc: 0.4451 | TeAcc: 0.3967
+258,  0 | TrAcc: 0.5342, TrLoss:  1.48369, VaAcc: 0.4361, VaLoss:  1.96446
+ MAP NN | TrAcc: 0.5346 | VaAcc: 0.4365 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5360 | VaAcc: 0.4305 | TeAcc: 0.3924
+259,  0 | TrAcc: 0.5364, TrLoss:  1.46965, VaAcc: 0.4416, VaLoss:  1.93636
+ MAP NN | TrAcc: 0.5360 | VaAcc: 0.4387 | TeAcc: 0.4004
+ S NN | TrAcc: 0.5355 | VaAcc: 0.4359 | TeAcc: 0.3979
+260,  0 | TrAcc: 0.5333, TrLoss:  1.48270, VaAcc: 0.4338, VaLoss:  1.93979
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4324 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5344 | VaAcc: 0.4348 | TeAcc: 0.4006
+261,  0 | TrAcc: 0.5338, TrLoss:  1.48171, VaAcc: 0.4412, VaLoss:  1.95815
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4344 | TeAcc: 0.4033
+ S NN | TrAcc: 0.5347 | VaAcc: 0.4330 | TeAcc: 0.3957
+262,  0 | TrAcc: 0.5365, TrLoss:  1.47969, VaAcc: 0.4363, VaLoss:  1.95298
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4406 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4334 | TeAcc: 0.3928
+263,  0 | TrAcc: 0.5373, TrLoss:  1.47064, VaAcc: 0.4389, VaLoss:  1.94082
+ MAP NN | TrAcc: 0.5385 | VaAcc: 0.4408 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5370 | VaAcc: 0.4357 | TeAcc: 0.3939
+264,  0 | TrAcc: 0.5345, TrLoss:  1.47594, VaAcc: 0.4326, VaLoss:  1.95140
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4350 | TeAcc: 0.4008
+ S NN | TrAcc: 0.5364 | VaAcc: 0.4340 | TeAcc: 0.3988
+265,  0 | TrAcc: 0.5379, TrLoss:  1.47276, VaAcc: 0.4377, VaLoss:  1.93923
+ MAP NN | TrAcc: 0.5387 | VaAcc: 0.4375 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5343 | VaAcc: 0.4320 | TeAcc: 0.3957
+266,  0 | TrAcc: 0.5360, TrLoss:  1.47476, VaAcc: 0.4348, VaLoss:  1.95317
+ MAP NN | TrAcc: 0.5369 | VaAcc: 0.4340 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5364 | VaAcc: 0.4324 | TeAcc: 0.3924
+267,  0 | TrAcc: 0.5343, TrLoss:  1.48325, VaAcc: 0.4314, VaLoss:  1.94179
+ MAP NN | TrAcc: 0.5341 | VaAcc: 0.4338 | TeAcc: 0.3881
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4336 | TeAcc: 0.3871
+268,  0 | TrAcc: 0.5329, TrLoss:  1.48060, VaAcc: 0.4375, VaLoss:  1.94154
+ MAP NN | TrAcc: 0.5374 | VaAcc: 0.4385 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5351 | VaAcc: 0.4404 | TeAcc: 0.3934
+269,  0 | TrAcc: 0.5374, TrLoss:  1.47269, VaAcc: 0.4396, VaLoss:  1.94081
+ MAP NN | TrAcc: 0.5376 | VaAcc: 0.4367 | TeAcc: 0.3924
+ S NN | TrAcc: 0.5332 | VaAcc: 0.4346 | TeAcc: 0.3873
+270,  0 | TrAcc: 0.5370, TrLoss:  1.48006, VaAcc: 0.4412, VaLoss:  1.94204
+ MAP NN | TrAcc: 0.5365 | VaAcc: 0.4377 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5375 | VaAcc: 0.4400 | TeAcc: 0.3937
+271,  0 | TrAcc: 0.5344, TrLoss:  1.47473, VaAcc: 0.4299, VaLoss:  1.95090
+ MAP NN | TrAcc: 0.5342 | VaAcc: 0.4305 | TeAcc: 0.3889
+ S NN | TrAcc: 0.5347 | VaAcc: 0.4314 | TeAcc: 0.3936
+272,  0 | TrAcc: 0.5358, TrLoss:  1.47308, VaAcc: 0.4383, VaLoss:  1.94011
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4340 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5381 | VaAcc: 0.4328 | TeAcc: 0.3871
+273,  0 | TrAcc: 0.5356, TrLoss:  1.48286, VaAcc: 0.4250, VaLoss:  1.97083
+ MAP NN | TrAcc: 0.5366 | VaAcc: 0.4309 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5373 | VaAcc: 0.4311 | TeAcc: 0.3871
+274,  0 | TrAcc: 0.5407, TrLoss:  1.46820, VaAcc: 0.4316, VaLoss:  1.94893
+ MAP NN | TrAcc: 0.5405 | VaAcc: 0.4301 | TeAcc: 0.3883
+ S NN | TrAcc: 0.5420 | VaAcc: 0.4313 | TeAcc: 0.3879
+275,  0 | TrAcc: 0.5392, TrLoss:  1.46766, VaAcc: 0.4416, VaLoss:  1.92945
+ MAP NN | TrAcc: 0.5401 | VaAcc: 0.4381 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5409 | VaAcc: 0.4363 | TeAcc: 0.3963
+276,  0 | TrAcc: 0.5338, TrLoss:  1.47641, VaAcc: 0.4318, VaLoss:  1.95247
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4348 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5379 | VaAcc: 0.4361 | TeAcc: 0.3912
+277,  0 | TrAcc: 0.5338, TrLoss:  1.48083, VaAcc: 0.4244, VaLoss:  1.97506
+ MAP NN | TrAcc: 0.5370 | VaAcc: 0.4311 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4305 | TeAcc: 0.3881
+278,  0 | TrAcc: 0.5373, TrLoss:  1.46796, VaAcc: 0.4309, VaLoss:  1.94275
+ MAP NN | TrAcc: 0.5391 | VaAcc: 0.4334 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5395 | VaAcc: 0.4307 | TeAcc: 0.3928
+279,  0 | TrAcc: 0.5385, TrLoss:  1.46550, VaAcc: 0.4352, VaLoss:  1.94301
+ MAP NN | TrAcc: 0.5357 | VaAcc: 0.4359 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5361 | VaAcc: 0.4344 | TeAcc: 0.3926
+280,  0 | TrAcc: 0.5413, TrLoss:  1.46462, VaAcc: 0.4305, VaLoss:  1.95945
+ MAP NN | TrAcc: 0.5392 | VaAcc: 0.4348 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5381 | VaAcc: 0.4326 | TeAcc: 0.3957
+281,  0 | TrAcc: 0.5349, TrLoss:  1.46895, VaAcc: 0.4307, VaLoss:  1.95979
+ MAP NN | TrAcc: 0.5373 | VaAcc: 0.4355 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5323 | VaAcc: 0.4342 | TeAcc: 0.3949
+282,  0 | TrAcc: 0.5367, TrLoss:  1.47313, VaAcc: 0.4289, VaLoss:  1.95012
+ MAP NN | TrAcc: 0.5352 | VaAcc: 0.4346 | TeAcc: 0.3904
+ S NN | TrAcc: 0.5374 | VaAcc: 0.4326 | TeAcc: 0.3955
+283,  0 | TrAcc: 0.5376, TrLoss:  1.45945, VaAcc: 0.4346, VaLoss:  1.94566
+ MAP NN | TrAcc: 0.5371 | VaAcc: 0.4336 | TeAcc: 0.3891
+ S NN | TrAcc: 0.5393 | VaAcc: 0.4324 | TeAcc: 0.3900
+284,  0 | TrAcc: 0.5371, TrLoss:  1.47207, VaAcc: 0.4320, VaLoss:  1.95958
+ MAP NN | TrAcc: 0.5370 | VaAcc: 0.4367 | TeAcc: 0.3998
+ S NN | TrAcc: 0.5366 | VaAcc: 0.4361 | TeAcc: 0.3949
+285,  0 | TrAcc: 0.5415, TrLoss:  1.46278, VaAcc: 0.4326, VaLoss:  1.96208
+ MAP NN | TrAcc: 0.5415 | VaAcc: 0.4324 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5415 | VaAcc: 0.4340 | TeAcc: 0.3984
+286,  0 | TrAcc: 0.5377, TrLoss:  1.46606, VaAcc: 0.4391, VaLoss:  1.94713
+ MAP NN | TrAcc: 0.5371 | VaAcc: 0.4410 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5398 | VaAcc: 0.4422 | TeAcc: 0.3861
+287,  0 | TrAcc: 0.5371, TrLoss:  1.46470, VaAcc: 0.4328, VaLoss:  1.94788
+ MAP NN | TrAcc: 0.5408 | VaAcc: 0.4332 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5377 | VaAcc: 0.4309 | TeAcc: 0.3889
+288,  0 | TrAcc: 0.5353, TrLoss:  1.47433, VaAcc: 0.4314, VaLoss:  1.96688
+ MAP NN | TrAcc: 0.5396 | VaAcc: 0.4279 | TeAcc: 0.3869
+ S NN | TrAcc: 0.5384 | VaAcc: 0.4293 | TeAcc: 0.3879
+289,  0 | TrAcc: 0.5354, TrLoss:  1.47411, VaAcc: 0.4379, VaLoss:  1.93258
+ MAP NN | TrAcc: 0.5365 | VaAcc: 0.4311 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4336 | TeAcc: 0.3949
+290,  0 | TrAcc: 0.5312, TrLoss:  1.48284, VaAcc: 0.4273, VaLoss:  1.95541
+ MAP NN | TrAcc: 0.5325 | VaAcc: 0.4316 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5295 | VaAcc: 0.4275 | TeAcc: 0.3920
+291,  0 | TrAcc: 0.5356, TrLoss:  1.47385, VaAcc: 0.4326, VaLoss:  1.94822
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4377 | TeAcc: 0.3902
+ S NN | TrAcc: 0.5343 | VaAcc: 0.4313 | TeAcc: 0.3902
+292,  0 | TrAcc: 0.5311, TrLoss:  1.47948, VaAcc: 0.4320, VaLoss:  1.94701
+ MAP NN | TrAcc: 0.5357 | VaAcc: 0.4404 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4348 | TeAcc: 0.3937
+293,  0 | TrAcc: 0.5324, TrLoss:  1.48771, VaAcc: 0.4268, VaLoss:  1.96399
+ MAP NN | TrAcc: 0.5395 | VaAcc: 0.4307 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5361 | VaAcc: 0.4332 | TeAcc: 0.3926
+294,  0 | TrAcc: 0.5349, TrLoss:  1.47485, VaAcc: 0.4338, VaLoss:  1.95062
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4373 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5344 | VaAcc: 0.4361 | TeAcc: 0.3977
+295,  0 | TrAcc: 0.5370, TrLoss:  1.46901, VaAcc: 0.4357, VaLoss:  1.94804
+ MAP NN | TrAcc: 0.5410 | VaAcc: 0.4418 | TeAcc: 0.4008
+ S NN | TrAcc: 0.5384 | VaAcc: 0.4344 | TeAcc: 0.3992
+296,  0 | TrAcc: 0.5391, TrLoss:  1.47046, VaAcc: 0.4428, VaLoss:  1.95092
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4402 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4330 | TeAcc: 0.3971
+297,  0 | TrAcc: 0.5349, TrLoss:  1.47539, VaAcc: 0.4410, VaLoss:  1.95541
+ MAP NN | TrAcc: 0.5374 | VaAcc: 0.4357 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5364 | VaAcc: 0.4361 | TeAcc: 0.3982
+298,  0 | TrAcc: 0.5321, TrLoss:  1.48370, VaAcc: 0.4250, VaLoss:  1.97720
+ MAP NN | TrAcc: 0.5369 | VaAcc: 0.4230 | TeAcc: 0.3949
+ S NN | TrAcc: 0.5372 | VaAcc: 0.4244 | TeAcc: 0.4018
+299,  0 | TrAcc: 0.5341, TrLoss:  1.47663, VaAcc: 0.4311, VaLoss:  1.95284
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4293 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5377 | VaAcc: 0.4230 | TeAcc: 0.3967
+300,  0 | TrAcc: 0.5349, TrLoss:  1.47781, VaAcc: 0.4330, VaLoss:  1.95899
+ MAP NN | TrAcc: 0.5372 | VaAcc: 0.4311 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5284 | VaAcc: 0.4264 | TeAcc: 0.3904
+301,  0 | TrAcc: 0.5372, TrLoss:  1.46703, VaAcc: 0.4277, VaLoss:  1.95932
+ MAP NN | TrAcc: 0.5355 | VaAcc: 0.4346 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5356 | VaAcc: 0.4334 | TeAcc: 0.3967
+302,  0 | TrAcc: 0.5365, TrLoss:  1.47590, VaAcc: 0.4320, VaLoss:  1.95496
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4375 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5385 | VaAcc: 0.4359 | TeAcc: 0.3887
+303,  0 | TrAcc: 0.5340, TrLoss:  1.47646, VaAcc: 0.4328, VaLoss:  1.95956
+ MAP NN | TrAcc: 0.5370 | VaAcc: 0.4318 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5359 | VaAcc: 0.4320 | TeAcc: 0.3873
+304,  0 | TrAcc: 0.5371, TrLoss:  1.47133, VaAcc: 0.4275, VaLoss:  1.96125
+ MAP NN | TrAcc: 0.5401 | VaAcc: 0.4307 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5336 | VaAcc: 0.4287 | TeAcc: 0.3930
+305,  0 | TrAcc: 0.5324, TrLoss:  1.49030, VaAcc: 0.4297, VaLoss:  1.96192
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4246 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4254 | TeAcc: 0.3939
+306,  0 | TrAcc: 0.5340, TrLoss:  1.47710, VaAcc: 0.4271, VaLoss:  1.96449
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4291 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5322 | VaAcc: 0.4277 | TeAcc: 0.3967
+307,  0 | TrAcc: 0.5344, TrLoss:  1.48808, VaAcc: 0.4291, VaLoss:  1.95400
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4314 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4324 | TeAcc: 0.3900
+308,  0 | TrAcc: 0.5336, TrLoss:  1.48461, VaAcc: 0.4314, VaLoss:  1.96480
+ MAP NN | TrAcc: 0.5372 | VaAcc: 0.4340 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5382 | VaAcc: 0.4316 | TeAcc: 0.3941
+309,  0 | TrAcc: 0.5316, TrLoss:  1.48748, VaAcc: 0.4357, VaLoss:  1.95528
+ MAP NN | TrAcc: 0.5347 | VaAcc: 0.4299 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5341 | VaAcc: 0.4363 | TeAcc: 0.3928
+310,  0 | TrAcc: 0.5327, TrLoss:  1.48492, VaAcc: 0.4326, VaLoss:  1.95221
+ MAP NN | TrAcc: 0.5359 | VaAcc: 0.4328 | TeAcc: 0.3881
+ S NN | TrAcc: 0.5362 | VaAcc: 0.4355 | TeAcc: 0.3922
+311,  0 | TrAcc: 0.5287, TrLoss:  1.50007, VaAcc: 0.4273, VaLoss:  1.97206
+ MAP NN | TrAcc: 0.5326 | VaAcc: 0.4336 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4318 | TeAcc: 0.3934
+312,  0 | TrAcc: 0.5336, TrLoss:  1.49006, VaAcc: 0.4363, VaLoss:  1.94144
+ MAP NN | TrAcc: 0.5336 | VaAcc: 0.4332 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5323 | VaAcc: 0.4338 | TeAcc: 0.3949
+313,  0 | TrAcc: 0.5377, TrLoss:  1.48128, VaAcc: 0.4320, VaLoss:  1.94158
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4301 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5356 | VaAcc: 0.4320 | TeAcc: 0.3930
+314,  0 | TrAcc: 0.5317, TrLoss:  1.48480, VaAcc: 0.4359, VaLoss:  1.94911
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4320 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5328 | VaAcc: 0.4330 | TeAcc: 0.3963
+315,  0 | TrAcc: 0.5304, TrLoss:  1.49429, VaAcc: 0.4402, VaLoss:  1.95929
+ MAP NN | TrAcc: 0.5302 | VaAcc: 0.4346 | TeAcc: 0.3883
+ S NN | TrAcc: 0.5291 | VaAcc: 0.4393 | TeAcc: 0.3871
+316,  0 | TrAcc: 0.5296, TrLoss:  1.49772, VaAcc: 0.4273, VaLoss:  1.96135
+ MAP NN | TrAcc: 0.5287 | VaAcc: 0.4291 | TeAcc: 0.3861
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4334 | TeAcc: 0.3816
+317,  0 | TrAcc: 0.5341, TrLoss:  1.48475, VaAcc: 0.4393, VaLoss:  1.94905
+ MAP NN | TrAcc: 0.5379 | VaAcc: 0.4354 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5365 | VaAcc: 0.4334 | TeAcc: 0.3971
+318,  0 | TrAcc: 0.5370, TrLoss:  1.47924, VaAcc: 0.4379, VaLoss:  1.94886
+ MAP NN | TrAcc: 0.5378 | VaAcc: 0.4408 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5374 | VaAcc: 0.4365 | TeAcc: 0.3955
+319,  0 | TrAcc: 0.5311, TrLoss:  1.48180, VaAcc: 0.4307, VaLoss:  1.94590
+ MAP NN | TrAcc: 0.5331 | VaAcc: 0.4389 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5329 | VaAcc: 0.4313 | TeAcc: 0.3937
+320,  0 | TrAcc: 0.5340, TrLoss:  1.47957, VaAcc: 0.4434, VaLoss:  1.94705
+ MAP NN | TrAcc: 0.5347 | VaAcc: 0.4354 | TeAcc: 0.3836
+ S NN | TrAcc: 0.5334 | VaAcc: 0.4416 | TeAcc: 0.3826
+321,  0 | TrAcc: 0.5312, TrLoss:  1.49071, VaAcc: 0.4357, VaLoss:  1.94412
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4320 | TeAcc: 0.3834
+ S NN | TrAcc: 0.5289 | VaAcc: 0.4363 | TeAcc: 0.3818
+322,  0 | TrAcc: 0.5310, TrLoss:  1.49345, VaAcc: 0.4352, VaLoss:  1.94668
+ MAP NN | TrAcc: 0.5317 | VaAcc: 0.4328 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5302 | VaAcc: 0.4367 | TeAcc: 0.3951
+323,  0 | TrAcc: 0.5317, TrLoss:  1.48528, VaAcc: 0.4336, VaLoss:  1.94818
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4324 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5336 | VaAcc: 0.4361 | TeAcc: 0.3863
+324,  0 | TrAcc: 0.5358, TrLoss:  1.47780, VaAcc: 0.4342, VaLoss:  1.94834
+ MAP NN | TrAcc: 0.5332 | VaAcc: 0.4355 | TeAcc: 0.3875
+ S NN | TrAcc: 0.5317 | VaAcc: 0.4316 | TeAcc: 0.3867
+325,  0 | TrAcc: 0.5310, TrLoss:  1.49123, VaAcc: 0.4273, VaLoss:  1.94665
+ MAP NN | TrAcc: 0.5335 | VaAcc: 0.4309 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4295 | TeAcc: 0.3900
+326,  0 | TrAcc: 0.5322, TrLoss:  1.48755, VaAcc: 0.4262, VaLoss:  1.95217
+ MAP NN | TrAcc: 0.5326 | VaAcc: 0.4281 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5344 | VaAcc: 0.4330 | TeAcc: 0.3875
+327,  0 | TrAcc: 0.5328, TrLoss:  1.48774, VaAcc: 0.4322, VaLoss:  1.95047
+ MAP NN | TrAcc: 0.5349 | VaAcc: 0.4346 | TeAcc: 0.3893
+ S NN | TrAcc: 0.5339 | VaAcc: 0.4318 | TeAcc: 0.3881
+328,  0 | TrAcc: 0.5288, TrLoss:  1.48991, VaAcc: 0.4301, VaLoss:  1.97286
+ MAP NN | TrAcc: 0.5338 | VaAcc: 0.4344 | TeAcc: 0.3875
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4322 | TeAcc: 0.3906
+329,  0 | TrAcc: 0.5340, TrLoss:  1.48342, VaAcc: 0.4381, VaLoss:  1.94428
+ MAP NN | TrAcc: 0.5360 | VaAcc: 0.4389 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5360 | VaAcc: 0.4350 | TeAcc: 0.3883
+330,  0 | TrAcc: 0.5336, TrLoss:  1.47837, VaAcc: 0.4371, VaLoss:  1.94125
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4396 | TeAcc: 0.4023
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4342 | TeAcc: 0.3973
+331,  0 | TrAcc: 0.5336, TrLoss:  1.47882, VaAcc: 0.4344, VaLoss:  1.94773
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4326 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4311 | TeAcc: 0.3959
+332,  0 | TrAcc: 0.5300, TrLoss:  1.49151, VaAcc: 0.4357, VaLoss:  1.96665
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4357 | TeAcc: 0.3889
+ S NN | TrAcc: 0.5272 | VaAcc: 0.4277 | TeAcc: 0.3934
+333,  0 | TrAcc: 0.5369, TrLoss:  1.47129, VaAcc: 0.4400, VaLoss:  1.94725
+ MAP NN | TrAcc: 0.5387 | VaAcc: 0.4301 | TeAcc: 0.3844
+ S NN | TrAcc: 0.5360 | VaAcc: 0.4297 | TeAcc: 0.3902
+334,  0 | TrAcc: 0.5344, TrLoss:  1.47813, VaAcc: 0.4346, VaLoss:  1.94297
+ MAP NN | TrAcc: 0.5357 | VaAcc: 0.4350 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5383 | VaAcc: 0.4340 | TeAcc: 0.3932
+335,  0 | TrAcc: 0.5358, TrLoss:  1.47624, VaAcc: 0.4357, VaLoss:  1.96084
+ MAP NN | TrAcc: 0.5362 | VaAcc: 0.4340 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5334 | VaAcc: 0.4309 | TeAcc: 0.3912
+336,  0 | TrAcc: 0.5319, TrLoss:  1.49224, VaAcc: 0.4293, VaLoss:  1.96118
+ MAP NN | TrAcc: 0.5327 | VaAcc: 0.4285 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4279 | TeAcc: 0.3883
+337,  0 | TrAcc: 0.5310, TrLoss:  1.49270, VaAcc: 0.4301, VaLoss:  1.96860
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4258 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5293 | VaAcc: 0.4283 | TeAcc: 0.3949
+338,  0 | TrAcc: 0.5285, TrLoss:  1.50267, VaAcc: 0.4262, VaLoss:  1.97284
+ MAP NN | TrAcc: 0.5287 | VaAcc: 0.4270 | TeAcc: 0.4006
+ S NN | TrAcc: 0.5268 | VaAcc: 0.4268 | TeAcc: 0.3961
+339,  0 | TrAcc: 0.5288, TrLoss:  1.50362, VaAcc: 0.4250, VaLoss:  1.97886
+ MAP NN | TrAcc: 0.5295 | VaAcc: 0.4309 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5278 | VaAcc: 0.4344 | TeAcc: 0.3934
+340,  0 | TrAcc: 0.5288, TrLoss:  1.50081, VaAcc: 0.4240, VaLoss:  1.95684
+ MAP NN | TrAcc: 0.5294 | VaAcc: 0.4244 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5273 | VaAcc: 0.4273 | TeAcc: 0.3916
+341,  0 | TrAcc: 0.5270, TrLoss:  1.50197, VaAcc: 0.4330, VaLoss:  1.95359
+ MAP NN | TrAcc: 0.5293 | VaAcc: 0.4346 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5276 | VaAcc: 0.4393 | TeAcc: 0.3951
+342,  0 | TrAcc: 0.5270, TrLoss:  1.50437, VaAcc: 0.4273, VaLoss:  1.97778
+ MAP NN | TrAcc: 0.5255 | VaAcc: 0.4246 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5257 | VaAcc: 0.4283 | TeAcc: 0.3932
+343,  0 | TrAcc: 0.5310, TrLoss:  1.49526, VaAcc: 0.4422, VaLoss:  1.94786
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4404 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4369 | TeAcc: 0.3906
+344,  0 | TrAcc: 0.5322, TrLoss:  1.49025, VaAcc: 0.4340, VaLoss:  1.95200
+ MAP NN | TrAcc: 0.5345 | VaAcc: 0.4332 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5329 | VaAcc: 0.4293 | TeAcc: 0.3937
+345,  0 | TrAcc: 0.5251, TrLoss:  1.50547, VaAcc: 0.4275, VaLoss:  1.95245
+ MAP NN | TrAcc: 0.5282 | VaAcc: 0.4311 | TeAcc: 0.3906
+ S NN | TrAcc: 0.5263 | VaAcc: 0.4318 | TeAcc: 0.3951
+346,  0 | TrAcc: 0.5283, TrLoss:  1.50858, VaAcc: 0.4295, VaLoss:  1.95427
+ MAP NN | TrAcc: 0.5268 | VaAcc: 0.4311 | TeAcc: 0.3902
+ S NN | TrAcc: 0.5258 | VaAcc: 0.4309 | TeAcc: 0.3898
+347,  0 | TrAcc: 0.5256, TrLoss:  1.51856, VaAcc: 0.4295, VaLoss:  1.96022
+ MAP NN | TrAcc: 0.5262 | VaAcc: 0.4330 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5266 | VaAcc: 0.4346 | TeAcc: 0.3904
+348,  0 | TrAcc: 0.5244, TrLoss:  1.51019, VaAcc: 0.4250, VaLoss:  1.95143
+ MAP NN | TrAcc: 0.5288 | VaAcc: 0.4287 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5292 | VaAcc: 0.4258 | TeAcc: 0.3920
+349,  0 | TrAcc: 0.5259, TrLoss:  1.50809, VaAcc: 0.4348, VaLoss:  1.94565
+ MAP NN | TrAcc: 0.5288 | VaAcc: 0.4334 | TeAcc: 0.3980
+ S NN | TrAcc: 0.5271 | VaAcc: 0.4279 | TeAcc: 0.3910
+350,  0 | TrAcc: 0.5276, TrLoss:  1.50445, VaAcc: 0.4348, VaLoss:  1.95439
+ MAP NN | TrAcc: 0.5288 | VaAcc: 0.4365 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5300 | VaAcc: 0.4342 | TeAcc: 0.3924
+351,  0 | TrAcc: 0.5255, TrLoss:  1.50641, VaAcc: 0.4342, VaLoss:  1.95352
+ MAP NN | TrAcc: 0.5258 | VaAcc: 0.4338 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5245 | VaAcc: 0.4313 | TeAcc: 0.3922
+352,  0 | TrAcc: 0.5318, TrLoss:  1.49754, VaAcc: 0.4355, VaLoss:  1.94703
+ MAP NN | TrAcc: 0.5313 | VaAcc: 0.4373 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4305 | TeAcc: 0.3953
+353,  0 | TrAcc: 0.5249, TrLoss:  1.51313, VaAcc: 0.4275, VaLoss:  1.94421
+ MAP NN | TrAcc: 0.5284 | VaAcc: 0.4283 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5242 | VaAcc: 0.4256 | TeAcc: 0.3924
+354,  0 | TrAcc: 0.5312, TrLoss:  1.49685, VaAcc: 0.4379, VaLoss:  1.95300
+ MAP NN | TrAcc: 0.5328 | VaAcc: 0.4371 | TeAcc: 0.3852
+ S NN | TrAcc: 0.5325 | VaAcc: 0.4359 | TeAcc: 0.3934
+355,  0 | TrAcc: 0.5256, TrLoss:  1.50729, VaAcc: 0.4391, VaLoss:  1.94438
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4402 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5279 | VaAcc: 0.4395 | TeAcc: 0.3879
+356,  0 | TrAcc: 0.5293, TrLoss:  1.49950, VaAcc: 0.4383, VaLoss:  1.94404
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4395 | TeAcc: 0.3854
+ S NN | TrAcc: 0.5282 | VaAcc: 0.4375 | TeAcc: 0.3879
+357,  0 | TrAcc: 0.5299, TrLoss:  1.50456, VaAcc: 0.4381, VaLoss:  1.94008
+ MAP NN | TrAcc: 0.5281 | VaAcc: 0.4365 | TeAcc: 0.3842
+ S NN | TrAcc: 0.5260 | VaAcc: 0.4365 | TeAcc: 0.3879
+358,  0 | TrAcc: 0.5296, TrLoss:  1.50128, VaAcc: 0.4314, VaLoss:  1.95887
+ MAP NN | TrAcc: 0.5280 | VaAcc: 0.4402 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5276 | VaAcc: 0.4348 | TeAcc: 0.3943
+359,  0 | TrAcc: 0.5316, TrLoss:  1.49247, VaAcc: 0.4299, VaLoss:  1.96360
+ MAP NN | TrAcc: 0.5303 | VaAcc: 0.4316 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4344 | TeAcc: 0.3881
+360,  0 | TrAcc: 0.5285, TrLoss:  1.49339, VaAcc: 0.4340, VaLoss:  1.94246
+ MAP NN | TrAcc: 0.5310 | VaAcc: 0.4330 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4326 | TeAcc: 0.3924
+361,  0 | TrAcc: 0.5286, TrLoss:  1.49630, VaAcc: 0.4354, VaLoss:  1.94595
+ MAP NN | TrAcc: 0.5326 | VaAcc: 0.4285 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5304 | VaAcc: 0.4371 | TeAcc: 0.3924
+362,  0 | TrAcc: 0.5319, TrLoss:  1.49047, VaAcc: 0.4373, VaLoss:  1.93796
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4402 | TeAcc: 0.3924
+ S NN | TrAcc: 0.5329 | VaAcc: 0.4322 | TeAcc: 0.3943
+363,  0 | TrAcc: 0.5301, TrLoss:  1.49419, VaAcc: 0.4338, VaLoss:  1.94717
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4281 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5307 | VaAcc: 0.4328 | TeAcc: 0.3922
+364,  0 | TrAcc: 0.5250, TrLoss:  1.49739, VaAcc: 0.4322, VaLoss:  1.94132
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4318 | TeAcc: 0.3877
+ S NN | TrAcc: 0.5249 | VaAcc: 0.4295 | TeAcc: 0.3910
+365,  0 | TrAcc: 0.5305, TrLoss:  1.49945, VaAcc: 0.4291, VaLoss:  1.96247
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4328 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5270 | VaAcc: 0.4313 | TeAcc: 0.3977
+366,  0 | TrAcc: 0.5309, TrLoss:  1.49655, VaAcc: 0.4352, VaLoss:  1.94852
+ MAP NN | TrAcc: 0.5335 | VaAcc: 0.4346 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5333 | VaAcc: 0.4326 | TeAcc: 0.3957
+367,  0 | TrAcc: 0.5280, TrLoss:  1.49933, VaAcc: 0.4334, VaLoss:  1.95178
+ MAP NN | TrAcc: 0.5309 | VaAcc: 0.4367 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4285 | TeAcc: 0.3900
+368,  0 | TrAcc: 0.5305, TrLoss:  1.49495, VaAcc: 0.4336, VaLoss:  1.95083
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4334 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4293 | TeAcc: 0.3941
+369,  0 | TrAcc: 0.5237, TrLoss:  1.50823, VaAcc: 0.4256, VaLoss:  1.95791
+ MAP NN | TrAcc: 0.5275 | VaAcc: 0.4314 | TeAcc: 0.3973
+ S NN | TrAcc: 0.5264 | VaAcc: 0.4297 | TeAcc: 0.3951
+370,  0 | TrAcc: 0.5303, TrLoss:  1.50607, VaAcc: 0.4275, VaLoss:  1.96916
+ MAP NN | TrAcc: 0.5289 | VaAcc: 0.4316 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5259 | VaAcc: 0.4311 | TeAcc: 0.4035
+371,  0 | TrAcc: 0.5263, TrLoss:  1.50247, VaAcc: 0.4279, VaLoss:  1.95270
+ MAP NN | TrAcc: 0.5267 | VaAcc: 0.4242 | TeAcc: 0.3898
+ S NN | TrAcc: 0.5265 | VaAcc: 0.4285 | TeAcc: 0.3924
+372,  0 | TrAcc: 0.5310, TrLoss:  1.49938, VaAcc: 0.4324, VaLoss:  1.94939
+ MAP NN | TrAcc: 0.5288 | VaAcc: 0.4268 | TeAcc: 0.3924
+ S NN | TrAcc: 0.5271 | VaAcc: 0.4246 | TeAcc: 0.3889
+373,  0 | TrAcc: 0.5324, TrLoss:  1.49333, VaAcc: 0.4311, VaLoss:  1.94985
+ MAP NN | TrAcc: 0.5312 | VaAcc: 0.4285 | TeAcc: 0.3924
+ S NN | TrAcc: 0.5316 | VaAcc: 0.4299 | TeAcc: 0.3893
+374,  0 | TrAcc: 0.5260, TrLoss:  1.50753, VaAcc: 0.4314, VaLoss:  1.94673
+ MAP NN | TrAcc: 0.5260 | VaAcc: 0.4334 | TeAcc: 0.3861
+ S NN | TrAcc: 0.5258 | VaAcc: 0.4371 | TeAcc: 0.3852
+375,  0 | TrAcc: 0.5278, TrLoss:  1.50603, VaAcc: 0.4266, VaLoss:  1.96655
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4303 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5294 | VaAcc: 0.4311 | TeAcc: 0.3932
+376,  0 | TrAcc: 0.5271, TrLoss:  1.50101, VaAcc: 0.4295, VaLoss:  1.95167
+ MAP NN | TrAcc: 0.5293 | VaAcc: 0.4311 | TeAcc: 0.4002
+ S NN | TrAcc: 0.5294 | VaAcc: 0.4303 | TeAcc: 0.3986
+377,  0 | TrAcc: 0.5257, TrLoss:  1.50556, VaAcc: 0.4363, VaLoss:  1.95210
+ MAP NN | TrAcc: 0.5284 | VaAcc: 0.4361 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5281 | VaAcc: 0.4271 | TeAcc: 0.3918
+378,  0 | TrAcc: 0.5277, TrLoss:  1.50250, VaAcc: 0.4238, VaLoss:  1.95446
+ MAP NN | TrAcc: 0.5285 | VaAcc: 0.4285 | TeAcc: 0.3994
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4254 | TeAcc: 0.3979
+379,  0 | TrAcc: 0.5313, TrLoss:  1.49655, VaAcc: 0.4297, VaLoss:  1.94872
+ MAP NN | TrAcc: 0.5310 | VaAcc: 0.4242 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4303 | TeAcc: 0.3971
+380,  0 | TrAcc: 0.5280, TrLoss:  1.49875, VaAcc: 0.4303, VaLoss:  1.94979
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4289 | TeAcc: 0.3887
+ S NN | TrAcc: 0.5286 | VaAcc: 0.4320 | TeAcc: 0.3930
+381,  0 | TrAcc: 0.5338, TrLoss:  1.49178, VaAcc: 0.4264, VaLoss:  1.95895
+ MAP NN | TrAcc: 0.5331 | VaAcc: 0.4318 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5320 | VaAcc: 0.4316 | TeAcc: 0.3930
+382,  0 | TrAcc: 0.5336, TrLoss:  1.48546, VaAcc: 0.4314, VaLoss:  1.94694
+ MAP NN | TrAcc: 0.5316 | VaAcc: 0.4369 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5337 | VaAcc: 0.4342 | TeAcc: 0.3916
+383,  0 | TrAcc: 0.5264, TrLoss:  1.50731, VaAcc: 0.4307, VaLoss:  1.95734
+ MAP NN | TrAcc: 0.5261 | VaAcc: 0.4324 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5247 | VaAcc: 0.4262 | TeAcc: 0.3953
+384,  0 | TrAcc: 0.5312, TrLoss:  1.49434, VaAcc: 0.4236, VaLoss:  1.96086
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4225 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4248 | TeAcc: 0.3967
+385,  0 | TrAcc: 0.5296, TrLoss:  1.49640, VaAcc: 0.4326, VaLoss:  1.95036
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4316 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5306 | VaAcc: 0.4299 | TeAcc: 0.3951
+386,  0 | TrAcc: 0.5312, TrLoss:  1.49181, VaAcc: 0.4348, VaLoss:  1.94101
+ MAP NN | TrAcc: 0.5322 | VaAcc: 0.4352 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5328 | VaAcc: 0.4336 | TeAcc: 0.3982
+387,  0 | TrAcc: 0.5286, TrLoss:  1.49863, VaAcc: 0.4332, VaLoss:  1.94880
+ MAP NN | TrAcc: 0.5310 | VaAcc: 0.4350 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4338 | TeAcc: 0.3953
+388,  0 | TrAcc: 0.5321, TrLoss:  1.49704, VaAcc: 0.4295, VaLoss:  1.94076
+ MAP NN | TrAcc: 0.5338 | VaAcc: 0.4293 | TeAcc: 0.3869
+ S NN | TrAcc: 0.5327 | VaAcc: 0.4348 | TeAcc: 0.3918
+389,  0 | TrAcc: 0.5302, TrLoss:  1.49475, VaAcc: 0.4383, VaLoss:  1.95246
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4338 | TeAcc: 0.3914
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4387 | TeAcc: 0.3898
+390,  0 | TrAcc: 0.5295, TrLoss:  1.49119, VaAcc: 0.4270, VaLoss:  1.95721
+ MAP NN | TrAcc: 0.5290 | VaAcc: 0.4289 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5286 | VaAcc: 0.4320 | TeAcc: 0.3996
+391,  0 | TrAcc: 0.5299, TrLoss:  1.48937, VaAcc: 0.4311, VaLoss:  1.95124
+ MAP NN | TrAcc: 0.5336 | VaAcc: 0.4328 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4412 | TeAcc: 0.3971
+392,  0 | TrAcc: 0.5273, TrLoss:  1.50553, VaAcc: 0.4281, VaLoss:  1.95863
+ MAP NN | TrAcc: 0.5276 | VaAcc: 0.4305 | TeAcc: 0.3898
+ S NN | TrAcc: 0.5271 | VaAcc: 0.4348 | TeAcc: 0.3869
+393,  0 | TrAcc: 0.5299, TrLoss:  1.48996, VaAcc: 0.4320, VaLoss:  1.95730
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4379 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5282 | VaAcc: 0.4295 | TeAcc: 0.3994
+394,  0 | TrAcc: 0.5340, TrLoss:  1.48373, VaAcc: 0.4344, VaLoss:  1.95745
+ MAP NN | TrAcc: 0.5331 | VaAcc: 0.4332 | TeAcc: 0.3891
+ S NN | TrAcc: 0.5322 | VaAcc: 0.4332 | TeAcc: 0.3881
+395,  0 | TrAcc: 0.5291, TrLoss:  1.48786, VaAcc: 0.4357, VaLoss:  1.95168
+ MAP NN | TrAcc: 0.5304 | VaAcc: 0.4313 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4375 | TeAcc: 0.3926
+396,  0 | TrAcc: 0.5285, TrLoss:  1.49298, VaAcc: 0.4328, VaLoss:  1.95133
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4340 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5293 | VaAcc: 0.4279 | TeAcc: 0.3961
+397,  0 | TrAcc: 0.5285, TrLoss:  1.50017, VaAcc: 0.4311, VaLoss:  1.96567
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4309 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4299 | TeAcc: 0.3939
+398,  0 | TrAcc: 0.5316, TrLoss:  1.48601, VaAcc: 0.4363, VaLoss:  1.94153
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4359 | TeAcc: 0.3879
+ S NN | TrAcc: 0.5311 | VaAcc: 0.4369 | TeAcc: 0.3865
+399,  0 | TrAcc: 0.5316, TrLoss:  1.48625, VaAcc: 0.4383, VaLoss:  1.94552
+ MAP NN | TrAcc: 0.5336 | VaAcc: 0.4355 | TeAcc: 0.3889
+ S NN | TrAcc: 0.5322 | VaAcc: 0.4365 | TeAcc: 0.3834
+400,  0 | TrAcc: 0.5323, TrLoss:  1.48327, VaAcc: 0.4381, VaLoss:  1.93903
+ MAP NN | TrAcc: 0.5327 | VaAcc: 0.4377 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4387 | TeAcc: 0.3881
+401,  0 | TrAcc: 0.5340, TrLoss:  1.48372, VaAcc: 0.4402, VaLoss:  1.93645
+ MAP NN | TrAcc: 0.5349 | VaAcc: 0.4432 | TeAcc: 0.3869
+ S NN | TrAcc: 0.5347 | VaAcc: 0.4383 | TeAcc: 0.3914
+402,  0 | TrAcc: 0.5332, TrLoss:  1.48589, VaAcc: 0.4332, VaLoss:  1.93569
+ MAP NN | TrAcc: 0.5345 | VaAcc: 0.4318 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5342 | VaAcc: 0.4363 | TeAcc: 0.3951
+403,  0 | TrAcc: 0.5373, TrLoss:  1.47587, VaAcc: 0.4346, VaLoss:  1.94525
+ MAP NN | TrAcc: 0.5349 | VaAcc: 0.4379 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5361 | VaAcc: 0.4406 | TeAcc: 0.3953
+404,  0 | TrAcc: 0.5340, TrLoss:  1.48375, VaAcc: 0.4352, VaLoss:  1.94195
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4375 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5363 | VaAcc: 0.4377 | TeAcc: 0.3986
+405,  0 | TrAcc: 0.5309, TrLoss:  1.48368, VaAcc: 0.4383, VaLoss:  1.93148
+ MAP NN | TrAcc: 0.5330 | VaAcc: 0.4342 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5323 | VaAcc: 0.4402 | TeAcc: 0.3930
+406,  0 | TrAcc: 0.5303, TrLoss:  1.49609, VaAcc: 0.4283, VaLoss:  1.96339
+ MAP NN | TrAcc: 0.5284 | VaAcc: 0.4289 | TeAcc: 0.3871
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4258 | TeAcc: 0.3865
+407,  0 | TrAcc: 0.5318, TrLoss:  1.47946, VaAcc: 0.4309, VaLoss:  1.95016
+ MAP NN | TrAcc: 0.5315 | VaAcc: 0.4316 | TeAcc: 0.3854
+ S NN | TrAcc: 0.5336 | VaAcc: 0.4338 | TeAcc: 0.3869
+408,  0 | TrAcc: 0.5345, TrLoss:  1.48593, VaAcc: 0.4361, VaLoss:  1.94061
+ MAP NN | TrAcc: 0.5357 | VaAcc: 0.4348 | TeAcc: 0.3836
+ S NN | TrAcc: 0.5369 | VaAcc: 0.4363 | TeAcc: 0.3898
+409,  0 | TrAcc: 0.5348, TrLoss:  1.47219, VaAcc: 0.4342, VaLoss:  1.93899
+ MAP NN | TrAcc: 0.5375 | VaAcc: 0.4359 | TeAcc: 0.3904
+ S NN | TrAcc: 0.5367 | VaAcc: 0.4350 | TeAcc: 0.3947
+410,  0 | TrAcc: 0.5329, TrLoss:  1.48672, VaAcc: 0.4359, VaLoss:  1.96089
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4338 | TeAcc: 0.3928
+ S NN | TrAcc: 0.5310 | VaAcc: 0.4330 | TeAcc: 0.3936
+411,  0 | TrAcc: 0.5314, TrLoss:  1.48541, VaAcc: 0.4281, VaLoss:  1.96645
+ MAP NN | TrAcc: 0.5327 | VaAcc: 0.4271 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5347 | VaAcc: 0.4305 | TeAcc: 0.3973
+412,  0 | TrAcc: 0.5307, TrLoss:  1.48878, VaAcc: 0.4314, VaLoss:  1.96704
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4301 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5304 | VaAcc: 0.4275 | TeAcc: 0.3918
+413,  0 | TrAcc: 0.5322, TrLoss:  1.48876, VaAcc: 0.4299, VaLoss:  1.95561
+ MAP NN | TrAcc: 0.5331 | VaAcc: 0.4305 | TeAcc: 0.3861
+ S NN | TrAcc: 0.5322 | VaAcc: 0.4320 | TeAcc: 0.3906
+414,  0 | TrAcc: 0.5348, TrLoss:  1.48676, VaAcc: 0.4344, VaLoss:  1.94404
+ MAP NN | TrAcc: 0.5325 | VaAcc: 0.4398 | TeAcc: 0.3914
+ S NN | TrAcc: 0.5324 | VaAcc: 0.4363 | TeAcc: 0.3939
+415,  0 | TrAcc: 0.5313, TrLoss:  1.48403, VaAcc: 0.4354, VaLoss:  1.95139
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4346 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4371 | TeAcc: 0.3928
+416,  0 | TrAcc: 0.5323, TrLoss:  1.48591, VaAcc: 0.4346, VaLoss:  1.94637
+ MAP NN | TrAcc: 0.5337 | VaAcc: 0.4318 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5298 | VaAcc: 0.4367 | TeAcc: 0.3947
+417,  0 | TrAcc: 0.5364, TrLoss:  1.47123, VaAcc: 0.4336, VaLoss:  1.94014
+ MAP NN | TrAcc: 0.5372 | VaAcc: 0.4320 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4346 | TeAcc: 0.3953
+418,  0 | TrAcc: 0.5349, TrLoss:  1.47419, VaAcc: 0.4275, VaLoss:  1.94543
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4348 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5365 | VaAcc: 0.4348 | TeAcc: 0.3951
+419,  0 | TrAcc: 0.5338, TrLoss:  1.48171, VaAcc: 0.4326, VaLoss:  1.94297
+ MAP NN | TrAcc: 0.5314 | VaAcc: 0.4350 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5320 | VaAcc: 0.4295 | TeAcc: 0.3937
+420,  0 | TrAcc: 0.5337, TrLoss:  1.48358, VaAcc: 0.4305, VaLoss:  1.95339
+ MAP NN | TrAcc: 0.5325 | VaAcc: 0.4295 | TeAcc: 0.3980
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4313 | TeAcc: 0.3955
+421,  0 | TrAcc: 0.5308, TrLoss:  1.48610, VaAcc: 0.4396, VaLoss:  1.94756
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4371 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5292 | VaAcc: 0.4336 | TeAcc: 0.3920
+422,  0 | TrAcc: 0.5256, TrLoss:  1.50025, VaAcc: 0.4328, VaLoss:  1.95305
+ MAP NN | TrAcc: 0.5268 | VaAcc: 0.4338 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5267 | VaAcc: 0.4328 | TeAcc: 0.3969
+423,  0 | TrAcc: 0.5273, TrLoss:  1.49062, VaAcc: 0.4318, VaLoss:  1.95821
+ MAP NN | TrAcc: 0.5295 | VaAcc: 0.4334 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5278 | VaAcc: 0.4309 | TeAcc: 0.3887
+424,  0 | TrAcc: 0.5305, TrLoss:  1.49278, VaAcc: 0.4316, VaLoss:  1.94824
+ MAP NN | TrAcc: 0.5333 | VaAcc: 0.4313 | TeAcc: 0.4012
+ S NN | TrAcc: 0.5320 | VaAcc: 0.4359 | TeAcc: 0.3937
+425,  0 | TrAcc: 0.5315, TrLoss:  1.48338, VaAcc: 0.4379, VaLoss:  1.94222
+ MAP NN | TrAcc: 0.5303 | VaAcc: 0.4389 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4336 | TeAcc: 0.3922
+426,  0 | TrAcc: 0.5325, TrLoss:  1.49258, VaAcc: 0.4289, VaLoss:  1.94789
+ MAP NN | TrAcc: 0.5294 | VaAcc: 0.4334 | TeAcc: 0.3836
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4328 | TeAcc: 0.3822
+427,  0 | TrAcc: 0.5308, TrLoss:  1.49223, VaAcc: 0.4355, VaLoss:  1.95141
+ MAP NN | TrAcc: 0.5306 | VaAcc: 0.4385 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5321 | VaAcc: 0.4328 | TeAcc: 0.3910
+428,  0 | TrAcc: 0.5332, TrLoss:  1.48706, VaAcc: 0.4293, VaLoss:  1.95622
+ MAP NN | TrAcc: 0.5342 | VaAcc: 0.4262 | TeAcc: 0.3848
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4260 | TeAcc: 0.3879
+429,  0 | TrAcc: 0.5335, TrLoss:  1.48733, VaAcc: 0.4305, VaLoss:  1.94733
+ MAP NN | TrAcc: 0.5361 | VaAcc: 0.4293 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5331 | VaAcc: 0.4299 | TeAcc: 0.3988
+430,  0 | TrAcc: 0.5324, TrLoss:  1.48569, VaAcc: 0.4307, VaLoss:  1.96821
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4299 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5352 | VaAcc: 0.4338 | TeAcc: 0.3869
+431,  0 | TrAcc: 0.5380, TrLoss:  1.46928, VaAcc: 0.4291, VaLoss:  1.95503
+ MAP NN | TrAcc: 0.5385 | VaAcc: 0.4322 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5383 | VaAcc: 0.4283 | TeAcc: 0.3881
+432,  0 | TrAcc: 0.5303, TrLoss:  1.50034, VaAcc: 0.4313, VaLoss:  1.97306
+ MAP NN | TrAcc: 0.5302 | VaAcc: 0.4307 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4264 | TeAcc: 0.3896
+433,  0 | TrAcc: 0.5339, TrLoss:  1.48845, VaAcc: 0.4242, VaLoss:  1.95207
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4232 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5317 | VaAcc: 0.4242 | TeAcc: 0.3967
+434,  0 | TrAcc: 0.5313, TrLoss:  1.48604, VaAcc: 0.4303, VaLoss:  1.96283
+ MAP NN | TrAcc: 0.5319 | VaAcc: 0.4268 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4266 | TeAcc: 0.3977
+435,  0 | TrAcc: 0.5337, TrLoss:  1.49287, VaAcc: 0.4230, VaLoss:  1.97802
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4219 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5273 | VaAcc: 0.4186 | TeAcc: 0.3924
+436,  0 | TrAcc: 0.5282, TrLoss:  1.49869, VaAcc: 0.4268, VaLoss:  1.97258
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4275 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5311 | VaAcc: 0.4293 | TeAcc: 0.4012
+437,  0 | TrAcc: 0.5270, TrLoss:  1.49791, VaAcc: 0.4277, VaLoss:  1.96528
+ MAP NN | TrAcc: 0.5297 | VaAcc: 0.4299 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5278 | VaAcc: 0.4303 | TeAcc: 0.3947
+438,  0 | TrAcc: 0.5247, TrLoss:  1.51059, VaAcc: 0.4244, VaLoss:  1.97361
+ MAP NN | TrAcc: 0.5252 | VaAcc: 0.4225 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5257 | VaAcc: 0.4221 | TeAcc: 0.3945
+439,  0 | TrAcc: 0.5292, TrLoss:  1.49702, VaAcc: 0.4275, VaLoss:  1.95737
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4320 | TeAcc: 0.3998
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4309 | TeAcc: 0.3965
+440,  0 | TrAcc: 0.5299, TrLoss:  1.49905, VaAcc: 0.4328, VaLoss:  1.95744
+ MAP NN | TrAcc: 0.5303 | VaAcc: 0.4301 | TeAcc: 0.3896
+ S NN | TrAcc: 0.5277 | VaAcc: 0.4324 | TeAcc: 0.3926
+441,  0 | TrAcc: 0.5312, TrLoss:  1.49561, VaAcc: 0.4348, VaLoss:  1.93154
+ MAP NN | TrAcc: 0.5296 | VaAcc: 0.4322 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5306 | VaAcc: 0.4371 | TeAcc: 0.4035
+442,  0 | TrAcc: 0.5278, TrLoss:  1.50082, VaAcc: 0.4221, VaLoss:  1.96696
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4230 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5296 | VaAcc: 0.4232 | TeAcc: 0.3916
+443,  0 | TrAcc: 0.5261, TrLoss:  1.49836, VaAcc: 0.4309, VaLoss:  1.96469
+ MAP NN | TrAcc: 0.5272 | VaAcc: 0.4293 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5283 | VaAcc: 0.4313 | TeAcc: 0.3984
+444,  0 | TrAcc: 0.5313, TrLoss:  1.49539, VaAcc: 0.4307, VaLoss:  1.95633
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4299 | TeAcc: 0.3889
+ S NN | TrAcc: 0.5277 | VaAcc: 0.4297 | TeAcc: 0.3904
+445,  0 | TrAcc: 0.5328, TrLoss:  1.48827, VaAcc: 0.4324, VaLoss:  1.94396
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4316 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4377 | TeAcc: 0.4031
+446,  0 | TrAcc: 0.5338, TrLoss:  1.48417, VaAcc: 0.4334, VaLoss:  1.95400
+ MAP NN | TrAcc: 0.5339 | VaAcc: 0.4369 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5342 | VaAcc: 0.4355 | TeAcc: 0.3973
+447,  0 | TrAcc: 0.5322, TrLoss:  1.48416, VaAcc: 0.4346, VaLoss:  1.95519
+ MAP NN | TrAcc: 0.5328 | VaAcc: 0.4348 | TeAcc: 0.4031
+ S NN | TrAcc: 0.5305 | VaAcc: 0.4338 | TeAcc: 0.3967
+448,  0 | TrAcc: 0.5301, TrLoss:  1.49179, VaAcc: 0.4314, VaLoss:  1.95665
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4320 | TeAcc: 0.3906
+ S NN | TrAcc: 0.5281 | VaAcc: 0.4311 | TeAcc: 0.3918
+449,  0 | TrAcc: 0.5308, TrLoss:  1.48721, VaAcc: 0.4307, VaLoss:  1.95205
+ MAP NN | TrAcc: 0.5315 | VaAcc: 0.4289 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5316 | VaAcc: 0.4338 | TeAcc: 0.4023
+450,  0 | TrAcc: 0.5280, TrLoss:  1.49875, VaAcc: 0.4320, VaLoss:  1.96279
+ MAP NN | TrAcc: 0.5295 | VaAcc: 0.4348 | TeAcc: 0.3971
+ S NN | TrAcc: 0.5272 | VaAcc: 0.4301 | TeAcc: 0.3988
+451,  0 | TrAcc: 0.5269, TrLoss:  1.49060, VaAcc: 0.4299, VaLoss:  1.96118
+ MAP NN | TrAcc: 0.5279 | VaAcc: 0.4332 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5276 | VaAcc: 0.4277 | TeAcc: 0.3973
+452,  0 | TrAcc: 0.5312, TrLoss:  1.49484, VaAcc: 0.4270, VaLoss:  1.97553
+ MAP NN | TrAcc: 0.5333 | VaAcc: 0.4330 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5333 | VaAcc: 0.4270 | TeAcc: 0.3881
+453,  0 | TrAcc: 0.5304, TrLoss:  1.49350, VaAcc: 0.4357, VaLoss:  1.95639
+ MAP NN | TrAcc: 0.5296 | VaAcc: 0.4322 | TeAcc: 0.3990
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4305 | TeAcc: 0.3959
+454,  0 | TrAcc: 0.5292, TrLoss:  1.49019, VaAcc: 0.4365, VaLoss:  1.95071
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4381 | TeAcc: 0.3879
+ S NN | TrAcc: 0.5296 | VaAcc: 0.4381 | TeAcc: 0.3900
+455,  0 | TrAcc: 0.5293, TrLoss:  1.49317, VaAcc: 0.4314, VaLoss:  1.96515
+ MAP NN | TrAcc: 0.5296 | VaAcc: 0.4303 | TeAcc: 0.3973
+ S NN | TrAcc: 0.5300 | VaAcc: 0.4291 | TeAcc: 0.3957
+456,  0 | TrAcc: 0.5306, TrLoss:  1.48724, VaAcc: 0.4279, VaLoss:  1.96934
+ MAP NN | TrAcc: 0.5304 | VaAcc: 0.4287 | TeAcc: 0.3889
+ S NN | TrAcc: 0.5297 | VaAcc: 0.4266 | TeAcc: 0.3920
+457,  0 | TrAcc: 0.5280, TrLoss:  1.49897, VaAcc: 0.4307, VaLoss:  1.96073
+ MAP NN | TrAcc: 0.5286 | VaAcc: 0.4299 | TeAcc: 0.3980
+ S NN | TrAcc: 0.5309 | VaAcc: 0.4350 | TeAcc: 0.3928
+458,  0 | TrAcc: 0.5301, TrLoss:  1.49384, VaAcc: 0.4398, VaLoss:  1.95502
+ MAP NN | TrAcc: 0.5324 | VaAcc: 0.4363 | TeAcc: 0.3873
+ S NN | TrAcc: 0.5294 | VaAcc: 0.4336 | TeAcc: 0.3881
+459,  0 | TrAcc: 0.5301, TrLoss:  1.49856, VaAcc: 0.4326, VaLoss:  1.94373
+ MAP NN | TrAcc: 0.5309 | VaAcc: 0.4354 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4270 | TeAcc: 0.3967
+460,  0 | TrAcc: 0.5239, TrLoss:  1.51134, VaAcc: 0.4264, VaLoss:  1.96699
+ MAP NN | TrAcc: 0.5297 | VaAcc: 0.4299 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4271 | TeAcc: 0.3898
+461,  0 | TrAcc: 0.5272, TrLoss:  1.49486, VaAcc: 0.4332, VaLoss:  1.96360
+ MAP NN | TrAcc: 0.5282 | VaAcc: 0.4295 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5286 | VaAcc: 0.4285 | TeAcc: 0.3926
+462,  0 | TrAcc: 0.5281, TrLoss:  1.50175, VaAcc: 0.4254, VaLoss:  1.96226
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4254 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5285 | VaAcc: 0.4244 | TeAcc: 0.3922
+463,  0 | TrAcc: 0.5305, TrLoss:  1.49496, VaAcc: 0.4275, VaLoss:  1.94365
+ MAP NN | TrAcc: 0.5313 | VaAcc: 0.4273 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4264 | TeAcc: 0.3980
+464,  0 | TrAcc: 0.5292, TrLoss:  1.49706, VaAcc: 0.4279, VaLoss:  1.95735
+ MAP NN | TrAcc: 0.5318 | VaAcc: 0.4236 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5271 | VaAcc: 0.4260 | TeAcc: 0.3928
+465,  0 | TrAcc: 0.5303, TrLoss:  1.48831, VaAcc: 0.4289, VaLoss:  1.94345
+ MAP NN | TrAcc: 0.5328 | VaAcc: 0.4328 | TeAcc: 0.4008
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4289 | TeAcc: 0.4018
+466,  0 | TrAcc: 0.5239, TrLoss:  1.50831, VaAcc: 0.4295, VaLoss:  1.96199
+ MAP NN | TrAcc: 0.5267 | VaAcc: 0.4301 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5255 | VaAcc: 0.4229 | TeAcc: 0.3918
+467,  0 | TrAcc: 0.5297, TrLoss:  1.49705, VaAcc: 0.4197, VaLoss:  1.96564
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4244 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5287 | VaAcc: 0.4236 | TeAcc: 0.3971
+468,  0 | TrAcc: 0.5278, TrLoss:  1.50217, VaAcc: 0.4275, VaLoss:  1.95764
+ MAP NN | TrAcc: 0.5294 | VaAcc: 0.4260 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5298 | VaAcc: 0.4248 | TeAcc: 0.3951
+469,  0 | TrAcc: 0.5295, TrLoss:  1.49517, VaAcc: 0.4307, VaLoss:  1.95414
+ MAP NN | TrAcc: 0.5342 | VaAcc: 0.4246 | TeAcc: 0.3914
+ S NN | TrAcc: 0.5329 | VaAcc: 0.4271 | TeAcc: 0.3977
+470,  0 | TrAcc: 0.5326, TrLoss:  1.48249, VaAcc: 0.4305, VaLoss:  1.94151
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4355 | TeAcc: 0.4000
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4307 | TeAcc: 0.4025
+471,  0 | TrAcc: 0.5304, TrLoss:  1.49166, VaAcc: 0.4262, VaLoss:  1.96062
+ MAP NN | TrAcc: 0.5313 | VaAcc: 0.4291 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5278 | VaAcc: 0.4268 | TeAcc: 0.3922
+472,  0 | TrAcc: 0.5241, TrLoss:  1.50685, VaAcc: 0.4279, VaLoss:  1.95053
+ MAP NN | TrAcc: 0.5269 | VaAcc: 0.4291 | TeAcc: 0.3869
+ S NN | TrAcc: 0.5236 | VaAcc: 0.4322 | TeAcc: 0.3883
+473,  0 | TrAcc: 0.5284, TrLoss:  1.49792, VaAcc: 0.4279, VaLoss:  1.94512
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4275 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5277 | VaAcc: 0.4254 | TeAcc: 0.3963
+474,  0 | TrAcc: 0.5289, TrLoss:  1.49359, VaAcc: 0.4301, VaLoss:  1.95694
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4311 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5268 | VaAcc: 0.4318 | TeAcc: 0.3918
+475,  0 | TrAcc: 0.5282, TrLoss:  1.49396, VaAcc: 0.4236, VaLoss:  1.96315
+ MAP NN | TrAcc: 0.5278 | VaAcc: 0.4326 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5286 | VaAcc: 0.4313 | TeAcc: 0.3934
+476,  0 | TrAcc: 0.5285, TrLoss:  1.49238, VaAcc: 0.4303, VaLoss:  1.94993
+ MAP NN | TrAcc: 0.5294 | VaAcc: 0.4258 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5295 | VaAcc: 0.4283 | TeAcc: 0.3920
+477,  0 | TrAcc: 0.5292, TrLoss:  1.49293, VaAcc: 0.4256, VaLoss:  1.96238
+ MAP NN | TrAcc: 0.5304 | VaAcc: 0.4227 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5287 | VaAcc: 0.4268 | TeAcc: 0.3957
+478,  0 | TrAcc: 0.5286, TrLoss:  1.49418, VaAcc: 0.4271, VaLoss:  1.95798
+ MAP NN | TrAcc: 0.5308 | VaAcc: 0.4295 | TeAcc: 0.4018
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4293 | TeAcc: 0.3951
+479,  0 | TrAcc: 0.5333, TrLoss:  1.48811, VaAcc: 0.4338, VaLoss:  1.94709
+ MAP NN | TrAcc: 0.5329 | VaAcc: 0.4328 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4330 | TeAcc: 0.3908
+480,  0 | TrAcc: 0.5320, TrLoss:  1.48680, VaAcc: 0.4318, VaLoss:  1.95347
+ MAP NN | TrAcc: 0.5320 | VaAcc: 0.4314 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4348 | TeAcc: 0.3924
+481,  0 | TrAcc: 0.5302, TrLoss:  1.49160, VaAcc: 0.4340, VaLoss:  1.95163
+ MAP NN | TrAcc: 0.5334 | VaAcc: 0.4379 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5323 | VaAcc: 0.4340 | TeAcc: 0.3887
+482,  0 | TrAcc: 0.5286, TrLoss:  1.49601, VaAcc: 0.4264, VaLoss:  1.96838
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4289 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5291 | VaAcc: 0.4322 | TeAcc: 0.3941
+483,  0 | TrAcc: 0.5309, TrLoss:  1.48896, VaAcc: 0.4291, VaLoss:  1.95373
+ MAP NN | TrAcc: 0.5330 | VaAcc: 0.4326 | TeAcc: 0.3914
+ S NN | TrAcc: 0.5285 | VaAcc: 0.4307 | TeAcc: 0.3937
+484,  0 | TrAcc: 0.5325, TrLoss:  1.48686, VaAcc: 0.4305, VaLoss:  1.95358
+ MAP NN | TrAcc: 0.5323 | VaAcc: 0.4279 | TeAcc: 0.3906
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4277 | TeAcc: 0.3900
+485,  0 | TrAcc: 0.5355, TrLoss:  1.48163, VaAcc: 0.4324, VaLoss:  1.96437
+ MAP NN | TrAcc: 0.5329 | VaAcc: 0.4314 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5331 | VaAcc: 0.4301 | TeAcc: 0.3891
+486,  0 | TrAcc: 0.5295, TrLoss:  1.48885, VaAcc: 0.4277, VaLoss:  1.95434
+ MAP NN | TrAcc: 0.5299 | VaAcc: 0.4307 | TeAcc: 0.3896
+ S NN | TrAcc: 0.5290 | VaAcc: 0.4275 | TeAcc: 0.3924
+487,  0 | TrAcc: 0.5311, TrLoss:  1.49085, VaAcc: 0.4398, VaLoss:  1.93733
+ MAP NN | TrAcc: 0.5337 | VaAcc: 0.4422 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4426 | TeAcc: 0.3896
+488,  0 | TrAcc: 0.5280, TrLoss:  1.49935, VaAcc: 0.4277, VaLoss:  1.94861
+ MAP NN | TrAcc: 0.5288 | VaAcc: 0.4297 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5280 | VaAcc: 0.4277 | TeAcc: 0.3932
+489,  0 | TrAcc: 0.5318, TrLoss:  1.48388, VaAcc: 0.4258, VaLoss:  1.94844
+ MAP NN | TrAcc: 0.5332 | VaAcc: 0.4299 | TeAcc: 0.3939
+ S NN | TrAcc: 0.5320 | VaAcc: 0.4295 | TeAcc: 0.3912
+490,  0 | TrAcc: 0.5333, TrLoss:  1.48598, VaAcc: 0.4307, VaLoss:  1.94881
+ MAP NN | TrAcc: 0.5341 | VaAcc: 0.4375 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5328 | VaAcc: 0.4324 | TeAcc: 0.4012
+491,  0 | TrAcc: 0.5318, TrLoss:  1.48685, VaAcc: 0.4252, VaLoss:  1.95811
+ MAP NN | TrAcc: 0.5315 | VaAcc: 0.4303 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5326 | VaAcc: 0.4311 | TeAcc: 0.3936
+492,  0 | TrAcc: 0.5321, TrLoss:  1.48963, VaAcc: 0.4248, VaLoss:  1.95010
+ MAP NN | TrAcc: 0.5323 | VaAcc: 0.4289 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4297 | TeAcc: 0.3943
+493,  0 | TrAcc: 0.5360, TrLoss:  1.47738, VaAcc: 0.4287, VaLoss:  1.95564
+ MAP NN | TrAcc: 0.5349 | VaAcc: 0.4314 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5342 | VaAcc: 0.4271 | TeAcc: 0.3986
+494,  0 | TrAcc: 0.5306, TrLoss:  1.49251, VaAcc: 0.4295, VaLoss:  1.93867
+ MAP NN | TrAcc: 0.5330 | VaAcc: 0.4330 | TeAcc: 0.4062
+ S NN | TrAcc: 0.5336 | VaAcc: 0.4316 | TeAcc: 0.4086
+495,  0 | TrAcc: 0.5332, TrLoss:  1.48086, VaAcc: 0.4271, VaLoss:  1.95846
+ MAP NN | TrAcc: 0.5331 | VaAcc: 0.4311 | TeAcc: 0.3998
+ S NN | TrAcc: 0.5334 | VaAcc: 0.4316 | TeAcc: 0.3967
+496,  0 | TrAcc: 0.5316, TrLoss:  1.48198, VaAcc: 0.4301, VaLoss:  1.95408
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4336 | TeAcc: 0.3949
+ S NN | TrAcc: 0.5331 | VaAcc: 0.4313 | TeAcc: 0.3971
+497,  0 | TrAcc: 0.5333, TrLoss:  1.47936, VaAcc: 0.4271, VaLoss:  1.95022
+ MAP NN | TrAcc: 0.5339 | VaAcc: 0.4338 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5331 | VaAcc: 0.4264 | TeAcc: 0.3914
+498,  0 | TrAcc: 0.5305, TrLoss:  1.48858, VaAcc: 0.4303, VaLoss:  1.94613
+ MAP NN | TrAcc: 0.5300 | VaAcc: 0.4285 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5314 | VaAcc: 0.4309 | TeAcc: 0.3973
+499,  0 | TrAcc: 0.5326, TrLoss:  1.48318, VaAcc: 0.4277, VaLoss:  1.96217
+ MAP NN | TrAcc: 0.5330 | VaAcc: 0.4320 | TeAcc: 0.4037
+ S NN | TrAcc: 0.5338 | VaAcc: 0.4305 | TeAcc: 0.4016
+500,  0 | TrAcc: 0.5346, TrLoss:  1.47915, VaAcc: 0.4338, VaLoss:  1.95059
+ MAP NN | TrAcc: 0.5370 | VaAcc: 0.4330 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5308 | VaAcc: 0.4307 | TeAcc: 0.3953
+501,  0 | TrAcc: 0.5324, TrLoss:  1.47987, VaAcc: 0.4299, VaLoss:  1.94363
+ MAP NN | TrAcc: 0.5328 | VaAcc: 0.4311 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5357 | VaAcc: 0.4338 | TeAcc: 0.3990
+502,  0 | TrAcc: 0.5346, TrLoss:  1.48655, VaAcc: 0.4301, VaLoss:  1.95887
+ MAP NN | TrAcc: 0.5357 | VaAcc: 0.4287 | TeAcc: 0.3904
+ S NN | TrAcc: 0.5310 | VaAcc: 0.4365 | TeAcc: 0.3914
+503,  0 | TrAcc: 0.5327, TrLoss:  1.48952, VaAcc: 0.4314, VaLoss:  1.95653
+ MAP NN | TrAcc: 0.5317 | VaAcc: 0.4242 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5320 | VaAcc: 0.4357 | TeAcc: 0.3883
+504,  0 | TrAcc: 0.5297, TrLoss:  1.49419, VaAcc: 0.4256, VaLoss:  1.96762
+ MAP NN | TrAcc: 0.5297 | VaAcc: 0.4260 | TeAcc: 0.3918
+ S NN | TrAcc: 0.5304 | VaAcc: 0.4268 | TeAcc: 0.3918
+505,  0 | TrAcc: 0.5336, TrLoss:  1.48454, VaAcc: 0.4285, VaLoss:  1.95611
+ MAP NN | TrAcc: 0.5333 | VaAcc: 0.4264 | TeAcc: 0.3980
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4313 | TeAcc: 0.3922
+506,  0 | TrAcc: 0.5282, TrLoss:  1.49193, VaAcc: 0.4297, VaLoss:  1.95607
+ MAP NN | TrAcc: 0.5306 | VaAcc: 0.4273 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4324 | TeAcc: 0.3865
+507,  0 | TrAcc: 0.5350, TrLoss:  1.47659, VaAcc: 0.4303, VaLoss:  1.94231
+ MAP NN | TrAcc: 0.5359 | VaAcc: 0.4326 | TeAcc: 0.4027
+ S NN | TrAcc: 0.5351 | VaAcc: 0.4334 | TeAcc: 0.3994
+508,  0 | TrAcc: 0.5271, TrLoss:  1.49545, VaAcc: 0.4250, VaLoss:  1.97103
+ MAP NN | TrAcc: 0.5276 | VaAcc: 0.4242 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5265 | VaAcc: 0.4240 | TeAcc: 0.3955
+509,  0 | TrAcc: 0.5268, TrLoss:  1.50471, VaAcc: 0.4328, VaLoss:  1.96348
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4262 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5295 | VaAcc: 0.4277 | TeAcc: 0.3881
+510,  0 | TrAcc: 0.5298, TrLoss:  1.49149, VaAcc: 0.4330, VaLoss:  1.94729
+ MAP NN | TrAcc: 0.5305 | VaAcc: 0.4307 | TeAcc: 0.4002
+ S NN | TrAcc: 0.5327 | VaAcc: 0.4320 | TeAcc: 0.3959
+511,  0 | TrAcc: 0.5289, TrLoss:  1.49988, VaAcc: 0.4334, VaLoss:  1.94988
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4318 | TeAcc: 0.3898
+ S NN | TrAcc: 0.5288 | VaAcc: 0.4266 | TeAcc: 0.3949
+512,  0 | TrAcc: 0.5264, TrLoss:  1.49919, VaAcc: 0.4285, VaLoss:  1.95059
+ MAP NN | TrAcc: 0.5283 | VaAcc: 0.4289 | TeAcc: 0.3959
+ S NN | TrAcc: 0.5300 | VaAcc: 0.4232 | TeAcc: 0.3947
+513,  0 | TrAcc: 0.5320, TrLoss:  1.48547, VaAcc: 0.4307, VaLoss:  1.94767
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4293 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4254 | TeAcc: 0.3975
+514,  0 | TrAcc: 0.5307, TrLoss:  1.49668, VaAcc: 0.4344, VaLoss:  1.94942
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4334 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5278 | VaAcc: 0.4350 | TeAcc: 0.3959
+515,  0 | TrAcc: 0.5296, TrLoss:  1.49415, VaAcc: 0.4330, VaLoss:  1.96025
+ MAP NN | TrAcc: 0.5305 | VaAcc: 0.4391 | TeAcc: 0.3893
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4291 | TeAcc: 0.3922
+516,  0 | TrAcc: 0.5347, TrLoss:  1.48477, VaAcc: 0.4344, VaLoss:  1.93407
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4389 | TeAcc: 0.3996
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4346 | TeAcc: 0.3949
+517,  0 | TrAcc: 0.5296, TrLoss:  1.49341, VaAcc: 0.4324, VaLoss:  1.93504
+ MAP NN | TrAcc: 0.5318 | VaAcc: 0.4313 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5307 | VaAcc: 0.4295 | TeAcc: 0.3928
+518,  0 | TrAcc: 0.5295, TrLoss:  1.48949, VaAcc: 0.4338, VaLoss:  1.94664
+ MAP NN | TrAcc: 0.5296 | VaAcc: 0.4322 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5281 | VaAcc: 0.4281 | TeAcc: 0.3902
+519,  0 | TrAcc: 0.5315, TrLoss:  1.48260, VaAcc: 0.4303, VaLoss:  1.94460
+ MAP NN | TrAcc: 0.5338 | VaAcc: 0.4385 | TeAcc: 0.3891
+ S NN | TrAcc: 0.5315 | VaAcc: 0.4354 | TeAcc: 0.3902
+520,  0 | TrAcc: 0.5329, TrLoss:  1.48249, VaAcc: 0.4285, VaLoss:  1.95825
+ MAP NN | TrAcc: 0.5350 | VaAcc: 0.4299 | TeAcc: 0.3896
+ S NN | TrAcc: 0.5327 | VaAcc: 0.4314 | TeAcc: 0.3910
+521,  0 | TrAcc: 0.5278, TrLoss:  1.49478, VaAcc: 0.4320, VaLoss:  1.95029
+ MAP NN | TrAcc: 0.5291 | VaAcc: 0.4334 | TeAcc: 0.3912
+ S NN | TrAcc: 0.5294 | VaAcc: 0.4303 | TeAcc: 0.3928
+522,  0 | TrAcc: 0.5273, TrLoss:  1.49566, VaAcc: 0.4299, VaLoss:  1.96304
+ MAP NN | TrAcc: 0.5292 | VaAcc: 0.4316 | TeAcc: 0.3895
+ S NN | TrAcc: 0.5275 | VaAcc: 0.4260 | TeAcc: 0.3908
+523,  0 | TrAcc: 0.5293, TrLoss:  1.48095, VaAcc: 0.4281, VaLoss:  1.94296
+ MAP NN | TrAcc: 0.5306 | VaAcc: 0.4256 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5318 | VaAcc: 0.4291 | TeAcc: 0.3973
+524,  0 | TrAcc: 0.5340, TrLoss:  1.47853, VaAcc: 0.4324, VaLoss:  1.95403
+ MAP NN | TrAcc: 0.5334 | VaAcc: 0.4307 | TeAcc: 0.3992
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4326 | TeAcc: 0.4020
+525,  0 | TrAcc: 0.5297, TrLoss:  1.48592, VaAcc: 0.4207, VaLoss:  1.95003
+ MAP NN | TrAcc: 0.5304 | VaAcc: 0.4227 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5321 | VaAcc: 0.4283 | TeAcc: 0.3904
+526,  0 | TrAcc: 0.5356, TrLoss:  1.48282, VaAcc: 0.4244, VaLoss:  1.95506
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4287 | TeAcc: 0.3930
+ S NN | TrAcc: 0.5341 | VaAcc: 0.4285 | TeAcc: 0.3951
+527,  0 | TrAcc: 0.5297, TrLoss:  1.48967, VaAcc: 0.4270, VaLoss:  1.96188
+ MAP NN | TrAcc: 0.5313 | VaAcc: 0.4316 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5300 | VaAcc: 0.4289 | TeAcc: 0.3939
+528,  0 | TrAcc: 0.5319, TrLoss:  1.48903, VaAcc: 0.4262, VaLoss:  1.95887
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4277 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5309 | VaAcc: 0.4281 | TeAcc: 0.4002
+529,  0 | TrAcc: 0.5348, TrLoss:  1.48002, VaAcc: 0.4313, VaLoss:  1.95595
+ MAP NN | TrAcc: 0.5351 | VaAcc: 0.4334 | TeAcc: 0.3990
+ S NN | TrAcc: 0.5342 | VaAcc: 0.4324 | TeAcc: 0.3949
+530,  0 | TrAcc: 0.5329, TrLoss:  1.48740, VaAcc: 0.4295, VaLoss:  1.97284
+ MAP NN | TrAcc: 0.5322 | VaAcc: 0.4299 | TeAcc: 0.3982
+ S NN | TrAcc: 0.5337 | VaAcc: 0.4309 | TeAcc: 0.4002
+531,  0 | TrAcc: 0.5304, TrLoss:  1.49066, VaAcc: 0.4311, VaLoss:  1.95317
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4287 | TeAcc: 0.3936
+ S NN | TrAcc: 0.5353 | VaAcc: 0.4314 | TeAcc: 0.3936
+532,  0 | TrAcc: 0.5350, TrLoss:  1.48174, VaAcc: 0.4330, VaLoss:  1.94831
+ MAP NN | TrAcc: 0.5340 | VaAcc: 0.4334 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4320 | TeAcc: 0.3877
+533,  0 | TrAcc: 0.5333, TrLoss:  1.48570, VaAcc: 0.4266, VaLoss:  1.95981
+ MAP NN | TrAcc: 0.5330 | VaAcc: 0.4225 | TeAcc: 0.3963
+ S NN | TrAcc: 0.5313 | VaAcc: 0.4287 | TeAcc: 0.3996
+534,  0 | TrAcc: 0.5285, TrLoss:  1.49081, VaAcc: 0.4316, VaLoss:  1.95018
+ MAP NN | TrAcc: 0.5305 | VaAcc: 0.4318 | TeAcc: 0.3979
+ S NN | TrAcc: 0.5267 | VaAcc: 0.4303 | TeAcc: 0.3957
+535,  0 | TrAcc: 0.5306, TrLoss:  1.49144, VaAcc: 0.4309, VaLoss:  1.95135
+ MAP NN | TrAcc: 0.5328 | VaAcc: 0.4285 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4275 | TeAcc: 0.3955
+536,  0 | TrAcc: 0.5305, TrLoss:  1.49342, VaAcc: 0.4242, VaLoss:  1.98778
+ MAP NN | TrAcc: 0.5292 | VaAcc: 0.4240 | TeAcc: 0.3934
+ S NN | TrAcc: 0.5283 | VaAcc: 0.4184 | TeAcc: 0.3936
+537,  0 | TrAcc: 0.5323, TrLoss:  1.48925, VaAcc: 0.4283, VaLoss:  1.96924
+ MAP NN | TrAcc: 0.5338 | VaAcc: 0.4277 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5303 | VaAcc: 0.4295 | TeAcc: 0.3937
+538,  0 | TrAcc: 0.5304, TrLoss:  1.48790, VaAcc: 0.4246, VaLoss:  1.97150
+ MAP NN | TrAcc: 0.5342 | VaAcc: 0.4293 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5288 | VaAcc: 0.4279 | TeAcc: 0.3896
+539,  0 | TrAcc: 0.5332, TrLoss:  1.48533, VaAcc: 0.4281, VaLoss:  1.95700
+ MAP NN | TrAcc: 0.5316 | VaAcc: 0.4307 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5348 | VaAcc: 0.4271 | TeAcc: 0.3943
+540,  0 | TrAcc: 0.5367, TrLoss:  1.48101, VaAcc: 0.4305, VaLoss:  1.95683
+ MAP NN | TrAcc: 0.5392 | VaAcc: 0.4328 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5337 | VaAcc: 0.4307 | TeAcc: 0.3969
+541,  0 | TrAcc: 0.5340, TrLoss:  1.48415, VaAcc: 0.4289, VaLoss:  1.97175
+ MAP NN | TrAcc: 0.5384 | VaAcc: 0.4322 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5348 | VaAcc: 0.4320 | TeAcc: 0.3885
+542,  0 | TrAcc: 0.5297, TrLoss:  1.48754, VaAcc: 0.4314, VaLoss:  1.96580
+ MAP NN | TrAcc: 0.5310 | VaAcc: 0.4311 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4355 | TeAcc: 0.3939
+543,  0 | TrAcc: 0.5325, TrLoss:  1.49183, VaAcc: 0.4283, VaLoss:  1.97185
+ MAP NN | TrAcc: 0.5319 | VaAcc: 0.4340 | TeAcc: 0.3965
+ S NN | TrAcc: 0.5296 | VaAcc: 0.4324 | TeAcc: 0.3932
+544,  0 | TrAcc: 0.5327, TrLoss:  1.48857, VaAcc: 0.4283, VaLoss:  1.96858
+ MAP NN | TrAcc: 0.5310 | VaAcc: 0.4219 | TeAcc: 0.3918
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4297 | TeAcc: 0.3965
+545,  0 | TrAcc: 0.5295, TrLoss:  1.48639, VaAcc: 0.4295, VaLoss:  1.95612
+ MAP NN | TrAcc: 0.5321 | VaAcc: 0.4311 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5296 | VaAcc: 0.4273 | TeAcc: 0.3937
+546,  0 | TrAcc: 0.5317, TrLoss:  1.49109, VaAcc: 0.4260, VaLoss:  1.95921
+ MAP NN | TrAcc: 0.5323 | VaAcc: 0.4289 | TeAcc: 0.3898
+ S NN | TrAcc: 0.5342 | VaAcc: 0.4316 | TeAcc: 0.3898
+547,  0 | TrAcc: 0.5350, TrLoss:  1.47905, VaAcc: 0.4318, VaLoss:  1.95492
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4307 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5359 | VaAcc: 0.4324 | TeAcc: 0.3965
+548,  0 | TrAcc: 0.5349, TrLoss:  1.48146, VaAcc: 0.4275, VaLoss:  1.96818
+ MAP NN | TrAcc: 0.5354 | VaAcc: 0.4244 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5343 | VaAcc: 0.4309 | TeAcc: 0.3936
+549,  0 | TrAcc: 0.5325, TrLoss:  1.48325, VaAcc: 0.4311, VaLoss:  1.95871
+ MAP NN | TrAcc: 0.5339 | VaAcc: 0.4313 | TeAcc: 0.3926
+ S NN | TrAcc: 0.5312 | VaAcc: 0.4301 | TeAcc: 0.3879
+550,  0 | TrAcc: 0.5319, TrLoss:  1.49445, VaAcc: 0.4279, VaLoss:  1.97422
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4279 | TeAcc: 0.3932
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4260 | TeAcc: 0.3941
+551,  0 | TrAcc: 0.5358, TrLoss:  1.47504, VaAcc: 0.4328, VaLoss:  1.96131
+ MAP NN | TrAcc: 0.5384 | VaAcc: 0.4307 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5386 | VaAcc: 0.4318 | TeAcc: 0.3934
+552,  0 | TrAcc: 0.5340, TrLoss:  1.48677, VaAcc: 0.4252, VaLoss:  1.97155
+ MAP NN | TrAcc: 0.5365 | VaAcc: 0.4275 | TeAcc: 0.3937
+ S NN | TrAcc: 0.5356 | VaAcc: 0.4287 | TeAcc: 0.3918
+553,  0 | TrAcc: 0.5337, TrLoss:  1.48125, VaAcc: 0.4295, VaLoss:  1.96649
+ MAP NN | TrAcc: 0.5347 | VaAcc: 0.4273 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5359 | VaAcc: 0.4268 | TeAcc: 0.3918
+554,  0 | TrAcc: 0.5280, TrLoss:  1.49355, VaAcc: 0.4326, VaLoss:  1.96306
+ MAP NN | TrAcc: 0.5267 | VaAcc: 0.4383 | TeAcc: 0.3891
+ S NN | TrAcc: 0.5301 | VaAcc: 0.4371 | TeAcc: 0.3912
+555,  0 | TrAcc: 0.5341, TrLoss:  1.48190, VaAcc: 0.4320, VaLoss:  1.95802
+ MAP NN | TrAcc: 0.5351 | VaAcc: 0.4281 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4268 | TeAcc: 0.3920
+556,  0 | TrAcc: 0.5323, TrLoss:  1.48067, VaAcc: 0.4350, VaLoss:  1.95061
+ MAP NN | TrAcc: 0.5338 | VaAcc: 0.4342 | TeAcc: 0.3949
+ S NN | TrAcc: 0.5350 | VaAcc: 0.4307 | TeAcc: 0.3926
+557,  0 | TrAcc: 0.5373, TrLoss:  1.47304, VaAcc: 0.4369, VaLoss:  1.95460
+ MAP NN | TrAcc: 0.5369 | VaAcc: 0.4355 | TeAcc: 0.3900
+ S NN | TrAcc: 0.5385 | VaAcc: 0.4354 | TeAcc: 0.3881
+558,  0 | TrAcc: 0.5330, TrLoss:  1.48168, VaAcc: 0.4275, VaLoss:  1.96245
+ MAP NN | TrAcc: 0.5339 | VaAcc: 0.4268 | TeAcc: 0.3988
+ S NN | TrAcc: 0.5348 | VaAcc: 0.4275 | TeAcc: 0.3965
+559,  0 | TrAcc: 0.5339, TrLoss:  1.47876, VaAcc: 0.4289, VaLoss:  1.96772
+ MAP NN | TrAcc: 0.5352 | VaAcc: 0.4260 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5343 | VaAcc: 0.4256 | TeAcc: 0.3937
+560,  0 | TrAcc: 0.5349, TrLoss:  1.47540, VaAcc: 0.4324, VaLoss:  1.95272
+ MAP NN | TrAcc: 0.5401 | VaAcc: 0.4350 | TeAcc: 0.3865
+ S NN | TrAcc: 0.5390 | VaAcc: 0.4357 | TeAcc: 0.3852
+561,  0 | TrAcc: 0.5367, TrLoss:  1.47850, VaAcc: 0.4252, VaLoss:  1.96953
+ MAP NN | TrAcc: 0.5389 | VaAcc: 0.4266 | TeAcc: 0.3973
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4219 | TeAcc: 0.3979
+562,  0 | TrAcc: 0.5293, TrLoss:  1.49547, VaAcc: 0.4291, VaLoss:  1.95443
+ MAP NN | TrAcc: 0.5335 | VaAcc: 0.4291 | TeAcc: 0.3881
+ S NN | TrAcc: 0.5337 | VaAcc: 0.4229 | TeAcc: 0.3896
+563,  0 | TrAcc: 0.5323, TrLoss:  1.48734, VaAcc: 0.4299, VaLoss:  1.97048
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4336 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5330 | VaAcc: 0.4252 | TeAcc: 0.3990
+564,  0 | TrAcc: 0.5377, TrLoss:  1.47620, VaAcc: 0.4301, VaLoss:  1.94662
+ MAP NN | TrAcc: 0.5393 | VaAcc: 0.4328 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5374 | VaAcc: 0.4387 | TeAcc: 0.3986
+565,  0 | TrAcc: 0.5343, TrLoss:  1.48152, VaAcc: 0.4291, VaLoss:  1.96496
+ MAP NN | TrAcc: 0.5366 | VaAcc: 0.4332 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5316 | VaAcc: 0.4307 | TeAcc: 0.3926
+566,  0 | TrAcc: 0.5349, TrLoss:  1.47977, VaAcc: 0.4256, VaLoss:  1.97308
+ MAP NN | TrAcc: 0.5359 | VaAcc: 0.4266 | TeAcc: 0.3949
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4191 | TeAcc: 0.3982
+567,  0 | TrAcc: 0.5399, TrLoss:  1.47504, VaAcc: 0.4252, VaLoss:  1.96908
+ MAP NN | TrAcc: 0.5394 | VaAcc: 0.4291 | TeAcc: 0.3961
+ S NN | TrAcc: 0.5382 | VaAcc: 0.4354 | TeAcc: 0.3910
+568,  0 | TrAcc: 0.5310, TrLoss:  1.49065, VaAcc: 0.4318, VaLoss:  1.96265
+ MAP NN | TrAcc: 0.5331 | VaAcc: 0.4299 | TeAcc: 0.3922
+ S NN | TrAcc: 0.5321 | VaAcc: 0.4350 | TeAcc: 0.4014
+569,  0 | TrAcc: 0.5363, TrLoss:  1.48004, VaAcc: 0.4314, VaLoss:  1.96603
+ MAP NN | TrAcc: 0.5397 | VaAcc: 0.4320 | TeAcc: 0.3951
+ S NN | TrAcc: 0.5374 | VaAcc: 0.4314 | TeAcc: 0.3922
+570,  0 | TrAcc: 0.5326, TrLoss:  1.48721, VaAcc: 0.4348, VaLoss:  1.95067
+ MAP NN | TrAcc: 0.5338 | VaAcc: 0.4326 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5356 | VaAcc: 0.4334 | TeAcc: 0.3971
+571,  0 | TrAcc: 0.5385, TrLoss:  1.47287, VaAcc: 0.4361, VaLoss:  1.94753
+ MAP NN | TrAcc: 0.5388 | VaAcc: 0.4330 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5364 | VaAcc: 0.4322 | TeAcc: 0.3949
+572,  0 | TrAcc: 0.5369, TrLoss:  1.47093, VaAcc: 0.4281, VaLoss:  1.96151
+ MAP NN | TrAcc: 0.5385 | VaAcc: 0.4297 | TeAcc: 0.3977
+ S NN | TrAcc: 0.5367 | VaAcc: 0.4342 | TeAcc: 0.3977
+573,  0 | TrAcc: 0.5364, TrLoss:  1.47412, VaAcc: 0.4314, VaLoss:  1.95634
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4350 | TeAcc: 0.3969
+ S NN | TrAcc: 0.5383 | VaAcc: 0.4313 | TeAcc: 0.3992
+574,  0 | TrAcc: 0.5337, TrLoss:  1.48132, VaAcc: 0.4322, VaLoss:  1.95349
+ MAP NN | TrAcc: 0.5359 | VaAcc: 0.4332 | TeAcc: 0.3914
+ S NN | TrAcc: 0.5318 | VaAcc: 0.4256 | TeAcc: 0.3936
+575,  0 | TrAcc: 0.5326, TrLoss:  1.48720, VaAcc: 0.4305, VaLoss:  1.97280
+ MAP NN | TrAcc: 0.5339 | VaAcc: 0.4318 | TeAcc: 0.3879
+ S NN | TrAcc: 0.5354 | VaAcc: 0.4309 | TeAcc: 0.3988
+576,  0 | TrAcc: 0.5334, TrLoss:  1.47876, VaAcc: 0.4256, VaLoss:  1.97156
+ MAP NN | TrAcc: 0.5368 | VaAcc: 0.4256 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5340 | VaAcc: 0.4293 | TeAcc: 0.4025
+577,  0 | TrAcc: 0.5293, TrLoss:  1.50063, VaAcc: 0.4365, VaLoss:  1.96832
+ MAP NN | TrAcc: 0.5301 | VaAcc: 0.4316 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5251 | VaAcc: 0.4324 | TeAcc: 0.3914
+578,  0 | TrAcc: 0.5335, TrLoss:  1.48144, VaAcc: 0.4264, VaLoss:  1.96082
+ MAP NN | TrAcc: 0.5315 | VaAcc: 0.4244 | TeAcc: 0.3916
+ S NN | TrAcc: 0.5329 | VaAcc: 0.4248 | TeAcc: 0.3895
+579,  0 | TrAcc: 0.5321, TrLoss:  1.48851, VaAcc: 0.4350, VaLoss:  1.96102
+ MAP NN | TrAcc: 0.5317 | VaAcc: 0.4299 | TeAcc: 0.3906
+ S NN | TrAcc: 0.5310 | VaAcc: 0.4352 | TeAcc: 0.3883
+580,  0 | TrAcc: 0.5340, TrLoss:  1.48595, VaAcc: 0.4275, VaLoss:  1.96364
+ MAP NN | TrAcc: 0.5342 | VaAcc: 0.4287 | TeAcc: 0.3947
+ S NN | TrAcc: 0.5358 | VaAcc: 0.4234 | TeAcc: 0.3959
+581,  0 | TrAcc: 0.5288, TrLoss:  1.49120, VaAcc: 0.4289, VaLoss:  1.95656
+ MAP NN | TrAcc: 0.5294 | VaAcc: 0.4279 | TeAcc: 0.3918
+ S NN | TrAcc: 0.5298 | VaAcc: 0.4285 | TeAcc: 0.3986
+582,  0 | TrAcc: 0.5341, TrLoss:  1.48302, VaAcc: 0.4295, VaLoss:  1.95841
+ MAP NN | TrAcc: 0.5353 | VaAcc: 0.4334 | TeAcc: 0.4000
+ S NN | TrAcc: 0.5366 | VaAcc: 0.4318 | TeAcc: 0.3990
+583,  0 | TrAcc: 0.5322, TrLoss:  1.48857, VaAcc: 0.4275, VaLoss:  1.96133
+ MAP NN | TrAcc: 0.5352 | VaAcc: 0.4307 | TeAcc: 0.3986
+ S NN | TrAcc: 0.5317 | VaAcc: 0.4277 | TeAcc: 0.4004
+584,  0 | TrAcc: 0.5356, TrLoss:  1.47936, VaAcc: 0.4338, VaLoss:  1.95448
+ MAP NN | TrAcc: 0.5361 | VaAcc: 0.4291 | TeAcc: 0.3943
+ S NN | TrAcc: 0.5356 | VaAcc: 0.4313 | TeAcc: 0.3939
+585,  0 | TrAcc: 0.5360, TrLoss:  1.47676, VaAcc: 0.4365, VaLoss:  1.95284
+ MAP NN | TrAcc: 0.5356 | VaAcc: 0.4350 | TeAcc: 0.3953
+ S NN | TrAcc: 0.5351 | VaAcc: 0.4406 | TeAcc: 0.3992
+586,  0 | TrAcc: 0.5368, TrLoss:  1.47823, VaAcc: 0.4367, VaLoss:  1.95317
+ MAP NN | TrAcc: 0.5398 | VaAcc: 0.4346 | TeAcc: 0.3967
+ S NN | TrAcc: 0.5339 | VaAcc: 0.4348 | TeAcc: 0.4002
+587,  0 | TrAcc: 0.5327, TrLoss:  1.48447, VaAcc: 0.4326, VaLoss:  1.95305
+ MAP NN | TrAcc: 0.5335 | VaAcc: 0.4330 | TeAcc: 0.3920
+ S NN | TrAcc: 0.5346 | VaAcc: 0.4334 | TeAcc: 0.3959
+588,  0 | TrAcc: 0.5389, TrLoss:  1.47226, VaAcc: 0.4361, VaLoss:  1.94843
+ MAP NN | TrAcc: 0.5363 | VaAcc: 0.4381 | TeAcc: 0.3941
+ S NN | TrAcc: 0.5373 | VaAcc: 0.4406 | TeAcc: 0.3955
+589,  0 | TrAcc: 0.5345, TrLoss:  1.47771, VaAcc: 0.4365, VaLoss:  1.95213
+ MAP NN | TrAcc: 0.5347 | VaAcc: 0.4357 | TeAcc: 0.3945
+ S NN | TrAcc: 0.5343 | VaAcc: 0.4336 | TeAcc: 0.3973
+590,  0 | TrAcc: 0.5368, TrLoss:  1.46980, VaAcc: 0.4346, VaLoss:  1.95068
+ MAP NN | TrAcc: 0.5382 | VaAcc: 0.4342 | TeAcc: 0.3898
+ S NN | TrAcc: 0.5362 | VaAcc: 0.4338 | TeAcc: 0.3924
+591,  0 | TrAcc: 0.5290, TrLoss:  1.49367, VaAcc: 0.4313, VaLoss:  1.95643
+ MAP NN | TrAcc: 0.5311 | VaAcc: 0.4320 | TeAcc: 0.3873
+ S NN | TrAcc: 0.5289 | VaAcc: 0.4283 | TeAcc: 0.3924
+592,  0 | TrAcc: 0.5315, TrLoss:  1.48550, VaAcc: 0.4369, VaLoss:  1.94202
+ MAP NN | TrAcc: 0.5335 | VaAcc: 0.4311 | TeAcc: 0.3955
+ S NN | TrAcc: 0.5303 | VaAcc: 0.4404 | TeAcc: 0.3949
+593,  0 | TrAcc: 0.5299, TrLoss:  1.48408, VaAcc: 0.4344, VaLoss:  1.95033
+ MAP NN | TrAcc: 0.5293 | VaAcc: 0.4383 | TeAcc: 0.3918
+ S NN | TrAcc: 0.5311 | VaAcc: 0.4410 | TeAcc: 0.3920
+594,  0 | TrAcc: 0.5247, TrLoss:  1.50300, VaAcc: 0.4322, VaLoss:  1.96554
+ MAP NN | TrAcc: 0.5277 | VaAcc: 0.4305 | TeAcc: 0.3908
+ S NN | TrAcc: 0.5272 | VaAcc: 0.4277 | TeAcc: 0.3924
+595,  0 | TrAcc: 0.5339, TrLoss:  1.48266, VaAcc: 0.4314, VaLoss:  1.95522
+ MAP NN | TrAcc: 0.5326 | VaAcc: 0.4354 | TeAcc: 0.3924
+ S NN | TrAcc: 0.5332 | VaAcc: 0.4340 | TeAcc: 0.3967
+596,  0 | TrAcc: 0.5278, TrLoss:  1.50238, VaAcc: 0.4377, VaLoss:  1.95234
+ MAP NN | TrAcc: 0.5287 | VaAcc: 0.4381 | TeAcc: 0.3984
+ S NN | TrAcc: 0.5299 | VaAcc: 0.4387 | TeAcc: 0.3988
+597,  0 | TrAcc: 0.5278, TrLoss:  1.50122, VaAcc: 0.4316, VaLoss:  1.96944
+ MAP NN | TrAcc: 0.5287 | VaAcc: 0.4309 | TeAcc: 0.3957
+ S NN | TrAcc: 0.5282 | VaAcc: 0.4350 | TeAcc: 0.3943
+598,  0 | TrAcc: 0.5288, TrLoss:  1.49692, VaAcc: 0.4395, VaLoss:  1.95272
+ MAP NN | TrAcc: 0.5313 | VaAcc: 0.4402 | TeAcc: 0.3975
+ S NN | TrAcc: 0.5267 | VaAcc: 0.4375 | TeAcc: 0.3959
+599,  0 | TrAcc: 0.5241, TrLoss:  1.50095, VaAcc: 0.4316, VaLoss:  1.97805
+ MAP NN | TrAcc: 0.5255 | VaAcc: 0.4316 | TeAcc: 0.3885
+ S NN | TrAcc: 0.5264 | VaAcc: 0.4299 | TeAcc: 0.3928
+Results for va_s
+Metric: acc   
+ 45.02 % in iteration  110
+Metric: loss  
+Results for va_b
+Metric: elogl 
+ 5.891 in iteration    0
+Metric: acc   
+ 44.94 % in iteration  174
+EARLY STOP FOR te_s
+ 39.51 % in iteration  110
