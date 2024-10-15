@@ -10,15 +10,20 @@ from src.configuration.constants import ActivationFunctionsC, GraphCreationKeys
 
 @tf.custom_gradient
 def disc_sigmoid(act, n_bins):
+    n_bins = tf.cast(n_bins, dtype=tf.float32)
     s_act = tf.sigmoid(act)
-    disc_output = tf.cast(tf.cast(s_act*n_bins, dtype=tf.int32), dtype=tf.float32) / n_bins
+    disc_output = tf.round(s_act * n_bins - 0.5) / (n_bins - 1)
+    disc_output = tf.clip_by_value(disc_output, 0., 1.)
 
     def grad(dy):
         return dy * tf.multiply(s_act, 1-s_act), tf.zeros_like(n_bins)
 
     return disc_output, grad
 
+def disc_tanh(act, n_bins):
+    return disc_sigmoid(act, n_bins) * 2 - 1.
 
+"""
 @tf.custom_gradient
 def disc_tanh(act, n_bins):
     disc_output = tf.cast(tf.cast(tf.sigmoid(act) * n_bins, dtype=tf.int32), dtype=tf.float32) * 2 / n_bins - 1
@@ -27,7 +32,7 @@ def disc_tanh(act, n_bins):
         return dy * (1 - tf.square(tf.tanh(act))), tf.zeros_like(n_bins)
 
     return disc_output, grad
-
+"""
 
 class LSTMLayer:
     def __init__(self, layer_idx, is_training, tau, bidirectional_inp=False, prev_neurons=None):
@@ -205,7 +210,10 @@ class LSTMLayer:
             o = tf.sigmoid(o_act)
 
         self.weights.tensor_dict['cs'] = tf.multiply(f, self.weights.tensor_dict['cs']) + tf.multiply(i, c)
-        self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
+        if self.layer_config.i_gate_config.is_act_func_discrete:
+            self.weights.tensor_dict['co'] = tf.multiply(o, self.weights.tensor_dict['cs'])
+        else:
+            self.weights.tensor_dict['co'] = tf.multiply(o, tf.tanh(self.weights.tensor_dict['cs']))
         return self.weights.tensor_dict['co'], self.weights.tensor_dict['cs']
 
     def create_var_fp(self, x, do_initialize, timestep, **kwargs):
@@ -253,24 +261,20 @@ class LSTMLayer:
 
         if self.layer_config.i_gate_config.is_act_func_discrete:
             n_act_bins = self.layer_config.i_gate_config.n_act_bins
-            i = tf.cast(tf.cast(tf.sigmoid(i_act) * n_act_bins, dtype=tf.int32), dtype=tf.float32) / n_act_bins
-            if get_info_config()['cell_access']:
-                self.cell_access_mat.append(i)
-
+            i = disc_sigmoid(i_act, n_act_bins)
         else:
             i = tf.sigmoid(i_act)
         f = 1. - i
 
         if self.layer_config.c_gate_config.is_act_func_discrete:
             n_act_bins = self.layer_config.c_gate_config.n_act_bins
-            c = tf.cast(tf.cast(tf.sigmoid(c_act) * n_act_bins, dtype=tf.int32), dtype=tf.float32) * \
-                2 / n_act_bins - 1
+            c = disc_tanh(c_act, n_act_bins)
         else:
             c = tf.tanh(c_act)
 
         if self.layer_config.o_gate_config.is_act_func_discrete:
             n_act_bins = self.layer_config.o_gate_config.n_act_bins
-            o = tf.cast(tf.cast(tf.sigmoid(o_act) * n_act_bins, dtype=tf.int32), dtype=tf.float32) / n_act_bins
+            o = disc_sigmoid(o_act, n_act_bins)
         else:
             o = tf.sigmoid(o_act)
 

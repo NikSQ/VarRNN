@@ -75,7 +75,7 @@ def get_logit_params_from_probs(probs):
         return log_neg, log_zer, log_pos
 
 
-def get_bin_prob_from_pretrained(weight, w_config):
+def get_bin_prob_from_pretrained_paper(weight, w_config):
     return tf.clip_by_value(.5 * (1. + weight),
                             w_config.from_pretrained_init_p_min,
                             w_config.from_pretrained_init_p_max)
@@ -534,12 +534,20 @@ class Weights:
                 if not var_key.startswith('w'):
                     raise Exception()
 
-                if not dirich:
+                if self.w_config[var_key].init_from_pretrain_type == WeightC.INIT_PRETRAIN_PAPER:
                     init_weights = self.normalize_weights(var_key)
-                    prob_1 = get_bin_prob_from_pretrained(init_weights, self.w_config[var_key])
-                else:
-                    probs = get_bin_prob_from_dirich_pretrained(self.var_dict[var_key])
-                    prob_1 = probs[:, :, 1]
+                    prob_1 = get_bin_prob_from_pretrained_paper(init_weights, self.w_config[var_key])
+                elif self.w_config[var_key].init_from_pretrain_type == WeightC.INIT_PRETRAIN_SMOOTH:
+                    raise Exception()
+                    probs = get_ter_prob_from_pretrained_smooth(self.var_dict[var_key])
+                    prob_0 = probs[:, :, 1]
+                    prob_1 = probs[:, :, 2]
+                elif self.w_config[var_key].init_from_pretrain_type == WeightC.INIT_PRETRAIN_HARD:
+                    raise Exception()
+                    probs = get_ter_prob_from_pretrained_hard(self.var_dict[var_key])
+                    prob_0 = probs[:, :, 1]
+                    prob_1 = probs[:, :, 2]
+
 
                 if self.check_w_param(var_key, parametrization=WeightC.SIGMOID):
                     sb_var_name = get_var_name(var_key, VarNames.SIGMOID_B)

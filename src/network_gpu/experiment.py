@@ -232,11 +232,14 @@ class Experiment:
         rnn_gradients = []
         for gradient, var in zip(self.rnn.gradients, self.rnn.vars):
             if gradient is not None:
-                rnn_gradients.append(gradient)
-                vars.append(var)
+                if "/w" in var.name:
+                    print(var.name)
+                    rnn_gradients.append(gradient)
+                    vars.append(var)
 
         gradient_1st_mom = []
         gradient_2nd_mom = []
+        outer_prod = None
         samples = np.zeros((3,))
         for gradient_idx in range(n_gradients):
             sess.run(self.rnn.c_arm_sample_op)
@@ -245,6 +248,8 @@ class Experiment:
                                                      self.rnn.tau: gumbel_tau})
             if gradient_idx % 500 == 0:
                 print("Processed: " + str(gradient_idx))
+            
+            gradient = [val.astype(np.float64) for val in gradient]
 
             if len(gradient_1st_mom) == 0:
                 for idx, val in enumerate(gradient):
@@ -254,6 +259,14 @@ class Experiment:
                 for idx, val in enumerate(gradient):
                     gradient_1st_mom[idx] += val
                     gradient_2nd_mom[idx] += np.square(val)
+                
+            gradient = [g.flatten() for g in gradient]
+            gradient = np.concatenate(gradient, axis=0) 
+            if outer_prod is None:
+                outer_prod = np.outer(gradient, gradient)
+            else:
+                outer_prod += np.outer(gradient, gradient)
+
 
 
         for idx in range(len(gradient_1st_mom)):
@@ -264,6 +277,17 @@ class Experiment:
             suffix = '_' + var.name[:var.name.index('/')] + '_' + var.name[var.name.index('/')+1:-2] + '_' + str(self.task_id) + '.npy'
             np.save(file='../nr_grads/ge' + suffix, arr=gradient_1st_mom[idx])
             np.save(file='../nr_grads/gsqe' + suffix, arr=gradient_2nd_mom[idx])
+        
+        gradient_1st_mom = [g.flatten() for g in gradient_1st_mom]
+        gradient_2nd_mom = [g.flatten() for g in gradient_2nd_mom]
+        mean = np.concatenate(gradient_1st_mom, axis=0)
+        sum_squares = np.concatenate(gradient_2nd_mom, axis=0)
+        cov = (outer_prod - n_gradients * np.outer(mean, mean)) / (n_gradients - 1)
+        np.save(file='../nr_grads/mean_' + str(self.task_id) + '.npy', arr=mean)
+        np.save(file='../nr_grads/cov_' + str(self.task_id) + '.npy', arr=cov)
+        np.save(file='../nr_grads/squares_' + str(self.task_id) + '.npy', arr=sum_squares)
+
+
         exit()
 
 

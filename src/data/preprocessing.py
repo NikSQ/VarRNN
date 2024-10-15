@@ -75,7 +75,8 @@ def extract_sequences(dataset_dict, dataset_config):
         seqlens_new = np.concatenate(seqlens_list, axis=0)
         return x_new, y_new, seqlens_new
 
-    raise Exception("Not implemented")
+    return x, y, seqlens
+    #raise Exception("Not implemented")
 
 
 # DEPRECATED

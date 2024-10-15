@@ -1,9 +1,46 @@
-from src.data.pathes import get_mnist_path
+from src.data.pathes import get_mnist_path, get_sign_path, get_timit_path
 
 
 class DataConfig:
     def __init__(self):
         self.ds_configs = {}
+    
+    def add_timit(self,
+                        data_keys=["tr", "va", "te"],
+                        key_map={"tr": "tr", "va": "va", "te": "te"},
+                        minibatch_enabled=True,
+                        minibatch_size=1024,
+                        in_seq_len=20,
+                        remove_bias=False):
+        for data_key in data_keys:
+            dataset_config = DatasetConfig(filename=get_timit_path(key_map[data_key], processing_type='all'),
+                                           data_key=data_key,
+                                           in_seq_len=in_seq_len,
+                                           minibatch_enabled=minibatch_enabled,
+                                           minibatch_size=minibatch_size,
+                                           remove_bias=remove_bias,
+                                           do_shuffle=(key_map[data_key] == "tr"),
+                                           shuffle_buffer=4096)
+            self.ds_configs[data_key] = dataset_config
+
+    def add_sign(self,
+                        data_keys=["tr", "va", "te"],
+                        key_map={"tr": "tr", "va": "va", "te": "te"},
+                        minibatch_enabled=True,
+                        minibatch_size=1024,
+                        in_seq_len=70,
+                        remove_bias=False):
+        for data_key in data_keys:
+            dataset_config = DatasetConfig(filename=get_sign_path(key_map[data_key], processing_type='all'),
+                                           data_key=data_key,
+                                           in_seq_len=in_seq_len,
+                                           minibatch_enabled=minibatch_enabled,
+                                           minibatch_size=minibatch_size,
+                                           remove_bias=remove_bias,
+                                           do_shuffle=(key_map[data_key] == "tr"),
+                                           shuffle_buffer=4096)
+            self.ds_configs[data_key] = dataset_config
+
 
     def add_mnist_small(self,
                         data_keys=["tr", "va", "te"],
